@@ -7,18 +7,18 @@ import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/componen
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import type { Flashcard, PerformanceRating } from '@/types';
 import { useToast } from '@/hooks/use-toast';
-import { RefreshCw, CheckCircle2, SkipForward, RotateCcw, Info, PlayCircle, ThumbsUp, PlusCircle } from 'lucide-react';
+import { RefreshCw, CheckCircle2, SkipForward, RotateCcw, Info, PlayCircle, ThumbsUp, PlusCircle, Layers, LayoutDashboard } from 'lucide-react';
 import { formatISO, parseISO, addDays } from 'date-fns';
 import Link from 'next/link';
 
 const MASTERED_MULTIPLIER = 2;
-const LATER_MULTIPLIER = 1.3; // Or 1.2, 1.5 etc. Can be tuned.
+const LATER_MULTIPLIER = 1.3;
 const TRY_AGAIN_INTERVAL = 1; // 1 day
 const MIN_INTERVAL = 1; // 1 day
 const MAX_INTERVAL = 365; // 1 year
 
 export default function ReviewModeClient() {
-  const { getReviewQueue, updateFlashcard } = useFlashcards();
+  const { getReviewQueue, updateFlashcard, flashcards: allFlashcardsFromContext } = useFlashcards();
   const [reviewQueue, setReviewQueue] = useState<Flashcard[]>([]);
   const [currentCardIndex, setCurrentCardIndex] = useState(0);
   const [isFlipped, setIsFlipped] = useState(false);
@@ -28,18 +28,19 @@ export default function ReviewModeClient() {
 
   const currentCard = reviewQueue[currentCardIndex];
 
-  const loadReviewQueue = useCallback(() => {
+  const loadSpacedRepetitionQueue = useCallback(() => {
     const queue = getReviewQueue();
     setReviewQueue(queue);
     setCurrentCardIndex(0);
     setIsFlipped(false);
   }, [getReviewQueue]);
 
-  useEffect(() => {
-    if (isSessionStarted) {
-      loadReviewQueue();
-    }
-  }, [isSessionStarted, loadReviewQueue]);
+  // Removed useEffect that was here:
+  // useEffect(() => {
+  //   if (isSessionStarted) {
+  //     loadSpacedRepetitionQueue(); // This was causing issues with "Review All"
+  //   }
+  // }, [isSessionStarted, loadSpacedRepetitionQueue]);
 
   const handleFlip = () => {
     setIsFlipped(!isFlipped);
@@ -66,13 +67,10 @@ export default function ReviewModeClient() {
           break;
       }
 
-      // Clamp interval
       newInterval = Math.max(MIN_INTERVAL, Math.min(newInterval, MAX_INTERVAL));
-
       const nextReviewDate = addDays(currentDate, newInterval);
       const nextReviewDateString = formatISO(nextReviewDate, { representation: 'date' });
       const lastReviewedDateString = formatISO(currentDate, { representation: 'date' });
-      
       const newStatus = performance === 'Mastered' ? 'mastered' : 'learning';
 
       updateFlashcard(currentCard.id, {
@@ -84,15 +82,15 @@ export default function ReviewModeClient() {
 
       toast({
         title: "Progress Saved",
-        description: `Card marked as "${performance}". Next review on ${new Date(nextReviewDateString  + 'T00:00:00').toLocaleDateString()}.`,
+        description: `Card marked as "${performance}". Next review on ${new Date(nextReviewDateString + 'T00:00:00').toLocaleDateString()}.`,
       });
 
       if (currentCardIndex < reviewQueue.length - 1) {
         setCurrentCardIndex(currentCardIndex + 1);
         setIsFlipped(false);
       } else {
-        // Re-load queue to see if there are more cards or to show session complete message
-        loadReviewQueue(); 
+        // End of current queue. Clear queue to show "Session Complete!" screen.
+        setReviewQueue([]);
       }
     } catch (error) {
       console.error("Error updating flashcard schedule:", error);
@@ -106,55 +104,120 @@ export default function ReviewModeClient() {
       setIsLoading(false);
     }
   };
-  
+
   if (!isSessionStarted) {
-    const initialQueue = getReviewQueue();
+    const initialSpacedRepetitionQueue = getReviewQueue();
+
+    if (allFlashcardsFromContext.length === 0) {
+      return (
+        <div className="flex flex-col items-center justify-center min-h-[calc(100vh-10rem)] p-4 text-center">
+          <ThumbsUp className="w-24 h-24 text-green-500 mb-6" />
+          <h2 className="text-3xl font-semibold mb-4">No Flashcards Yet!</h2>
+          <p className="text-muted-foreground mb-8 text-lg">
+            Create some flashcards to start your learning journey.
+          </p>
+          <Link href="/flashcards/new" passHref>
+            <Button size="lg" className="text-xl py-8 px-10 shadow-lg">
+              <PlusCircle className="mr-3 h-6 w-6" /> Create Flashcards
+            </Button>
+          </Link>
+        </div>
+      );
+    }
+
     return (
       <div className="flex flex-col items-center justify-center min-h-[calc(100vh-10rem)] p-4 text-center">
-        {initialQueue.length > 0 ? (
-          <>
-            <PlayCircle className="w-24 h-24 text-primary mb-6" />
-            <h2 className="text-3xl font-semibold mb-4">Ready to Review?</h2>
-            <p className="text-muted-foreground mb-8 text-lg">
-              You have <span className="font-bold text-primary">{initialQueue.length}</span> card(s) due for review.
-            </p>
-            <Button size="lg" onClick={() => setIsSessionStarted(true)} className="text-xl py-8 px-10 shadow-lg">
-              Start Review Session
-            </Button>
-          </>
+        <PlayCircle className="w-24 h-24 text-primary mb-6" />
+        <h2 className="text-3xl font-semibold mb-4">Ready to Review?</h2>
+
+        {initialSpacedRepetitionQueue.length > 0 ? (
+          <p className="text-muted-foreground mb-4 text-lg">
+            You have <span className="font-bold text-primary">{initialSpacedRepetitionQueue.length}</span> card(s) due for spaced repetition.
+          </p>
         ) : (
-          <>
-            <ThumbsUp className="w-24 h-24 text-green-500 mb-6" />
-            <h2 className="text-3xl font-semibold mb-4">All Caught Up!</h2>
-            <p className="text-muted-foreground mb-8 text-lg">
-              You have no cards due for review right now. Great job!
+          <p className="text-muted-foreground mb-4 text-lg">
+            No cards are currently due for spaced repetition.
+          </p>
+        )}
+
+        <Button
+          size="lg"
+          onClick={() => {
+            loadSpacedRepetitionQueue();
+            setIsSessionStarted(true);
+          }}
+          className="text-xl py-6 px-8 shadow-lg mb-4 w-full max-w-xs sm:max-w-sm md:max-w-md"
+          disabled={initialSpacedRepetitionQueue.length === 0}
+        >
+          <PlayCircle className="mr-3 h-6 w-6" />
+          Start Spaced Repetition ({initialSpacedRepetitionQueue.length})
+        </Button>
+
+        <Button
+          size="lg"
+          variant="outline"
+          onClick={() => {
+            const shuffledAllCards = [...allFlashcardsFromContext].sort(() => Math.random() - 0.5);
+            setReviewQueue(shuffledAllCards);
+            setCurrentCardIndex(0);
+            setIsFlipped(false);
+            setIsSessionStarted(true);
+          }}
+          className="text-xl py-6 px-8 shadow-lg w-full max-w-xs sm:max-w-sm md:max-w-md"
+        >
+          <Layers className="mr-3 h-6 w-6" />
+          Review All Cards ({allFlashcardsFromContext.length})
+        </Button>
+         {initialSpacedRepetitionQueue.length === 0 && allFlashcardsFromContext.length > 0 && (
+             <p className="text-muted-foreground mt-8 text-sm">
+                Tip: Create more cards or wait for scheduled reviews for the spaced repetition mode.
             </p>
-            <Link href="/flashcards/new" passHref>
-              <Button size="lg" className="text-xl py-8 px-10 shadow-lg">
-                 <PlusCircle className="mr-3 h-6 w-6" /> Create More Cards
-              </Button>
-            </Link>
-          </>
         )}
       </div>
     );
   }
 
+  if (reviewQueue.length === 0 && isSessionStarted) {
+    const srQueueCount = getReviewQueue().length;
 
-  if (reviewQueue.length === 0 && isSessionStarted) { 
     return (
       <div className="flex flex-col items-center justify-center min-h-[calc(100vh-10rem)] p-4 text-center">
         <ThumbsUp className="w-24 h-24 text-green-500 mb-6" />
-        <h2 className="text-3xl font-semibold mb-4">Review Complete!</h2>
+        <h2 className="text-3xl font-semibold mb-4">Session Complete!</h2>
         <p className="text-muted-foreground mb-8 text-lg">
-          You've reviewed all available cards for now.
+          You've reviewed all cards in this session. What's next?
         </p>
-        <div className="space-x-4">
-          <Button size="lg" onClick={loadReviewQueue} variant="outline">
-            Check for More
+        <div className="flex flex-col items-center gap-4 w-full max-w-xs sm:max-w-sm md:max-w-md">
+          <Button
+            size="lg"
+            onClick={() => {
+              loadSpacedRepetitionQueue();
+              // Session continues if queue has cards, otherwise this screen shows again.
+            }}
+            className="w-full"
+            disabled={srQueueCount === 0}
+          >
+            <PlayCircle className="mr-3 h-6 w-6" />
+            Start Spaced Repetition ({srQueueCount})
           </Button>
-          <Link href="/" passHref>
-            <Button size="lg">
+          <Button
+            size="lg"
+            variant="outline"
+            onClick={() => {
+              const shuffledAllCards = [...allFlashcardsFromContext].sort(() => Math.random() - 0.5);
+              setReviewQueue(shuffledAllCards);
+              setCurrentCardIndex(0);
+              setIsFlipped(false);
+            }}
+            className="w-full"
+            disabled={allFlashcardsFromContext.length === 0}
+          >
+            <Layers className="mr-3 h-6 w-6" />
+            Review All Cards Again ({allFlashcardsFromContext.length})
+          </Button>
+          <Link href="/" passHref className="w-full">
+            <Button size="lg" variant="secondary" className="w-full">
+               <LayoutDashboard className="mr-3 h-6 w-6" />
               Back to Dashboard
             </Button>
           </Link>
@@ -163,7 +226,7 @@ export default function ReviewModeClient() {
     );
   }
 
-  if (!currentCard && isSessionStarted) { 
+  if (!currentCard && isSessionStarted && reviewQueue.length > 0) {
     return (
       <Alert className="m-auto max-w-md mt-10">
         <Info className="h-4 w-4" />
@@ -172,11 +235,10 @@ export default function ReviewModeClient() {
       </Alert>
     );
   }
-  
-  if (!currentCard && !isSessionStarted) {
-      return null; 
-  }
 
+  if (!currentCard && !isSessionStarted) {
+      return null;
+  }
 
   const progressOptions: { label: PerformanceRating; icon: React.ElementType; variant: "default" | "secondary" | "destructive" | "outline" | "ghost" | "link" | null | undefined }[] = [
     { label: 'Try Again', icon: RotateCcw, variant: 'destructive' },
@@ -219,3 +281,4 @@ export default function ReviewModeClient() {
     </div>
   );
 }
+

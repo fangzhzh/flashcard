@@ -1,3 +1,4 @@
+
 "use client";
 import { useState, useEffect, useCallback } from 'react';
 import { useFlashcards } from '@/contexts/FlashcardsContext';
@@ -7,8 +8,8 @@ import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { optimizeFlashcardReviewSchedule, OptimizeFlashcardReviewScheduleInput } from '@/ai/flows/smart-schedule';
 import type { Flashcard, PerformanceRating } from '@/types';
 import { useToast } from '@/hooks/use-toast';
-import { RefreshCw, CheckCircle2, SkipForward, RotateCcw, Info, PlayCircle, ThumbsUp } from 'lucide-react';
-import { formatISO, addDays, parseISO } from 'date-fns';
+import { RefreshCw, CheckCircle2, SkipForward, RotateCcw, Info, PlayCircle, ThumbsUp, PlusCircle } from 'lucide-react';
+import { formatISO, parseISO } from 'date-fns';
 import Link from 'next/link';
 
 export default function ReviewModeClient() {
@@ -44,9 +45,14 @@ export default function ReviewModeClient() {
 
     setIsLoading(true);
     try {
+      // Ensure lastReviewed is in YYYY-MM-DD format for the AI flow
+      const lastReviewedDateString = currentCard.lastReviewed
+        ? formatISO(parseISO(currentCard.lastReviewed), { representation: 'date' })
+        : formatISO(new Date(), { representation: 'date' });
+
       const input: OptimizeFlashcardReviewScheduleInput = {
         flashcardId: currentCard.id,
-        lastReviewed: currentCard.lastReviewed || formatISO(new Date()),
+        lastReviewed: lastReviewedDateString,
         performance: performance,
         currentInterval: currentCard.interval,
       };
@@ -55,30 +61,31 @@ export default function ReviewModeClient() {
       
       const newStatus = performance === 'Mastered' ? 'mastered' : 'learning';
 
+      // Ensure dates stored in context are also in YYYY-MM-DD format
       updateFlashcard(currentCard.id, {
-        lastReviewed: formatISO(new Date()),
-        nextReviewDate: schedule.nextReviewDate, // Already ISO string from AI
+        lastReviewed: formatISO(new Date(), { representation: 'date' }), // Current date as YYYY-MM-DD
+        nextReviewDate: schedule.nextReviewDate, // This is already YYYY-MM-DD from AI
         interval: schedule.newInterval,
         status: newStatus,
       });
 
       toast({
         title: "Progress Saved",
-        description: `Card marked as "${performance}". Next review in ${schedule.newInterval} day(s).`,
+        description: `Card marked as "${performance}". Next review on ${new Date(schedule.nextReviewDate  + 'T00:00:00').toLocaleDateString()}.`, // Ensure date is parsed correctly for display
       });
 
       if (currentCardIndex < reviewQueue.length - 1) {
         setCurrentCardIndex(currentCardIndex + 1);
         setIsFlipped(false);
       } else {
-        // End of queue, reload to see if more cards became due or refresh
         loadReviewQueue(); 
       }
     } catch (error) {
       console.error("Error updating flashcard schedule:", error);
+      const errorMessage = error instanceof Error ? error.message : "An unknown error occurred.";
       toast({
         title: "Error",
-        description: "Could not save progress. Please try again.",
+        description: `Could not save progress: ${errorMessage}. Please try again.`,
         variant: "destructive",
       });
     } finally {
@@ -120,7 +127,7 @@ export default function ReviewModeClient() {
   }
 
 
-  if (reviewQueue.length === 0) {
+  if (reviewQueue.length === 0 && isSessionStarted) { // Check isSessionStarted to differentiate from initial load
     return (
       <div className="flex flex-col items-center justify-center min-h-[calc(100vh-10rem)] p-4 text-center">
         <ThumbsUp className="w-24 h-24 text-green-500 mb-6" />
@@ -142,7 +149,7 @@ export default function ReviewModeClient() {
     );
   }
 
-  if (!currentCard) {
+  if (!currentCard && isSessionStarted) { // Check isSessionStarted
     return (
       <Alert className="m-auto max-w-md mt-10">
         <Info className="h-4 w-4" />
@@ -151,6 +158,12 @@ export default function ReviewModeClient() {
       </Alert>
     );
   }
+  
+  // This case should ideally be covered by the !isSessionStarted block or reviewQueue.length === 0 block
+  if (!currentCard && !isSessionStarted) {
+      return null; // Or some placeholder if needed before session starts and queue is empty
+  }
+
 
   const progressOptions: { label: PerformanceRating; icon: React.ElementType; variant: "default" | "secondary" | "destructive" | "outline" | "ghost" | "link" | null | undefined }[] = [
     { label: 'Try Again', icon: RotateCcw, variant: 'destructive' },
@@ -163,7 +176,7 @@ export default function ReviewModeClient() {
       <p className="text-muted-foreground mb-4">Card {currentCardIndex + 1} of {reviewQueue.length}</p>
       <Card className="w-full max-w-2xl min-h-[350px] flex flex-col shadow-xl transition-all duration-500 ease-in-out transform hover:scale-[1.01]">
         <CardHeader className="flex-grow flex items-center justify-center p-6 text-center">
-          <CardTitle className="text-3xl md:text-4xl font-semibold">
+          <CardTitle className="text-3xl md:text-4xl font-semibold whitespace-pre-wrap">
             {isFlipped ? currentCard.back : currentCard.front}
           </CardTitle>
         </CardHeader>

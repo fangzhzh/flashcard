@@ -22,7 +22,7 @@ export default {
   'dashboard.button.manage': 'Manage Cards',
   'dashboard.button.review': 'Start Review',
   'dashboard.howTo.title': 'How to use FlashFlow',
-  'dashboard.howTo.step1': 'Create flashcards for topics you want to study.',
+  'dashboard.howTo.step1': 'Add new flashcards with a question and answer for each.',
   'dashboard.howTo.step2': 'Review your cards regularly. The app uses a smart algorithm to schedule reviews.',
   'dashboard.howTo.step3': "Track your progress on the dashboard and see how many cards you've mastered!",
 

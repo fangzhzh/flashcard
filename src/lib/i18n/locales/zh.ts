@@ -22,7 +22,7 @@ export default {
   'dashboard.button.manage': '管理卡片',
   'dashboard.button.review': '开始复习',
   'dashboard.howTo.title': '如何使用闪流',
-  'dashboard.howTo.step1': '为你想要学习的主题创建抽认卡。',
+  'dashboard.howTo.step1': '为每张卡片添加问题和答案来创建新的抽认卡。',
   'dashboard.howTo.step2': '定期复习你的卡片。该应用程序使用智能算法来安排复习。',
   'dashboard.howTo.step3': '在仪表板上跟踪你的进度，看看你掌握了多少张卡片！',
 

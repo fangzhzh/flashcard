@@ -1,3 +1,4 @@
+
 import type { Metadata, Viewport } from 'next';
 import { I18nProviderClient } from '@/lib/i18n/client';
 import { getI18n } from '@/lib/i18n/server';
@@ -27,8 +28,10 @@ export default function LocaleLayout({
 }) {
   return (
     <I18nProviderClient locale={locale}>
+      <>
         <Header />
         {children}
+      </>
     </I18nProviderClient>
   );
 }

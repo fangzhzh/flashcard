@@ -4,7 +4,7 @@ import type { Flashcard, FlashcardSourceDataItem, PerformanceRating } from '@/ty
 import { useLocalStorage } from '@/hooks/use-local-storage';
 import React, { createContext, useContext, ReactNode, useCallback, useMemo, useEffect, useState } from 'react';
 import { v4 as uuidv4 } from 'uuid';
-import { formatISO } from 'date-fns';
+import { formatISO, parseISO } from 'date-fns'; // Added parseISO here
 import flashcardJsonData from '../../flashcard.json'; // Import the JSON data
 
 const EMPTY_FLASHCARDS: Flashcard[] = [];
@@ -171,3 +171,4 @@ export const useFlashcards = () => {
   }
   return context;
 };
+

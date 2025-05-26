@@ -4,12 +4,12 @@ import { useEffect, useState } from 'react';
 import { useRouter, useParams } from 'next/navigation';
 import { useFlashcards } from '@/contexts/FlashcardsContext';
 import FlashcardForm from '@/components/FlashcardForm';
-import BatchFlashcardForm from '@/components/BatchFlashcardForm'; // New Import
+import BatchFlashcardForm from '@/components/BatchFlashcardForm';
 import PageContainer from '@/components/PageContainer';
 import type { Flashcard } from '@/types';
 import { useToast } from '@/hooks/use-toast';
 import { Button } from '@/components/ui/button';
-import { ArrowLeft, ListPlus, FilePlus2 } from 'lucide-react'; // Added ListPlus, FilePlus2
+import { ArrowLeft, ListPlus, FilePlus2, Loader2 } from 'lucide-react';
 
 interface FlashcardFormPageProps {
   mode: 'create' | 'edit';
@@ -18,17 +18,17 @@ interface FlashcardFormPageProps {
 export default function FlashcardFormPage({ mode }: FlashcardFormPageProps) {
   const router = useRouter();
   const params = useParams();
-  const { addFlashcard, updateFlashcard, getFlashcardById } = useFlashcards();
+  const { addFlashcard, updateFlashcard, getFlashcardById, isLoading: contextLoading } = useFlashcards();
   const [initialData, setInitialData] = useState<Partial<Flashcard> | undefined>(undefined);
-  const [isLoading, setIsLoading] = useState(false);
-  const [currentFormMode, setCurrentFormMode] = useState<'single' | 'batch'>('single'); // For toggling
+  const [isSubmitting, setIsSubmitting] = useState(false); // Renamed from isLoading to avoid conflict
+  const [currentFormMode, setCurrentFormMode] = useState<'single' | 'batch'>('single');
   const { toast } = useToast();
 
   const cardId = mode === 'edit' ? (params.id as string) : undefined;
 
   useEffect(() => {
-    if (mode === 'edit' && cardId) {
-      setCurrentFormMode('single'); // Edit mode is always single
+    if (mode === 'edit' && cardId && !contextLoading) {
+      setCurrentFormMode('single');
       const card = getFlashcardById(cardId);
       if (card) {
         setInitialData(card);
@@ -36,13 +36,11 @@ export default function FlashcardFormPage({ mode }: FlashcardFormPageProps) {
         toast({ title: "Error", description: "Flashcard not found.", variant: "destructive" });
         router.push('/flashcards');
       }
-    } else if (mode === 'create') {
-      // Allow mode switching for create
     }
-  }, [mode, cardId, getFlashcardById, router, toast]);
+  }, [mode, cardId, getFlashcardById, router, toast, contextLoading]);
 
-  const handleSingleSubmit = async (data: { front: string; back: string }) => {
-    setIsLoading(true);
+  const handleSingleSubmit = (data: { front: string; back: string }) => {
+    setIsSubmitting(true);
     try {
       if (mode === 'create') {
         addFlashcard(data);
@@ -56,20 +54,19 @@ export default function FlashcardFormPage({ mode }: FlashcardFormPageProps) {
       toast({ title: "Error", description: "Failed to save flashcard.", variant: "destructive" });
       console.error("Failed to save flashcard:", error);
     } finally {
-      setIsLoading(false);
+      setIsSubmitting(false);
     }
   };
 
-  const handleBatchSubmit = async (rawBatchInput: string) => {
-    setIsLoading(true);
+  const handleBatchSubmit = (rawBatchInput: string) => {
+    setIsSubmitting(true);
     const lines = rawBatchInput.split('\n').filter(line => line.trim() !== '');
     const cardsToAdd: { front: string; back: string }[] = [];
     const parseErrors: string[] = [];
 
     lines.forEach((line, index) => {
-      const parts = line.split(/:(.*)/s); // Split only on the first colon, s allows . to match newline
-      // If split is successful, parts = [question, answer, ""]
-      if (parts.length === 3) {
+      const parts = line.split(/:(.*)/s); 
+      if (parts.length === 3) { // Expecting [question, answer, ""]
         const front = parts[0].trim();
         const back = parts[1].trim();
         if (front !== '' && back !== '') {
@@ -77,10 +74,10 @@ export default function FlashcardFormPage({ mode }: FlashcardFormPageProps) {
         } else {
           parseErrors.push(`Line ${index + 1}: Question or answer is empty - "${line.substring(0, 50)}${line.length > 50 ? '...' : ''}"`);
         }
-      } else if (parts.length === 1 && !line.includes(':')) { // Line doesn't contain a colon
+      } else if (parts.length === 1 && !line.includes(':')) {
          parseErrors.push(`Line ${index + 1}: Missing colon (:) delimiter - "${line.substring(0, 50)}${line.length > 50 ? '...' : ''}"`);
       }
-      else { // Other malformed cases
+      else { 
         parseErrors.push(`Line ${index + 1}: Invalid format - "${line.substring(0, 50)}${line.length > 50 ? '...' : ''}"`);
       }
     });
@@ -99,21 +96,20 @@ export default function FlashcardFormPage({ mode }: FlashcardFormPageProps) {
         variant: "destructive",
         duration: 10000,
       });
-      setIsLoading(false);
-      if (cardsToAdd.length === 0) return; // Don't proceed if all lines had errors
+      setIsSubmitting(false);
+      if (cardsToAdd.length === 0) return;
     }
 
     if (cardsToAdd.length === 0 && parseErrors.length === 0 && lines.length > 0) {
         toast({ title: "No valid cards found", description: "No cards were added. Ensure cards are in 'question:answer' format and not empty.", variant: "destructive" });
-        setIsLoading(false);
+        setIsSubmitting(false);
         return;
     }
      if (cardsToAdd.length === 0 && lines.length === 0) {
       toast({ title: "No input", description: "Batch input is empty.", variant: "destructive" });
-      setIsLoading(false);
+      setIsSubmitting(false);
       return;
     }
-
 
     try {
       let createdCount = 0;
@@ -124,21 +120,28 @@ export default function FlashcardFormPage({ mode }: FlashcardFormPageProps) {
       if (createdCount > 0) {
         toast({ title: "Success", description: `${createdCount} flashcard(s) created successfully from batch.` });
       }
-      if (createdCount > 0 || parseErrors.length === 0) { // Navigate if some cards were created or if there were no cards but also no errors (e.g. only empty lines)
+      if (createdCount > 0 || parseErrors.length === 0) {
          router.push('/flashcards');
       }
     } catch (error) {
       toast({ title: "Error", description: "Failed to save batch flashcards.", variant: "destructive" });
       console.error("Failed to save batch flashcards:", error);
     } finally {
-      setIsLoading(false);
+      setIsSubmitting(false);
     }
   };
 
-  if (mode === 'edit' && !initialData && cardId) {
-    return <PageContainer><p>Loading flashcard data...</p></PageContainer>;
+  if (contextLoading || (mode === 'edit' && !initialData && cardId)) {
+    return (
+      <PageContainer>
+        <div className="flex justify-center items-center mt-8">
+          <Loader2 className="h-8 w-8 animate-spin text-primary" />
+          <p className="ml-2 text-muted-foreground">Loading form...</p>
+        </div>
+      </PageContainer>
+    );
   }
-
+  
   const pageTitle = mode === 'edit' ? 'Edit Flashcard' : 
                     currentFormMode === 'batch' ? 'Create Flashcards (Batch Mode)' : 'Create New Flashcard';
 
@@ -148,11 +151,15 @@ export default function FlashcardFormPage({ mode }: FlashcardFormPageProps) {
         <Button variant="outline" onClick={() => router.back()} className="self-start sm:self-center">
           <ArrowLeft className="mr-2 h-4 w-4" /> Back
         </Button>
+        <h2 className="text-2xl font-semibold tracking-tight sm:absolute sm:left-1/2 sm:-translate-x-1/2 order-first sm:order-none">
+          {pageTitle}
+        </h2>
         {mode === 'create' && (
           <Button 
             variant="outline" 
             onClick={() => setCurrentFormMode(currentFormMode === 'single' ? 'batch' : 'single')}
             className="w-full sm:w-auto"
+            disabled={isSubmitting}
           >
             {currentFormMode === 'single' ? (
               <>
@@ -171,13 +178,13 @@ export default function FlashcardFormPage({ mode }: FlashcardFormPageProps) {
         <FlashcardForm
           onSubmit={handleSingleSubmit}
           initialData={initialData}
-          isLoading={isLoading}
+          isLoading={isSubmitting}
           submitButtonText={mode === 'create' ? 'Create Flashcard' : 'Update Flashcard'}
         />
       ) : (
         <BatchFlashcardForm
           onSubmit={handleBatchSubmit}
-          isLoading={isLoading}
+          isLoading={isSubmitting}
         />
       )}
     </PageContainer>

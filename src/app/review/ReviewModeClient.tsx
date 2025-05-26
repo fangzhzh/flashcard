@@ -7,8 +7,8 @@ import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/componen
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import type { Flashcard, PerformanceRating } from '@/types';
 import { useToast } from '@/hooks/use-toast';
-import { RefreshCw, CheckCircle2, SkipForward, RotateCcw, Info, PlayCircle, ThumbsUp, PlusCircle, Layers, LayoutDashboard } from 'lucide-react';
-import { formatISO, parseISO, addDays } from 'date-fns';
+import { RefreshCw, CheckCircle2, SkipForward, RotateCcw, Info, PlayCircle, ThumbsUp, PlusCircle, Layers, LayoutDashboard, Loader2 } from 'lucide-react';
+import { formatISO, addDays } from 'date-fns';
 import Link from 'next/link';
 
 const MASTERED_MULTIPLIER = 2;
@@ -18,48 +18,44 @@ const MIN_INTERVAL = 1; // 1 day
 const MAX_INTERVAL = 365; // 1 year
 
 export default function ReviewModeClient() {
-  const { getReviewQueue, updateFlashcard, flashcards: allFlashcardsFromContext } = useFlashcards();
+  const { getReviewQueue, updateFlashcard, flashcards: allFlashcardsFromContext, isLoading: contextLoading } = useFlashcards();
   const [reviewQueue, setReviewQueue] = useState<Flashcard[]>([]);
   const [currentCardIndex, setCurrentCardIndex] = useState(0);
   const [isFlipped, setIsFlipped] = useState(false);
-  const [isLoading, setIsLoading] = useState(false);
+  const [isSubmittingProgress, setIsSubmittingProgress] = useState(false); // Renamed from isLoading
   const [isSessionStarted, setIsSessionStarted] = useState(false);
   const { toast } = useToast();
 
   const currentCard = reviewQueue[currentCardIndex];
 
   const loadSpacedRepetitionQueue = useCallback(() => {
+    if (contextLoading) return;
     const queue = getReviewQueue();
     setReviewQueue(queue);
     setCurrentCardIndex(0);
     setIsFlipped(false);
-  }, [getReviewQueue]);
-
-  // Removed useEffect that was here:
-  // useEffect(() => {
-  //   if (isSessionStarted) {
-  //     loadSpacedRepetitionQueue(); // This was causing issues with "Review All"
-  //   }
-  // }, [isSessionStarted, loadSpacedRepetitionQueue]);
+  }, [getReviewQueue, contextLoading]);
 
   const handleFlip = () => {
     setIsFlipped(!isFlipped);
   };
 
-  const handleProgress = async (performance: PerformanceRating) => {
+  const handleProgress = (performance: PerformanceRating) => {
     if (!currentCard) return;
 
-    setIsLoading(true);
+    setIsSubmittingProgress(true);
     try {
       const currentDate = new Date();
       let newInterval: number;
+      let currentCardInterval = currentCard.interval > 0 ? currentCard.interval : 1;
+
 
       switch (performance) {
         case 'Mastered':
-          newInterval = Math.round(currentCard.interval * MASTERED_MULTIPLIER);
+          newInterval = Math.round(currentCardInterval * MASTERED_MULTIPLIER);
           break;
         case 'Later':
-          newInterval = Math.round(currentCard.interval * LATER_MULTIPLIER);
+          newInterval = Math.round(currentCardInterval * LATER_MULTIPLIER);
           break;
         case 'Try Again':
         default:
@@ -89,8 +85,7 @@ export default function ReviewModeClient() {
         setCurrentCardIndex(currentCardIndex + 1);
         setIsFlipped(false);
       } else {
-        // End of current queue. Clear queue to show "Session Complete!" screen.
-        setReviewQueue([]);
+        setReviewQueue([]); // End of current queue
       }
     } catch (error) {
       console.error("Error updating flashcard schedule:", error);
@@ -101,9 +96,18 @@ export default function ReviewModeClient() {
         variant: "destructive",
       });
     } finally {
-      setIsLoading(false);
+      setIsSubmittingProgress(false);
     }
   };
+  
+  if (contextLoading) {
+    return (
+      <div className="flex flex-col items-center justify-center min-h-[calc(100vh-10rem)] p-4 text-center">
+        <Loader2 className="h-12 w-12 animate-spin text-primary mb-4" />
+        <p className="text-muted-foreground">Loading review session...</p>
+      </div>
+    );
+  }
 
   if (!isSessionStarted) {
     const initialSpacedRepetitionQueue = getReviewQueue();
@@ -164,6 +168,7 @@ export default function ReviewModeClient() {
             setIsSessionStarted(true);
           }}
           className="text-xl py-6 px-8 shadow-lg w-full max-w-xs sm:max-w-sm md:max-w-md"
+          disabled={allFlashcardsFromContext.length === 0}
         >
           <Layers className="mr-3 h-6 w-6" />
           Review All Cards ({allFlashcardsFromContext.length})
@@ -192,7 +197,6 @@ export default function ReviewModeClient() {
             size="lg"
             onClick={() => {
               loadSpacedRepetitionQueue();
-              // Session continues if queue has cards, otherwise this screen shows again.
             }}
             className="w-full"
             disabled={srQueueCount === 0}
@@ -227,18 +231,20 @@ export default function ReviewModeClient() {
   }
 
   if (!currentCard && isSessionStarted && reviewQueue.length > 0) {
+     // This state might occur briefly if queue is reloaded
     return (
-      <Alert className="m-auto max-w-md mt-10">
-        <Info className="h-4 w-4" />
-        <AlertTitle>Loading...</AlertTitle>
-        <AlertDescription>Preparing your review session.</AlertDescription>
-      </Alert>
+      <div className="flex justify-center items-center mt-10">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+        <p className="ml-2">Loading card...</p>
+      </div>
     );
   }
-
+  
+  // Should not happen if contextLoading is handled and session start logic is correct
   if (!currentCard && !isSessionStarted) {
-      return null;
+      return null; 
   }
+
 
   const progressOptions: { label: PerformanceRating; icon: React.ElementType; variant: "default" | "secondary" | "destructive" | "outline" | "ghost" | "link" | null | undefined }[] = [
     { label: 'Try Again', icon: RotateCcw, variant: 'destructive' },
@@ -256,7 +262,7 @@ export default function ReviewModeClient() {
           </CardTitle>
         </CardHeader>
         <CardContent className="p-6 border-t">
-          <Button onClick={handleFlip} variant="outline" className="w-full text-lg py-6 mb-6" disabled={isLoading}>
+          <Button onClick={handleFlip} variant="outline" className="w-full text-lg py-6 mb-6" disabled={isSubmittingProgress}>
             <RefreshCw className={`mr-2 h-5 w-5 ${isFlipped ? 'animate-pulse' : ''}`} />
             {isFlipped ? 'Show Question' : 'Show Answer'}
           </Button>
@@ -269,7 +275,7 @@ export default function ReviewModeClient() {
                 onClick={() => handleProgress(opt.label)}
                 variant={opt.variant}
                 className="text-sm sm:text-base py-4 h-auto"
-                disabled={isLoading}
+                disabled={isSubmittingProgress}
               >
                 <opt.icon className="mr-1 sm:mr-2 h-4 w-4 sm:h-5 sm:w-5" /> {opt.label}
               </Button>
@@ -277,8 +283,7 @@ export default function ReviewModeClient() {
           </CardFooter>
         )}
       </Card>
-      {isLoading && <p className="mt-4 text-primary animate-pulse">Processing...</p>}
+      {isSubmittingProgress && <p className="mt-4 text-primary animate-pulse">Processing...</p>}
     </div>
   );
 }
-

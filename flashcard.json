@@ -1,0 +1,70 @@
+{
+    "vocabulary": [
+      {
+        "pinyin": "Tan Tan",
+        "character": "谈谈",
+        "explanation": "talk about",
+        "translation": "谈谈"
+      },
+      {
+        "pinyin": "Jue ding",
+        "character": "决定",
+        "explanation": "decide",
+        "translation": "决定"
+      },
+      {
+        "pinyin": "Xu yao",
+        "character": "需要",
+        "explanation": "have to",
+        "translation": "需要"
+      },
+      {
+        "pinyin": "xiang qu na, jiu qu na",
+        "character": "想去哪,就去哪",
+        "translation": "哪",
+        "note": "哪 means 'where' in this phrase"
+      },
+      {
+        "pinyin": "dan xin",
+        "character": "担心",
+        "explanation": "worry about",
+        "translation": "担心"
+      },
+      {
+        "pinyin": "shu fu",
+        "character": "舒服",
+        "explanation": "comfortable",
+        "translation": "舒服"
+      },
+      {
+        "pinyin": "fang jian",
+        "character": "房间",
+        "translation": "房间",
+        "meaning": "room"
+      },
+      {
+        "pinyin": "chuang",
+        "character": "床",
+        "translation": "床",
+        "meaning": "bed"
+      },
+      {
+        "pinyin": "jian dan",
+        "character": "简单",
+        "explanation": "simple",
+        "translation": "简单"
+      },
+      {
+        "pinyin": "huan xi yi fu",
+        "character": "换洗衣服",
+        "translation": "换洗衣服",
+        "meaning": "change clothes"
+      },
+      {
+        "pinyin": "wan ju",
+        "character": "玩具",
+        "explanation": "toy",
+        "translation": "玩具"
+      }
+    ]
+  }

@@ -1,12 +1,30 @@
 "use client";
 import { useFlashcards } from '@/contexts/FlashcardsContext';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Layers, CheckCircle2, BookOpen, AlertTriangle } from 'lucide-react';
+import { Layers, CheckCircle2, BookOpen, AlertTriangle, Loader2 } from 'lucide-react';
 
 export default function ProgressDashboard() {
-  const { getStatistics } = useFlashcards();
-  const stats = getStatistics();
+  const { getStatistics, isLoading } = useFlashcards();
+  
+  if (isLoading) {
+    return (
+      <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
+        {[...Array(4)].map((_, index) => (
+          <Card key={index} className="shadow-lg">
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <div className="h-4 bg-muted rounded w-3/4 animate-pulse"></div>
+              <Loader2 className="h-5 w-5 text-muted-foreground animate-spin" />
+            </CardHeader>
+            <CardContent>
+              <div className="h-8 bg-muted rounded w-1/2 animate-pulse"></div>
+            </CardContent>
+          </Card>
+        ))}
+      </div>
+    );
+  }
 
+  const stats = getStatistics();
   const statItems = [
     { title: 'Total Cards', value: stats.total, icon: Layers, color: 'text-blue-500' },
     { title: 'Mastered', value: stats.mastered, icon: CheckCircle2, color: 'text-green-500' },
@@ -24,8 +42,6 @@ export default function ProgressDashboard() {
           </CardHeader>
           <CardContent>
             <div className="text-3xl font-bold">{item.value}</div>
-            {/* You can add a small description or percentage change here if needed */}
-            {/* <p className="text-xs text-muted-foreground">+20.1% from last month</p> */}
           </CardContent>
         </Card>
       ))}

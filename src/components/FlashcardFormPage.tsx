@@ -1,7 +1,6 @@
-
 "use client";
 import { useEffect, useState } from 'react';
-import { useRouter, useParams } from 'next/navigation';
+import { useRouter, useParams } from 'next/navigation'; // Using next/navigation
 import { useFlashcards } from '@/contexts/FlashcardsContext';
 import FlashcardForm from '@/components/FlashcardForm';
 import BatchFlashcardForm from '@/components/BatchFlashcardForm';
@@ -10,6 +9,7 @@ import type { Flashcard } from '@/types';
 import { useToast } from '@/hooks/use-toast';
 import { Button } from '@/components/ui/button';
 import { ArrowLeft, ListPlus, FilePlus2, Loader2 } from 'lucide-react';
+import { useI18n } from '@/lib/i18n/client';
 
 interface FlashcardFormPageProps {
   mode: 'create' | 'edit';
@@ -17,12 +17,13 @@ interface FlashcardFormPageProps {
 
 export default function FlashcardFormPage({ mode }: FlashcardFormPageProps) {
   const router = useRouter();
-  const params = useParams();
+  const params = useParams(); // params will include locale
   const { addFlashcard, updateFlashcard, getFlashcardById, isLoading: contextLoading } = useFlashcards();
   const [initialData, setInitialData] = useState<Partial<Flashcard> | undefined>(undefined);
-  const [isSubmitting, setIsSubmitting] = useState(false); // Renamed from isLoading to avoid conflict
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const [currentFormMode, setCurrentFormMode] = useState<'single' | 'batch'>('single');
   const { toast } = useToast();
+  const t = useI18n();
 
   const cardId = mode === 'edit' ? (params.id as string) : undefined;
 
@@ -33,25 +34,25 @@ export default function FlashcardFormPage({ mode }: FlashcardFormPageProps) {
       if (card) {
         setInitialData(card);
       } else {
-        toast({ title: "Error", description: "Flashcard not found.", variant: "destructive" });
-        router.push('/flashcards');
+        toast({ title: t('error'), description: t('toast.flashcard.notFound'), variant: "destructive" });
+        router.push('/flashcards'); // Will be prefixed by locale by Link/router
       }
     }
-  }, [mode, cardId, getFlashcardById, router, toast, contextLoading]);
+  }, [mode, cardId, getFlashcardById, router, toast, contextLoading, t]);
 
   const handleSingleSubmit = (data: { front: string; back: string }) => {
     setIsSubmitting(true);
     try {
       if (mode === 'create') {
         addFlashcard(data);
-        toast({ title: "Success", description: "Flashcard created successfully." });
+        toast({ title: t('success'), description: t('toast.flashcard.created') });
       } else if (cardId) {
         updateFlashcard(cardId, data);
-        toast({ title: "Success", description: "Flashcard updated successfully." });
+        toast({ title: t('success'), description: t('toast.flashcard.updated') });
       }
       router.push('/flashcards');
     } catch (error) {
-      toast({ title: "Error", description: "Failed to save flashcard.", variant: "destructive" });
+      toast({ title: t('error'), description: t('toast.flashcard.error.save'), variant: "destructive" });
       console.error("Failed to save flashcard:", error);
     } finally {
       setIsSubmitting(false);
@@ -66,7 +67,7 @@ export default function FlashcardFormPage({ mode }: FlashcardFormPageProps) {
 
     lines.forEach((line, index) => {
       const parts = line.split(/:(.*)/s); 
-      if (parts.length === 3) { // Expecting [question, answer, ""]
+      if (parts.length === 3) { 
         const front = parts[0].trim();
         const back = parts[1].trim();
         if (front !== '' && back !== '') {
@@ -84,10 +85,10 @@ export default function FlashcardFormPage({ mode }: FlashcardFormPageProps) {
 
     if (parseErrors.length > 0) {
       toast({
-        title: "Batch Processing Error",
+        title: t('error'),
         description: (
           <div className="max-h-40 overflow-y-auto">
-            <p>Some lines were not processed. Please use "question:answer" format for each line.</p>
+            <p>{t('toast.batch.error.parse')}</p>
             <ul className="list-disc pl-5 mt-2">
               {parseErrors.map((err, i) => <li key={i}>{err}</li>)}
             </ul>
@@ -101,12 +102,12 @@ export default function FlashcardFormPage({ mode }: FlashcardFormPageProps) {
     }
 
     if (cardsToAdd.length === 0 && parseErrors.length === 0 && lines.length > 0) {
-        toast({ title: "No valid cards found", description: "No cards were added. Ensure cards are in 'question:answer' format and not empty.", variant: "destructive" });
+        toast({ title: t('error'), description: t('toast.batch.error.noValidCards'), variant: "destructive" });
         setIsSubmitting(false);
         return;
     }
      if (cardsToAdd.length === 0 && lines.length === 0) {
-      toast({ title: "No input", description: "Batch input is empty.", variant: "destructive" });
+      toast({ title: t('error'), description: t('toast.batch.error.emptyInput'), variant: "destructive" });
       setIsSubmitting(false);
       return;
     }
@@ -118,13 +119,13 @@ export default function FlashcardFormPage({ mode }: FlashcardFormPageProps) {
         createdCount++;
       });
       if (createdCount > 0) {
-        toast({ title: "Success", description: `${createdCount} flashcard(s) created successfully from batch.` });
+        toast({ title: t('success'), description: t('toast.batch.success', { count: createdCount} ) });
       }
       if (createdCount > 0 || parseErrors.length === 0) {
          router.push('/flashcards');
       }
     } catch (error) {
-      toast({ title: "Error", description: "Failed to save batch flashcards.", variant: "destructive" });
+      toast({ title: t('error'), description: t('toast.batch.error.save'), variant: "destructive" });
       console.error("Failed to save batch flashcards:", error);
     } finally {
       setIsSubmitting(false);
@@ -136,23 +137,23 @@ export default function FlashcardFormPage({ mode }: FlashcardFormPageProps) {
       <PageContainer>
         <div className="flex justify-center items-center mt-8">
           <Loader2 className="h-8 w-8 animate-spin text-primary" />
-          <p className="ml-2 text-muted-foreground">Loading form...</p>
+          <p className="ml-2 text-muted-foreground">{t('flashcard.form.page.loading')}</p>
         </div>
       </PageContainer>
     );
   }
   
-  const pageTitle = mode === 'edit' ? 'Edit Flashcard' : 
-                    currentFormMode === 'batch' ? 'Create Flashcards (Batch Mode)' : 'Create New Flashcard';
+  const pageTitleKey = mode === 'edit' ? 'flashcard.form.page.title.edit' : 
+                    currentFormMode === 'batch' ? 'flashcard.form.page.title.create.batch' : 'flashcard.form.page.title.create.single';
 
   return (
     <PageContainer>
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 gap-4">
         <Button variant="outline" onClick={() => router.back()} className="self-start sm:self-center">
-          <ArrowLeft className="mr-2 h-4 w-4" /> Back
+          <ArrowLeft className="mr-2 h-4 w-4" /> {t('flashcard.form.page.button.back')}
         </Button>
         <h2 className="text-2xl font-semibold tracking-tight sm:absolute sm:left-1/2 sm:-translate-x-1/2 order-first sm:order-none">
-          {pageTitle}
+          {t(pageTitleKey)}
         </h2>
         {mode === 'create' && (
           <Button 
@@ -163,11 +164,11 @@ export default function FlashcardFormPage({ mode }: FlashcardFormPageProps) {
           >
             {currentFormMode === 'single' ? (
               <>
-                <ListPlus className="mr-2 h-4 w-4" /> Switch to Batch Mode
+                <ListPlus className="mr-2 h-4 w-4" /> {t('flashcard.form.page.button.switchToBatch')}
               </>
             ) : (
               <>
-                <FilePlus2 className="mr-2 h-4 w-4" /> Switch to Single Card Mode
+                <FilePlus2 className="mr-2 h-4 w-4" /> {t('flashcard.form.page.button.switchToSingle')}
               </>
             )}
           </Button>
@@ -179,7 +180,7 @@ export default function FlashcardFormPage({ mode }: FlashcardFormPageProps) {
           onSubmit={handleSingleSubmit}
           initialData={initialData}
           isLoading={isSubmitting}
-          submitButtonText={mode === 'create' ? 'Create Flashcard' : 'Update Flashcard'}
+          submitButtonTextKey={mode === 'create' ? 'flashcard.form.button.create' : 'flashcard.form.button.update'}
         />
       ) : (
         <BatchFlashcardForm

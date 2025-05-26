@@ -1,13 +1,9 @@
-// This file should be moved to src/app/[locale]/review/ReviewModeClient.tsx
-// For now, keeping content here and assuming it's imported correctly by the new [locale] page.
-// If issues arise, this file path needs to be src/app/[locale]/review/ReviewModeClient.tsx
-// and imports updated accordingly.
+
 "use client";
 import { useState, useEffect, useCallback } from 'react';
 import { useFlashcards } from '@/contexts/FlashcardsContext';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
-import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import type { Flashcard, PerformanceRating } from '@/types';
 import { useToast } from '@/hooks/use-toast';
 import { RefreshCw, CheckCircle2, SkipForward, RotateCcw, PlayCircle, ThumbsUp, PlusCircle, Layers, LayoutDashboard, Loader2 } from 'lucide-react';

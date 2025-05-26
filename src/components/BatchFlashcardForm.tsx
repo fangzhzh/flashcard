@@ -1,4 +1,3 @@
-
 "use client";
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -8,9 +7,10 @@ import { Textarea } from '@/components/ui/textarea';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage, FormDescription } from '@/components/ui/form';
 import { Card, CardContent, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { SaveAll } from 'lucide-react';
+import { useI18n } from '@/lib/i18n/client';
 
 const batchFlashcardSchema = z.object({
-  batchInput: z.string().min(1, 'Batch input cannot be empty. Please provide flashcards in the specified format.'),
+  batchInput: z.string().min(1, 'Batch input cannot be empty. Please provide flashcards in the specified format.'), // Keep validation simple for now, i18n for messages is complex here
 });
 
 type BatchFlashcardFormData = z.infer<typeof batchFlashcardSchema>;
@@ -24,6 +24,7 @@ export default function BatchFlashcardForm({
   onSubmit, 
   isLoading = false 
 }: BatchFlashcardFormProps) {
+  const t = useI18n();
   const form = useForm<BatchFlashcardFormData>({
     resolver: zodResolver(batchFlashcardSchema),
     defaultValues: {
@@ -38,7 +39,7 @@ export default function BatchFlashcardForm({
   return (
     <Card className="w-full max-w-2xl mx-auto shadow-xl">
       <CardHeader>
-        <CardTitle>Create Flashcards (Batch Mode)</CardTitle>
+        <CardTitle>{t('flashcard.batchForm.title')}</CardTitle>
       </CardHeader>
       <Form {...form}>
         <form onSubmit={form.handleSubmit(handleSubmit)}>
@@ -48,19 +49,16 @@ export default function BatchFlashcardForm({
               name="batchInput"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel className="text-lg">Batch Input</FormLabel>
+                  <FormLabel className="text-lg">{t('flashcard.batchForm.label.input')}</FormLabel>
                   <FormControl>
                     <Textarea 
-                      placeholder="Enter flashcards, one per line, in the format: question:answer
-Example:
-What is the capital of France?:Paris
-2 + 2?:4" 
+                      placeholder={t('flashcard.batchForm.placeholder')}
                       {...field} 
                       className="min-h-[250px] text-base font-mono" 
                     />
                   </FormControl>
                   <FormDescription>
-                    Each line should contain one flashcard. The question and answer should be separated by a colon (:).
+                    {t('flashcard.batchForm.description')}
                   </FormDescription>
                   <FormMessage />
                 </FormItem>
@@ -70,7 +68,7 @@ What is the capital of France?:Paris
           <CardFooter>
             <Button type="submit" disabled={isLoading} className="w-full text-lg py-3">
               <SaveAll className="mr-2 h-5 w-5" />
-              {isLoading ? 'Saving Batch...' : 'Save Batch Flashcards'}
+              {isLoading ? t('flashcard.batchForm.button.saving') : t('flashcard.batchForm.button.save')}
             </Button>
           </CardFooter>
         </form>

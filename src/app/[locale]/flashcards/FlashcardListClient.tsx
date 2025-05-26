@@ -1,8 +1,3 @@
-// This file should be moved to src/app/[locale]/flashcards/FlashcardListClient.tsx
-// For now, keeping content here and assuming it's imported correctly by the new [locale] page.
-// If issues arise, this file path needs to be src/app/[locale]/flashcards/FlashcardListClient.tsx
-// and imports updated accordingly.
-
 "use client";
 import { useFlashcards } from '@/contexts/FlashcardsContext';
 import FlashcardItem from '@/components/FlashcardItem';
@@ -12,7 +7,7 @@ import { Info, Loader2 } from 'lucide-react';
 import { useI18n } from '@/lib/i18n/client';
 
 export default function FlashcardListClient() {
-  const { flashcards, deleteFlashcard, isLoading: contextLoading } = useFlashcards(); // Renamed isLoading to contextIsLoading
+  const { flashcards, deleteFlashcard, isLoading: contextLoading } = useFlashcards();
   const { toast } = useToast();
   const t = useI18n();
 

@@ -1,11 +1,5 @@
-import PageContainer from '@/components/PageContainer';
-import ReviewModeClient from './ReviewModeClient';
-
-export default function ReviewPage() {
-  return (
-    <PageContainer className="max-w-4xl">
-      {/* Removed explicit title as ReviewModeClient handles its own states */}
-      <ReviewModeClient />
-    </PageContainer>
-  );
+// This file is no longer used directly.
+// Content has been moved to src/app/[locale]/review/page.tsx
+export default function DeprecatedReviewPage() {
+  return null;
 }

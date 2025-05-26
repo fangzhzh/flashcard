@@ -1,25 +1,13 @@
 
 "use client";
-import type { Flashcard, FlashcardSourceDataItem, PerformanceRating } from '@/types';
+import type { Flashcard, FlashcardSourceDataItem } from '@/types';
 import { useLocalStorage } from '@/hooks/use-local-storage';
 import React, { createContext, useContext, ReactNode, useCallback, useMemo, useEffect, useState } from 'react';
 import { v4 as uuidv4 } from 'uuid';
-import { formatISO, parseISO } from 'date-fns'; // Added parseISO here
+import { formatISO, parseISO } from 'date-fns';
 import flashcardJsonData from '../../flashcard.json'; // Import the JSON data
 
 const EMPTY_FLASHCARDS: Flashcard[] = [];
-
-// Helper to construct the 'back' of the card from JSON data
-const constructBackFromSource = (item: FlashcardSourceDataItem): string => {
-  let backParts: string[] = [];
-  if (item.pinyin) backParts.push(`Pinyin: ${item.pinyin}`);
-  if (item.explanation) backParts.push(`Explanation: ${item.explanation}`);
-  if (item.translation && item.translation !== item.character) backParts.push(`Translation: ${item.translation}`);
-  if (item.meaning) backParts.push(`Meaning: ${item.meaning}`);
-  if (item.note) backParts.push(`Note: ${item.note}`);
-  return backParts.join('\n');
-};
-
 
 interface FlashcardsContextType {
   flashcards: Flashcard[];
@@ -41,36 +29,38 @@ export const FlashcardsProvider = ({ children }: { children: ReactNode }) => {
   // Effect for initial seeding from flashcard.json
   useEffect(() => {
     setIsLoading(true);
+    // Ensure the structure matches FlashcardSourceDataItem after json import
     const vocabulary = flashcardJsonData.vocabulary as FlashcardSourceDataItem[];
     
     setStoredFlashcards(prevStoredFlashcards => {
       let updatedFlashcards = [...prevStoredFlashcards];
-      const existingIdentifiers = new Set(
-        prevStoredFlashcards.map(fc => `${fc.originalCharacter}-${fc.originalPinyin}`)
+      // Use a Set to track sourceQuestions of cards already processed from localStorage
+      // to prevent re-adding them from flashcard.json
+      const existingSourceQuestions = new Set(
+        prevStoredFlashcards.map(fc => fc.sourceQuestion).filter(Boolean) as string[]
       );
 
       vocabulary.forEach(item => {
-        const identifier = `${item.character}-${item.pinyin}`;
-        if (!existingIdentifiers.has(identifier)) {
+        // Check if a card from this JSON item (identified by its question) already exists
+        if (!existingSourceQuestions.has(item.question)) {
           const newCardFromSource: Flashcard = {
             id: uuidv4(),
-            front: item.character,
-            back: constructBackFromSource(item),
+            front: item.question,
+            back: item.answer,
             lastReviewed: null,
             nextReviewDate: formatISO(new Date(), { representation: 'date' }),
             interval: 1,
             status: 'new',
-            originalCharacter: item.character,
-            originalPinyin: item.pinyin,
+            sourceQuestion: item.question, // Store the original question for deduplication
           };
           updatedFlashcards.push(newCardFromSource);
-          existingIdentifiers.add(identifier); // Add to set to prevent re-adding if JSON has duplicates
+          existingSourceQuestions.add(item.question); // Mark this question as processed
         }
       });
       return updatedFlashcards;
     });
     setIsLoading(false);
-  }, [setStoredFlashcards]); // Run once on mount
+  }, [setStoredFlashcards]);
 
   const addFlashcard = useCallback((data: { front: string; back: string }): Flashcard => {
     const newFlashcard: Flashcard = {
@@ -80,6 +70,7 @@ export const FlashcardsProvider = ({ children }: { children: ReactNode }) => {
       nextReviewDate: formatISO(new Date(), { representation: 'date' }),
       interval: 1,
       status: 'new',
+      // sourceQuestion is not set for manually added cards
     };
     setStoredFlashcards(prev => [...prev, newFlashcard]);
     return newFlashcard;
@@ -91,12 +82,9 @@ export const FlashcardsProvider = ({ children }: { children: ReactNode }) => {
       prev.map(card => {
         if (card.id === id) {
           updatedCard = { ...card, ...updates };
-          // Ensure originalCharacter and originalPinyin are not accidentally wiped if not in updates
-          if (!('originalCharacter' in updates) && card.originalCharacter) {
-            (updatedCard as Flashcard).originalCharacter = card.originalCharacter;
-          }
-          if (!('originalPinyin' in updates) && card.originalPinyin) {
-            (updatedCard as Flashcard).originalPinyin = card.originalPinyin;
+          // Ensure sourceQuestion is not accidentally wiped if it existed and not in updates
+          if (!('sourceQuestion' in updates) && card.sourceQuestion) {
+            (updatedCard as Flashcard).sourceQuestion = card.sourceQuestion;
           }
           return updatedCard;
         }
@@ -171,4 +159,3 @@ export const useFlashcards = () => {
   }
   return context;
 };
-

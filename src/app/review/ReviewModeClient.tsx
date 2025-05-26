@@ -5,12 +5,17 @@ import { useFlashcards } from '@/contexts/FlashcardsContext';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { optimizeFlashcardReviewSchedule, OptimizeFlashcardReviewScheduleInput } from '@/ai/flows/smart-schedule';
 import type { Flashcard, PerformanceRating } from '@/types';
 import { useToast } from '@/hooks/use-toast';
 import { RefreshCw, CheckCircle2, SkipForward, RotateCcw, Info, PlayCircle, ThumbsUp, PlusCircle } from 'lucide-react';
-import { formatISO, parseISO } from 'date-fns';
+import { formatISO, parseISO, addDays } from 'date-fns';
 import Link from 'next/link';
+
+const MASTERED_MULTIPLIER = 2;
+const LATER_MULTIPLIER = 1.3; // Or 1.2, 1.5 etc. Can be tuned.
+const TRY_AGAIN_INTERVAL = 1; // 1 day
+const MIN_INTERVAL = 1; // 1 day
+const MAX_INTERVAL = 365; // 1 year
 
 export default function ReviewModeClient() {
   const { getReviewQueue, updateFlashcard } = useFlashcards();
@@ -45,39 +50,48 @@ export default function ReviewModeClient() {
 
     setIsLoading(true);
     try {
-      // Ensure lastReviewed is in YYYY-MM-DD format for the AI flow
-      const lastReviewedDateString = currentCard.lastReviewed
-        ? formatISO(parseISO(currentCard.lastReviewed), { representation: 'date' })
-        : formatISO(new Date(), { representation: 'date' });
+      const currentDate = new Date();
+      let newInterval: number;
 
-      const input: OptimizeFlashcardReviewScheduleInput = {
-        flashcardId: currentCard.id,
-        lastReviewed: lastReviewedDateString,
-        performance: performance,
-        currentInterval: currentCard.interval,
-      };
-      
-      const schedule = await optimizeFlashcardReviewSchedule(input);
+      switch (performance) {
+        case 'Mastered':
+          newInterval = Math.round(currentCard.interval * MASTERED_MULTIPLIER);
+          break;
+        case 'Later':
+          newInterval = Math.round(currentCard.interval * LATER_MULTIPLIER);
+          break;
+        case 'Try Again':
+        default:
+          newInterval = TRY_AGAIN_INTERVAL;
+          break;
+      }
+
+      // Clamp interval
+      newInterval = Math.max(MIN_INTERVAL, Math.min(newInterval, MAX_INTERVAL));
+
+      const nextReviewDate = addDays(currentDate, newInterval);
+      const nextReviewDateString = formatISO(nextReviewDate, { representation: 'date' });
+      const lastReviewedDateString = formatISO(currentDate, { representation: 'date' });
       
       const newStatus = performance === 'Mastered' ? 'mastered' : 'learning';
 
-      // Ensure dates stored in context are also in YYYY-MM-DD format
       updateFlashcard(currentCard.id, {
-        lastReviewed: formatISO(new Date(), { representation: 'date' }), // Current date as YYYY-MM-DD
-        nextReviewDate: schedule.nextReviewDate, // This is already YYYY-MM-DD from AI
-        interval: schedule.newInterval,
+        lastReviewed: lastReviewedDateString,
+        nextReviewDate: nextReviewDateString,
+        interval: newInterval,
         status: newStatus,
       });
 
       toast({
         title: "Progress Saved",
-        description: `Card marked as "${performance}". Next review on ${new Date(schedule.nextReviewDate  + 'T00:00:00').toLocaleDateString()}.`, // Ensure date is parsed correctly for display
+        description: `Card marked as "${performance}". Next review on ${new Date(nextReviewDateString  + 'T00:00:00').toLocaleDateString()}.`,
       });
 
       if (currentCardIndex < reviewQueue.length - 1) {
         setCurrentCardIndex(currentCardIndex + 1);
         setIsFlipped(false);
       } else {
+        // Re-load queue to see if there are more cards or to show session complete message
         loadReviewQueue(); 
       }
     } catch (error) {
@@ -127,7 +141,7 @@ export default function ReviewModeClient() {
   }
 
 
-  if (reviewQueue.length === 0 && isSessionStarted) { // Check isSessionStarted to differentiate from initial load
+  if (reviewQueue.length === 0 && isSessionStarted) { 
     return (
       <div className="flex flex-col items-center justify-center min-h-[calc(100vh-10rem)] p-4 text-center">
         <ThumbsUp className="w-24 h-24 text-green-500 mb-6" />
@@ -149,7 +163,7 @@ export default function ReviewModeClient() {
     );
   }
 
-  if (!currentCard && isSessionStarted) { // Check isSessionStarted
+  if (!currentCard && isSessionStarted) { 
     return (
       <Alert className="m-auto max-w-md mt-10">
         <Info className="h-4 w-4" />
@@ -159,9 +173,8 @@ export default function ReviewModeClient() {
     );
   }
   
-  // This case should ideally be covered by the !isSessionStarted block or reviewQueue.length === 0 block
   if (!currentCard && !isSessionStarted) {
-      return null; // Or some placeholder if needed before session starts and queue is empty
+      return null; 
   }
 
 

@@ -1,6 +1,6 @@
 "use client";
 import Link from 'next/link';
-import { BookOpenText, LayoutDashboard, Layers, Review } from 'lucide-react';
+import { BookOpenText, LayoutDashboard, Layers, ClipboardCheck } from 'lucide-react';
 import { ThemeToggle } from '@/components/ThemeToggle';
 import { usePathname } from 'next/navigation';
 import { cn } from '@/lib/utils';
@@ -8,7 +8,7 @@ import { cn } from '@/lib/utils';
 const navItems = [
   { href: '/', label: 'Dashboard', icon: LayoutDashboard },
   { href: '/flashcards', label: 'Manage Cards', icon: Layers },
-  { href: '/review', label: 'Review', icon: Review },
+  { href: '/review', label: 'Review', icon: ClipboardCheck },
 ];
 
 export default function Header() {

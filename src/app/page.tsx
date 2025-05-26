@@ -2,7 +2,7 @@ import Link from 'next/link';
 import PageContainer from '@/components/PageContainer';
 import ProgressDashboard from '@/components/ProgressDashboard';
 import { Button } from '@/components/ui/button';
-import { Layers, Review, PlusCircle } from 'lucide-react';
+import { Layers, ClipboardCheck, PlusCircle } from 'lucide-react';
 
 export default function DashboardPage() {
   return (
@@ -25,7 +25,7 @@ export default function DashboardPage() {
           </Link>
           <Link href="/review" passHref>
             <Button variant="outline" size="lg" className="w-full py-8 text-lg shadow-md hover:shadow-lg transition-shadow">
-              <Review className="mr-3 h-6 w-6" /> Start Review
+              <ClipboardCheck className="mr-3 h-6 w-6" /> Start Review
             </Button>
           </Link>
         </div>

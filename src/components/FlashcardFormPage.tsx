@@ -68,9 +68,19 @@ export default function FlashcardFormPage({ mode }: FlashcardFormPageProps) {
 
     lines.forEach((line, index) => {
       const parts = line.split(/:(.*)/s); // Split only on the first colon, s allows . to match newline
-      if (parts.length === 2 && parts[0].trim() !== '' && parts[1] && parts[1].trim() !== '') {
-        cardsToAdd.push({ front: parts[0].trim(), back: parts[1].trim() });
-      } else {
+      // If split is successful, parts = [question, answer, ""]
+      if (parts.length === 3) {
+        const front = parts[0].trim();
+        const back = parts[1].trim();
+        if (front !== '' && back !== '') {
+          cardsToAdd.push({ front, back });
+        } else {
+          parseErrors.push(`Line ${index + 1}: Question or answer is empty - "${line.substring(0, 50)}${line.length > 50 ? '...' : ''}"`);
+        }
+      } else if (parts.length === 1 && !line.includes(':')) { // Line doesn't contain a colon
+         parseErrors.push(`Line ${index + 1}: Missing colon (:) delimiter - "${line.substring(0, 50)}${line.length > 50 ? '...' : ''}"`);
+      }
+      else { // Other malformed cases
         parseErrors.push(`Line ${index + 1}: Invalid format - "${line.substring(0, 50)}${line.length > 50 ? '...' : ''}"`);
       }
     });
@@ -90,14 +100,20 @@ export default function FlashcardFormPage({ mode }: FlashcardFormPageProps) {
         duration: 10000,
       });
       setIsLoading(false);
-      return;
+      if (cardsToAdd.length === 0) return; // Don't proceed if all lines had errors
     }
 
-    if (cardsToAdd.length === 0) {
-      toast({ title: "No valid cards found", description: "No cards were added. Please provide cards in the 'question:answer' format.", variant: "destructive" });
+    if (cardsToAdd.length === 0 && parseErrors.length === 0 && lines.length > 0) {
+        toast({ title: "No valid cards found", description: "No cards were added. Ensure cards are in 'question:answer' format and not empty.", variant: "destructive" });
+        setIsLoading(false);
+        return;
+    }
+     if (cardsToAdd.length === 0 && lines.length === 0) {
+      toast({ title: "No input", description: "Batch input is empty.", variant: "destructive" });
       setIsLoading(false);
       return;
     }
+
 
     try {
       let createdCount = 0;
@@ -105,8 +121,12 @@ export default function FlashcardFormPage({ mode }: FlashcardFormPageProps) {
         addFlashcard(cardData);
         createdCount++;
       });
-      toast({ title: "Success", description: `${createdCount} flashcard(s) created successfully from batch.` });
-      router.push('/flashcards');
+      if (createdCount > 0) {
+        toast({ title: "Success", description: `${createdCount} flashcard(s) created successfully from batch.` });
+      }
+      if (createdCount > 0 || parseErrors.length === 0) { // Navigate if some cards were created or if there were no cards but also no errors (e.g. only empty lines)
+         router.push('/flashcards');
+      }
     } catch (error) {
       toast({ title: "Error", description: "Failed to save batch flashcards.", variant: "destructive" });
       console.error("Failed to save batch flashcards:", error);

@@ -3,8 +3,6 @@ import { Geist } from 'next/font/google';
 import './globals.css';
 import { FlashcardsProvider } from '@/contexts/FlashcardsContext';
 import { Toaster } from '@/components/ui/toaster';
-// Note: Header is now in [locale]/layout.tsx
-// Note: I18nProvider is in [locale]/layout.tsx
 
 const geistSans = Geist({
   variable: '--font-geist-sans',
@@ -23,8 +21,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html suppressHydrationWarning>
-      <body className={`${geistSans.variable} antialiased`}>
+    <html suppressHydrationWarning><body className={`${geistSans.variable} antialiased`}>
         <FlashcardsProvider>
           <div className="flex min-h-screen flex-col">
             {/* Header moved to [locale]/layout.tsx */}
@@ -32,7 +29,6 @@ export default function RootLayout({
           </div>
           <Toaster />
         </FlashcardsProvider>
-      </body>
-    </html>
+      </body></html>
   );
 }

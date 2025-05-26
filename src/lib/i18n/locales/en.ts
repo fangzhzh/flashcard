@@ -35,6 +35,7 @@ export default {
 
   // Flashcards Page (src/app/[locale]/flashcards/page.tsx)
   'flashcards.title': 'Your Flashcards',
+  'flashcards.button.create': 'Create New Card',
   // FlashcardListClient
   'flashcards.list.loading': 'Loading your flashcards...',
   'flashcards.list.empty.title': 'No Flashcards Yet!',

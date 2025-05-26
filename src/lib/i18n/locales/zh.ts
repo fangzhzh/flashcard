@@ -35,6 +35,7 @@ export default {
 
   // Flashcards Page (src/app/[locale]/flashcards/page.tsx)
   'flashcards.title': '你的抽认卡',
+  'flashcards.button.create': '创建新卡片',
   // FlashcardListClient
   'flashcards.list.loading': '正在加载您的抽认卡...',
   'flashcards.list.empty.title': '还没有抽认卡!',

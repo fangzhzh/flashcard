@@ -1,9 +1,13 @@
+
 "use client";
 import type { Flashcard } from '@/types';
 import { useLocalStorage } from '@/hooks/use-local-storage';
 import React, { createContext, useContext, ReactNode, useCallback, useMemo } from 'react';
 import { v4 as uuidv4 } from 'uuid';
 import { formatISO, addDays, parseISO } from 'date-fns';
+
+// Define a stable reference for the empty flashcards array
+const EMPTY_FLASHCARDS: Flashcard[] = [];
 
 interface FlashcardsContextType {
   flashcards: Flashcard[];
@@ -18,7 +22,7 @@ interface FlashcardsContextType {
 const FlashcardsContext = createContext<FlashcardsContextType | undefined>(undefined);
 
 export const FlashcardsProvider = ({ children }: { children: ReactNode }) => {
-  const [flashcards, setFlashcards] = useLocalStorage<Flashcard[]>('flashcards', []);
+  const [flashcards, setFlashcards] = useLocalStorage<Flashcard[]>('flashcards', EMPTY_FLASHCARDS);
 
   const addFlashcard = useCallback((data: { front: string; back: string }): Flashcard => {
     const newFlashcard: Flashcard = {

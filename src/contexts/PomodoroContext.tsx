@@ -64,17 +64,15 @@ export const PomodoroProvider = ({ children }: { children: ReactNode }) => {
           ...data,
           targetEndTime: data.targetEndTime || null,
           pausedTimeLeftSeconds: data.pausedTimeLeftSeconds || null,
-          updatedAt: data.updatedAt ? data.updatedAt.toMillis() : serverTimestamp(), // Keep as serverTimestamp for writes, convert for reads if needed
+          updatedAt: data.updatedAt ? data.updatedAt.toMillis() : serverTimestamp(), 
         };
         
-        // Handle targetEndTime potentially being a Firestore Timestamp on first load
         if (newSessionState.targetEndTime && typeof newSessionState.targetEndTime !== 'number' && 'toDate' in newSessionState.targetEndTime) {
             newSessionState.targetEndTime = (newSessionState.targetEndTime as unknown as Timestamp).toMillis();
         }
         setSessionState(newSessionState);
 
       } else {
-        // No state found, create default
         const defaultState: PomodoroSessionState = {
           userId: user.uid,
           status: 'idle',
@@ -94,7 +92,7 @@ export const PomodoroProvider = ({ children }: { children: ReactNode }) => {
     });
 
     return () => unsubscribe();
-  }, [user, authLoading, pomodoroDocRef, intervalId]);
+  }, [user, authLoading, pomodoroDocRef]); // Removed intervalId from dependencies
 
 
   useEffect(() => {
@@ -110,8 +108,8 @@ export const PomodoroProvider = ({ children }: { children: ReactNode }) => {
         setTimeLeftSeconds(remaining);
 
         if (remaining === 0) {
-          if (intervalId) clearInterval(intervalId);
-          setIntervalId(null);
+          if (intervalId) clearInterval(intervalId); // Clear potentially stale interval
+          setIntervalId(null); // Reset intervalId state
           const docRef = pomodoroDocRef();
           if (docRef) {
             updateDoc(docRef, { 
@@ -127,7 +125,7 @@ export const PomodoroProvider = ({ children }: { children: ReactNode }) => {
         }
       };
       
-      updateTimer(); // Initial call to set time immediately
+      updateTimer(); 
       const newInterval = setInterval(updateTimer, 1000);
       setIntervalId(newInterval);
 
@@ -138,9 +136,10 @@ export const PomodoroProvider = ({ children }: { children: ReactNode }) => {
     }
 
     return () => {
-      if (intervalId) {
+      // Ensure intervalId from state is cleared on unmount or before effect re-runs
+      if (intervalId) { 
         clearInterval(intervalId);
-        setIntervalId(null);
+        // No need to set intervalId to null here as it's handled at the start of the effect
       }
     };
   // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -157,7 +156,7 @@ export const PomodoroProvider = ({ children }: { children: ReactNode }) => {
       status: 'running',
       targetEndTime,
       currentSessionInitialDurationMinutes: durationMinutes,
-      userPreferredDurationMinutes: durationMinutes, // Also update preferred duration
+      userPreferredDurationMinutes: durationMinutes, 
       pausedTimeLeftSeconds: null,
       updatedAt: serverTimestamp(),
     };
@@ -168,7 +167,8 @@ export const PomodoroProvider = ({ children }: { children: ReactNode }) => {
     const docRef = pomodoroDocRef();
     if (!docRef || !sessionState || sessionState.status !== 'running' || !sessionState.targetEndTime) return;
 
-    if (intervalId) clearInterval(intervalId);
+    // Interval is cleared by the useEffect reacting to status change, but good to be defensive
+    if (intervalId) clearInterval(intervalId); 
     setIntervalId(null);
 
     const now = Date.now();
@@ -207,7 +207,6 @@ export const PomodoroProvider = ({ children }: { children: ReactNode }) => {
       status: 'idle',
       targetEndTime: null,
       pausedTimeLeftSeconds: null,
-      // currentSessionInitialDurationMinutes remains for potential display until next start
       updatedAt: serverTimestamp(),
     };
     await updateDoc(docRef, newState).catch(e => console.error("Error giving up pomodoro:", e));
@@ -216,13 +215,12 @@ export const PomodoroProvider = ({ children }: { children: ReactNode }) => {
   const updateUserPreferredDuration = async (minutes: number) => {
     const docRef = pomodoroDocRef();
     if (!docRef || !sessionState) return;
-    const newDuration = Math.max(1, Math.min(minutes, 120)); // Clamp between 1 and 120
+    const newDuration = Math.max(1, Math.min(minutes, 120)); 
     
     const updateData: Partial<PomodoroSessionState> = {
         userPreferredDurationMinutes: newDuration,
         updatedAt: serverTimestamp(),
     };
-    // If idle, also update currentSessionInitialDurationMinutes to reflect this new preference immediately for the display
     if(sessionState.status === 'idle') {
         updateData.currentSessionInitialDurationMinutes = newDuration;
     }
@@ -260,3 +258,4 @@ export const usePomodoro = () => {
   }
   return context;
 };
+

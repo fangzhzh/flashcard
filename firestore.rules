@@ -1,0 +1,21 @@
+
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // User-specific data
+    match /users/{userId}/{document=**} {
+      allow read, write: if request.auth != null && request.auth.uid == userId;
+    }
+
+    // More specific rules can be nested if needed, for example:
+    // match /users/{userId}/flashcards/{flashcardId} {
+    //   allow read, write: if request.auth != null && request.auth.uid == userId;
+    // }
+    // match /users/{userId}/decks/{deckId} {
+    //   allow read, write: if request.auth != null && request.auth.uid == userId;
+    // }
+    // match /users/{userId}/pomodoro/{pomodoroStateId} { // e.g., pomodoroStateId could be 'state'
+    //  allow read, write: if request.auth != null && request.auth.uid == userId;
+    // }
+  }
+}

@@ -1,7 +1,7 @@
 
 "use client";
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { usePomodoro } from '@/contexts/PomodoroContext';
 import { usePathname } from 'next/navigation';
 import { useCurrentLocale } from '@/lib/i18n/client';
@@ -21,10 +21,17 @@ export default function FloatingPomodoroTimer() {
   const currentLocale = useCurrentLocale();
   const [isHovered, setIsHovered] = useState(false);
 
-  const rootLocalePath = `/${currentLocale}`;
-  // Check if the current path is the root path for the current locale.
-  // e.g. /en or /en/ should be considered the main pomodoro page.
-  const isMainPomodoroPage = pathname === rootLocalePath || pathname === `${rootLocalePath}/`;
+  // If currentLocale is not yet available, don't render.
+  // This can happen during initial hydration or if context is not ready.
+  if (!currentLocale) {
+    return null;
+  }
+
+  // Determine if the current page is the main Pomodoro page.
+  // The Pomodoro page is the root of the current locale (e.g., /en, /zh).
+  // It should have exactly one path segment, which is the current locale.
+  const pathSegments = pathname.split('/').filter(segment => segment.length > 0);
+  const isMainPomodoroPage = pathSegments.length === 1 && pathSegments[0] === currentLocale;
 
   if (!sessionState || (sessionState.status !== 'running' && sessionState.status !== 'paused') || isMainPomodoroPage) {
     return null;

@@ -4,8 +4,8 @@ import Link from 'next/link';
 import PageContainer from '@/components/PageContainer';
 import ProgressDashboard from '@/components/ProgressDashboard';
 import { Button } from '@/components/ui/button';
-import { Layers, ClipboardCheck, PlusCircle, ShieldAlert } from 'lucide-react';
-import { getI18n, useI18n } from '@/lib/i18n/client';
+import { Layers, ClipboardCheck, PlusCircle, ShieldAlert, Library } from 'lucide-react';
+import { useI18n } from '@/lib/i18n/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Loader2 } from 'lucide-react';
@@ -46,9 +46,9 @@ export default function DashboardPage() {
                   <PlusCircle className="mr-3 h-6 w-6" /> {t('dashboard.button.create')}
                 </Button>
               </Link>
-              <Link href="/flashcards" passHref>
+              <Link href="/decks" passHref>
                 <Button variant="secondary" size="lg" className="w-full py-8 text-lg shadow-md hover:shadow-lg transition-shadow">
-                  <Layers className="mr-3 h-6 w-6" /> {t('dashboard.button.manage')}
+                  <Library className="mr-3 h-6 w-6" /> {t('dashboard.button.decks')}
                 </Button>
               </Link>
               <Link href="/review" passHref>

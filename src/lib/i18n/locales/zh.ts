@@ -2,8 +2,9 @@
 // src/lib/i18n/locales/zh.ts
 export default {
   // Header
-  'header.title': '闪流', // FlashFlow
+  'header.title': '闪流', 
   'nav.dashboard': '仪表板',
+  'nav.decks': '卡组', 
   'nav.manage': '管理卡片',
   'nav.review': '复习',
   'theme.toggle': '切换主题',
@@ -26,6 +27,7 @@ export default {
   'dashboard.welcome': '欢迎使用闪流',
   'dashboard.button.create': '创建新卡片',
   'dashboard.button.manage': '管理卡片',
+  'dashboard.button.decks': '管理卡组', // New
   'dashboard.button.review': '开始复习',
   'dashboard.howTo.title': '如何使用闪流',
   'dashboard.howTo.step1': '为每张卡片添加问题和答案来创建新的抽认卡。',
@@ -39,6 +41,34 @@ export default {
   'progress.dueToday': '今日到期',
   'progress.loading': '加载统计...',
 
+  // Decks Page (src/app/[locale]/decks/page.tsx)
+  'decks.title': '你的卡组',
+  'decks.button.create': '创建新卡组',
+  'decks.list.loading': '正在加载您的卡组...',
+  'decks.list.empty.title': '还没有卡组!',
+  'decks.list.empty.description': '您还没有创建任何卡组。点击“创建新卡组”按钮开始吧。',
+  'deck.item.cardsCount': '{count} 张卡片',
+  'deck.item.edit': '编辑名称',
+  'deck.item.delete': '删除卡组',
+  'deck.item.delete.confirm.title': '您确定要删除这个卡组吗？',
+  'deck.item.delete.confirm.description': '此操作无法撤销。这将永久删除该卡组及其中的所有抽认卡。',
+  'deck.item.delete.confirm.cancel': '取消',
+  'deck.item.delete.confirm.delete': '删除卡组',
+  'deck.form.title.create': '创建新卡组',
+  'deck.form.title.edit': '编辑卡组名称',
+  'deck.form.label.name': '卡组名称',
+  'deck.form.placeholder.name': '输入卡组名称...',
+  'deck.form.button.create': '创建卡组',
+  'deck.form.button.update': '更新卡组',
+  'deck.form.button.saving': '保存中...',
+  'toast.deck.created': '卡组创建成功。',
+  'toast.deck.updated': '卡组更新成功。',
+  'toast.deck.deleted': '卡组删除成功。',
+  'toast.deck.error.load': '加载卡组失败。',
+  'toast.deck.error.save': '保存卡组失败。',
+  'toast.deck.error.delete': '删除卡组失败。',
+  'toast.deck.error.nameRequired': '卡组名称不能为空。',
+
   // Flashcards Page (src/app/[locale]/flashcards/page.tsx)
   'flashcards.title': '你的抽认卡',
   'flashcards.button.create': '创建新卡片',
@@ -48,6 +78,7 @@ export default {
   'flashcards.list.empty.description': '您还没有创建任何抽认卡。点击“创建新卡片”按钮开始吧。',
 
   // Flashcard Item (src/components/FlashcardItem.tsx)
+  'flashcard.item.deckLabel': '卡组',
   'flashcard.item.nextReview': '下次复习',
   'flashcard.item.showAnswer': '显示答案',
   'flashcard.item.hideAnswer': '隐藏答案',
@@ -66,6 +97,7 @@ export default {
   'flashcard.form.page.button.switchToBatch': '切换到批量模式',
   'flashcard.form.page.button.switchToSingle': '切换到单卡模式',
   'flashcard.form.page.loading': '加载表单中...',
+  'flashcard.form.page.loadingSpecific': '加载抽认卡详情中...',
   // FlashcardForm
   'flashcard.form.title.edit': '编辑抽认卡',
   'flashcard.form.title.create': '创建新抽认卡',
@@ -73,6 +105,13 @@ export default {
   'flashcard.form.placeholder.front': '输入问题或术语...',
   'flashcard.form.label.back': '背面',
   'flashcard.form.placeholder.back': '输入答案或解释...',
+  'flashcard.form.label.deck': '卡组 (可选)',
+  'flashcard.form.selectDeck': '选择一个卡组...',
+  'flashcard.form.loadingDecks': '加载卡组中...',
+  'flashcard.form.noDecks': '没有可用的卡组',
+  'flashcard.form.noDecksDescription': '您还没有任何卡组。',
+  'flashcard.form.createDeckLink': '现在创建一个？',
+  'flashcard.form.noDeckSelected': '未分配 / 无卡组',
   'flashcard.form.button.create': '创建抽认卡',
   'flashcard.form.button.update': '更新抽认卡',
   'flashcard.form.button.saving': '保存中...',
@@ -80,7 +119,7 @@ export default {
   'flashcard.batchForm.title': '批量创建抽认卡',
   'flashcard.batchForm.label.input': '批量输入',
   'flashcard.batchForm.placeholder': "每行输入一张抽认卡，格式为：问题:答案\n例如：\n法国的首都是什么？:巴黎\n2 + 2？:4",
-  'flashcard.batchForm.description': '每行应包含一张抽认卡。问题和答案应用冒号（:）分隔。',
+  'flashcard.batchForm.description': '每行应包含一张抽认卡。问题和答案应用冒号（:）分隔。批量创建的卡片将不会分配到任何卡组。',
   'flashcard.batchForm.button.save': '保存批量抽认卡',
   'flashcard.batchForm.button.saving': '批量保存中...',
   // Toasts

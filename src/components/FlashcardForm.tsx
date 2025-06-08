@@ -1,18 +1,22 @@
+
 "use client";
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
-import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
-import type { Flashcard } from '@/types';
+import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage, FormDescription } from '@/components/ui/form';
+import type { Flashcard, Deck } from '@/types';
 import { Card, CardContent, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
-import { Save } from 'lucide-react';
+import { Save, Library } from 'lucide-react';
 import { useI18n } from '@/lib/i18n/client';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import Link from 'next/link';
 
 const flashcardSchema = z.object({
-  front: z.string().min(1, 'Front content is required').max(500, 'Front content is too long'), // Keep validation messages simple for now
+  front: z.string().min(1, 'Front content is required').max(500, 'Front content is too long'),
   back: z.string().min(1, 'Back content is required').max(1000, 'Back content is too long'),
+  deckId: z.string().nullable().optional(),
 });
 
 type FlashcardFormData = z.infer<typeof flashcardSchema>;
@@ -20,15 +24,19 @@ type FlashcardFormData = z.infer<typeof flashcardSchema>;
 interface FlashcardFormProps {
   onSubmit: (data: FlashcardFormData) => void;
   initialData?: Partial<Flashcard>;
+  decks: Deck[];
   isLoading?: boolean;
-  submitButtonTextKey?: keyof typeof import('@/lib/i18n/locales/en').default; // For dynamic button text based on create/edit
+  isLoadingDecks?: boolean;
+  submitButtonTextKey?: keyof typeof import('@/lib/i18n/locales/en').default;
 }
 
 export default function FlashcardForm({ 
   onSubmit, 
   initialData, 
+  decks,
   isLoading = false,
-  submitButtonTextKey = 'flashcard.form.button.create' // Default to create
+  isLoadingDecks = false,
+  submitButtonTextKey = 'flashcard.form.button.create'
 }: FlashcardFormProps) {
   const t = useI18n();
   const form = useForm<FlashcardFormData>({
@@ -36,8 +44,20 @@ export default function FlashcardForm({
     defaultValues: {
       front: initialData?.front || '',
       back: initialData?.back || '',
+      deckId: initialData?.deckId || null,
     },
   });
+  
+  // Update defaultValues when initialData or decks change, especially for deckId
+  // biome-ignore lint/correctness/useExhaustiveDependencies: <explanation>
+  React.useEffect(() => {
+    form.reset({
+        front: initialData?.front || '',
+        back: initialData?.back || '',
+        deckId: initialData?.deckId || null,
+    });
+  }, [initialData, form.reset, form]);
+
 
   return (
     <Card className="w-full max-w-2xl mx-auto shadow-xl">
@@ -73,9 +93,49 @@ export default function FlashcardForm({
                 </FormItem>
               )}
             />
+            <FormField
+              control={form.control}
+              name="deckId"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel className="text-lg flex items-center">
+                    <Library className="mr-2 h-5 w-5 text-muted-foreground" /> 
+                    {t('flashcard.form.label.deck')}
+                  </FormLabel>
+                  <Select 
+                    onValueChange={(value) => field.onChange(value === "null" ? null : value)} 
+                    defaultValue={field.value || "null"}
+                    disabled={isLoadingDecks || decks.length === 0}
+                  >
+                    <FormControl>
+                      <SelectTrigger>
+                        <SelectValue placeholder={isLoadingDecks ? t('flashcard.form.loadingDecks') : (decks.length === 0 ? t('flashcard.form.noDecks') : t('flashcard.form.selectDeck'))} />
+                      </SelectTrigger>
+                    </FormControl>
+                    <SelectContent>
+                      <SelectItem value="null">{t('flashcard.form.noDeckSelected')}</SelectItem>
+                      {decks.map((deck) => (
+                        <SelectItem key={deck.id} value={deck.id}>
+                          {deck.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  {decks.length === 0 && !isLoadingDecks && (
+                    <FormDescription>
+                      {t('flashcard.form.noDecksDescription')} {' '}
+                      <Link href="/decks" className="underline hover:text-primary">
+                        {t('flashcard.form.createDeckLink')}
+                      </Link>
+                    </FormDescription>
+                  )}
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
           </CardContent>
           <CardFooter>
-            <Button type="submit" disabled={isLoading} className="w-full text-lg py-3">
+            <Button type="submit" disabled={isLoading || isLoadingDecks} className="w-full text-lg py-3">
               <Save className="mr-2 h-5 w-5" />
               {isLoading ? t('flashcard.form.button.saving') : t(submitButtonTextKey)}
             </Button>

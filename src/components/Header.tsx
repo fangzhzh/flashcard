@@ -1,7 +1,7 @@
 
 "use client";
 import Link from 'next/link';
-import { BookOpenText, LayoutDashboard, Layers, ClipboardCheck, Languages, LogIn, LogOut, UserCircle } from 'lucide-react';
+import { BookOpenText, LayoutDashboard, Layers, ClipboardCheck, Languages, LogIn, LogOut, UserCircle, Library } from 'lucide-react';
 import { ThemeToggle } from '@/components/ThemeToggle';
 import { usePathname } from 'next/navigation';
 import { cn } from '@/lib/utils';
@@ -16,6 +16,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Loader2 } from 'lucide-react';
 
 
 export default function Header() {
@@ -27,6 +28,7 @@ export default function Header() {
 
   const navItems = [
     { href: '/', labelKey: 'nav.dashboard', icon: LayoutDashboard },
+    { href: '/decks', labelKey: 'nav.decks', icon: Library },
     { href: '/flashcards', labelKey: 'nav.manage', icon: Layers },
     { href: '/review', labelKey: 'nav.review', icon: ClipboardCheck },
   ];
@@ -43,15 +45,15 @@ export default function Header() {
           <BookOpenText className="h-7 w-7 text-primary" />
           <span className="text-2xl font-bold tracking-tight">{t('header.title')}</span>
         </Link>
-        <nav className="flex items-center gap-2 md:gap-4">
+        <nav className="flex items-center gap-1 md:gap-2">
           {user && navItems.map((item) => (
             <Link
               key={item.href}
               href={item.href}
               className={cn(
-                "text-sm font-medium transition-colors hover:text-primary",
-                (basePathname === item.href || (basePathname === '' && item.href === '/'))
-                  ? "text-primary"
+                "text-sm font-medium transition-colors hover:text-primary px-2 py-1 md:px-3 rounded-md",
+                (basePathname === item.href || (item.href !== '/' && basePathname.startsWith(item.href))) 
+                  ? "text-primary bg-primary/10"
                   : "text-muted-foreground"
               )}
             >
@@ -62,7 +64,7 @@ export default function Header() {
 
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <Button variant="outline" size="icon">
+              <Button variant="outline" size="icon" className="ml-2">
                 <Languages className="h-[1.2rem] w-[1.2rem]" />
                 <span className="sr-only">{t('theme.toggle')}</span>
               </Button>

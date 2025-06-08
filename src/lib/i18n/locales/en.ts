@@ -4,6 +4,7 @@ export default {
   // Header
   'header.title': 'FlashFlow',
   'nav.dashboard': 'Dashboard',
+  'nav.decks': 'Decks',
   'nav.manage': 'Manage Cards',
   'nav.review': 'Review',
   'theme.toggle': 'Toggle theme',
@@ -27,6 +28,7 @@ export default {
   'dashboard.welcome': 'Welcome to FlashFlow',
   'dashboard.button.create': 'Create New Card',
   'dashboard.button.manage': 'Manage Cards',
+  'dashboard.button.decks': 'Manage Decks', // New
   'dashboard.button.review': 'Start Review',
   'dashboard.howTo.title': 'How to use FlashFlow',
   'dashboard.howTo.step1': 'Add new flashcards with a question and answer for each.',
@@ -40,6 +42,35 @@ export default {
   'progress.dueToday': 'Due Today',
   'progress.loading': 'Loading stats...',
 
+  // Decks Page (src/app/[locale]/decks/page.tsx)
+  'decks.title': 'Your Decks',
+  'decks.button.create': 'Create New Deck',
+  'decks.list.loading': 'Loading your decks...',
+  'decks.list.empty.title': 'No Decks Yet!',
+  'decks.list.empty.description': 'You haven\'t created any decks. Click the "Create New Deck" button to get started.',
+  'deck.item.cardsCount': '{count} cards',
+  'deck.item.edit': 'Edit Name',
+  'deck.item.delete': 'Delete Deck',
+  'deck.item.delete.confirm.title': 'Are you sure you want to delete this deck?',
+  'deck.item.delete.confirm.description': 'This action cannot be undone. This will permanently delete the deck and all flashcards within it.',
+  'deck.item.delete.confirm.cancel': 'Cancel',
+  'deck.item.delete.confirm.delete': 'Delete Deck',
+  'deck.form.title.create': 'Create New Deck',
+  'deck.form.title.edit': 'Edit Deck Name',
+  'deck.form.label.name': 'Deck Name',
+  'deck.form.placeholder.name': 'Enter deck name...',
+  'deck.form.button.create': 'Create Deck',
+  'deck.form.button.update': 'Update Deck',
+  'deck.form.button.saving': 'Saving...',
+  'toast.deck.created': 'Deck created successfully.',
+  'toast.deck.updated': 'Deck updated successfully.',
+  'toast.deck.deleted': 'Deck deleted successfully.',
+  'toast.deck.error.load': 'Failed to load decks.',
+  'toast.deck.error.save': 'Failed to save deck.',
+  'toast.deck.error.delete': 'Failed to delete deck.',
+  'toast.deck.error.nameRequired': 'Deck name cannot be empty.',
+
+
   // Flashcards Page (src/app/[locale]/flashcards/page.tsx)
   'flashcards.title': 'Your Flashcards',
   'flashcards.button.create': 'Create New Card',
@@ -49,6 +80,7 @@ export default {
   'flashcards.list.empty.description': 'You haven\'t created any flashcards. Click the "Create New Card" button to get started.',
 
   // Flashcard Item (src/components/FlashcardItem.tsx)
+  'flashcard.item.deckLabel': 'Deck',
   'flashcard.item.nextReview': 'Next review',
   'flashcard.item.showAnswer': 'Show Answer',
   'flashcard.item.hideAnswer': 'Hide Answer',
@@ -59,6 +91,7 @@ export default {
   'flashcard.item.delete.confirm.cancel': 'Cancel',
   'flashcard.item.delete.confirm.delete': 'Delete',
 
+
   // Flashcard Form Page (src/components/FlashcardFormPage.tsx)
   'flashcard.form.page.button.back': 'Back',
   'flashcard.form.page.title.edit': 'Edit Flashcard',
@@ -67,6 +100,7 @@ export default {
   'flashcard.form.page.button.switchToBatch': 'Switch to Batch Mode',
   'flashcard.form.page.button.switchToSingle': 'Switch to Single Card Mode',
   'flashcard.form.page.loading': 'Loading form...',
+  'flashcard.form.page.loadingSpecific': 'Loading flashcard details...',
   // FlashcardForm
   'flashcard.form.title.edit': 'Edit Flashcard',
   'flashcard.form.title.create': 'Create New Flashcard',
@@ -74,6 +108,13 @@ export default {
   'flashcard.form.placeholder.front': 'Enter question or term...',
   'flashcard.form.label.back': 'Back',
   'flashcard.form.placeholder.back': 'Enter answer or explanation...',
+  'flashcard.form.label.deck': 'Deck (Optional)',
+  'flashcard.form.selectDeck': 'Select a deck...',
+  'flashcard.form.loadingDecks': 'Loading decks...',
+  'flashcard.form.noDecks': 'No decks available',
+  'flashcard.form.noDecksDescription': 'You don\'t have any decks yet.',
+  'flashcard.form.createDeckLink': 'Create one now?',
+  'flashcard.form.noDeckSelected': 'Unassigned / No Deck',
   'flashcard.form.button.create': 'Create Flashcard',
   'flashcard.form.button.update': 'Update Flashcard',
   'flashcard.form.button.saving': 'Saving...',
@@ -81,7 +122,7 @@ export default {
   'flashcard.batchForm.title': 'Create Flashcards (Batch Mode)',
   'flashcard.batchForm.label.input': 'Batch Input',
   'flashcard.batchForm.placeholder': "Enter flashcards, one per line, in the format: question:answer\nExample:\nWhat is the capital of France?:Paris\n2 + 2?:4",
-  'flashcard.batchForm.description': 'Each line should contain one flashcard. The question and answer should be separated by a colon (:).',
+  'flashcard.batchForm.description': 'Each line should contain one flashcard. The question and answer should be separated by a colon (:). Cards created in batch will be unassigned to any deck.',
   'flashcard.batchForm.button.save': 'Save Batch Flashcards',
   'flashcard.batchForm.button.saving': 'Saving Batch...',
   // Toasts

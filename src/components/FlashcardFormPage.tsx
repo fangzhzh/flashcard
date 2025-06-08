@@ -1,7 +1,7 @@
 
 "use client";
 import { useEffect, useState } from 'react';
-import { useRouter, useParams } from 'next/navigation'; // Using next/navigation
+import { useRouter, useParams } from 'next/navigation'; 
 import { useFlashcards } from '@/contexts/FlashcardsContext';
 import FlashcardForm from '@/components/FlashcardForm';
 import BatchFlashcardForm from '@/components/BatchFlashcardForm';
@@ -23,7 +23,14 @@ export default function FlashcardFormPage({ mode }: FlashcardFormPageProps) {
   const router = useRouter();
   const params = useParams(); 
   const { user, loading: authLoading } = useAuth();
-  const { addFlashcard, updateFlashcard, getFlashcardById, isLoading: contextLoading } = useFlashcards();
+  const { 
+    addFlashcard, 
+    updateFlashcard, 
+    getFlashcardById, 
+    decks, 
+    isLoading: contextLoading, 
+    isLoadingDecks 
+  } = useFlashcards();
   const [initialData, setInitialData] = useState<Partial<Flashcard> | undefined>(undefined);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [currentFormMode, setCurrentFormMode] = useState<'single' | 'batch'>('single');
@@ -34,7 +41,7 @@ export default function FlashcardFormPage({ mode }: FlashcardFormPageProps) {
 
   useEffect(() => {
     if (mode === 'edit' && cardId && !contextLoading && user) {
-      setCurrentFormMode('single');
+      setCurrentFormMode('single'); 
       const card = getFlashcardById(cardId);
       if (card) {
         setInitialData(card);
@@ -42,10 +49,15 @@ export default function FlashcardFormPage({ mode }: FlashcardFormPageProps) {
         toast({ title: t('error'), description: t('toast.flashcard.notFound'), variant: "destructive" });
         router.push(`/${params.locale}/flashcards`);
       }
+    } else if (mode === 'create' && !cardId) {
+      // For create mode, ensure initialData is reset if form mode changes or decks load
+      // This helps if user switches to batch then back to single, or if decks load after form is shown
+      setInitialData({}); 
     }
   }, [mode, cardId, getFlashcardById, router, toast, contextLoading, user, params.locale, t]);
 
-  const handleSingleSubmit = async (data: { front: string; back: string }) => {
+
+  const handleSingleSubmit = async (data: { front: string; back: string; deckId?: string | null }) => {
     if (!user) {
       toast({ title: t('error'), description: t('auth.pleaseSignIn'), variant: "destructive" });
       return;
@@ -75,16 +87,16 @@ export default function FlashcardFormPage({ mode }: FlashcardFormPageProps) {
     }
     setIsSubmitting(true);
     const lines = rawBatchInput.split('\n').filter(line => line.trim() !== '');
-    const cardsToAdd: { front: string; back: string }[] = [];
+    const cardsToAdd: { front: string; back: string; deckId?: string | null }[] = [];
     const parseErrors: string[] = [];
 
     lines.forEach((line, index) => {
       const parts = line.split(/:(.*)/s); 
-      if (parts.length === 3) { 
+      if (parts.length === 2 || parts.length === 3 ) { // Allow optional third part for deck (ignored for now in batch)
         const front = parts[0].trim();
         const back = parts[1].trim();
         if (front !== '' && back !== '') {
-          cardsToAdd.push({ front, back });
+          cardsToAdd.push({ front, back, deckId: null }); // Batch cards are unassigned for now
         } else {
           parseErrors.push(`Line ${index + 1}: Question or answer is empty - "${line.substring(0, 50)}${line.length > 50 ? '...' : ''}"`);
         }
@@ -145,7 +157,7 @@ export default function FlashcardFormPage({ mode }: FlashcardFormPageProps) {
     }
   };
   
-  if (authLoading || (contextLoading && user)) {
+  if (authLoading || (contextLoading && user) || (isLoadingDecks && user)) {
     return (
       <PageContainer>
         <div className="flex justify-center items-center mt-8">
@@ -168,12 +180,12 @@ export default function FlashcardFormPage({ mode }: FlashcardFormPageProps) {
     );
   }
   
-  if (mode === 'edit' && !initialData && cardId && user) {
-     return ( // Still loading specific card data
+  if (mode === 'edit' && !initialData && cardId && user && !contextLoading) {
+     return ( 
       <PageContainer>
         <div className="flex justify-center items-center mt-8">
           <Loader2 className="h-8 w-8 animate-spin text-primary" />
-          <p className="ml-2 text-muted-foreground">{t('flashcard.form.page.loading')}</p>
+          <p className="ml-2 text-muted-foreground">{t('flashcard.form.page.loadingSpecific')}</p>
         </div>
       </PageContainer>
     );
@@ -215,7 +227,9 @@ export default function FlashcardFormPage({ mode }: FlashcardFormPageProps) {
         <FlashcardForm
           onSubmit={handleSingleSubmit}
           initialData={initialData}
+          decks={decks}
           isLoading={isSubmitting}
+          isLoadingDecks={isLoadingDecks}
           submitButtonTextKey={mode === 'create' ? 'flashcard.form.button.create' : 'flashcard.form.button.update'}
         />
       ) : (

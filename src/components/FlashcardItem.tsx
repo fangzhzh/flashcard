@@ -1,10 +1,11 @@
+
 "use client";
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardFooter, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-import { FilePenLine, Trash2, Eye, EyeOff } from 'lucide-react';
-import type { Flashcard } from '@/types';
-import { useState } from 'react';
+import { FilePenLine, Trash2, Eye, EyeOff, Library } from 'lucide-react';
+import type { Flashcard, Deck } from '@/types';
+import { useState, useMemo } from 'react';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -17,6 +18,7 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import { useI18n } from '@/lib/i18n/client';
+import { useFlashcards } from '@/contexts/FlashcardsContext'; // To get deck names
 
 interface FlashcardItemProps {
   flashcard: Flashcard;
@@ -26,16 +28,33 @@ interface FlashcardItemProps {
 export default function FlashcardItem({ flashcard, onDelete }: FlashcardItemProps) {
   const [showBack, setShowBack] = useState(false);
   const t = useI18n();
+  const { getDeckById } = useFlashcards();
+
+  const deckName = useMemo(() => {
+    if (flashcard.deckId) {
+      const deck = getDeckById(flashcard.deckId);
+      return deck?.name;
+    }
+    return null;
+  }, [flashcard.deckId, getDeckById]);
 
   return (
     <Card className="flex flex-col h-full shadow-lg hover:shadow-xl transition-shadow duration-300">
       <CardHeader>
         <CardTitle className="truncate text-xl">{flashcard.front}</CardTitle>
-        {flashcard.nextReviewDate && (
-          <CardDescription className="text-xs">
-            {t('flashcard.item.nextReview')}: {new Date(flashcard.nextReviewDate).toLocaleDateString()} ({flashcard.status})
-          </CardDescription>
-        )}
+        <div className="flex flex-col space-y-1 text-xs mt-1">
+            {deckName && (
+              <div className="flex items-center text-muted-foreground">
+                <Library className="mr-1.5 h-3.5 w-3.5" />
+                <span>{t('flashcard.item.deckLabel')}: {deckName}</span>
+              </div>
+            )}
+            {flashcard.nextReviewDate && (
+              <CardDescription className="text-xs">
+                {t('flashcard.item.nextReview')}: {new Date(flashcard.nextReviewDate + 'T00:00:00').toLocaleDateString()} ({flashcard.status})
+              </CardDescription>
+            )}
+        </div>
       </CardHeader>
       <CardContent className="flex-grow">
         {showBack && <p className="text-muted-foreground whitespace-pre-wrap">{flashcard.back}</p>}

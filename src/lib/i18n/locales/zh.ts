@@ -2,12 +2,12 @@
 // src/lib/i18n/locales/zh.ts
 export default {
   // Header
-  'header.title': '闪流', 
-  'nav.dashboard': '仪表板',
-  'nav.decks': '卡组', 
+  'header.title': '闪流',
+  'nav.flashcards': '抽认卡', // Renamed from nav.dashboard
+  'nav.decks': '卡组',
   'nav.manage': '管理卡片',
   'nav.review': '复习',
-  'nav.pomodoro': '番茄钟', // New
+  'nav.pomodoro': '番茄钟',
   'theme.toggle': '切换主题',
   'theme.light': '浅色',
   'theme.dark': '深色',
@@ -24,18 +24,17 @@ export default {
   'metadata.title': '闪流',
   'metadata.description': '通过 AI 驱动的抽认卡和番茄工作法掌握您的学习。',
 
-  // Dashboard Page (src/app/[locale]/page.tsx)
-  'dashboard.welcome': '欢迎使用闪流',
-  'dashboard.button.create': '创建新卡片',
-  'dashboard.button.manage': '管理卡片',
-  'dashboard.button.decks': '管理卡组',
-  'dashboard.button.review': '开始复习',
-  'dashboard.button.pomodoro': '开始番茄钟', // New
-  'dashboard.howTo.title': '如何使用闪流',
-  'dashboard.howTo.step1': '为每张卡片添加问题和答案来创建新的抽认卡。',
-  'dashboard.howTo.step2': '定期复习你的卡片。该应用程序使用智能算法来安排复习。',
-  'dashboard.howTo.step3': '在仪表板上跟踪你的进度，看看你掌握了多少张卡片！',
-  'dashboard.howTo.step4': '使用番茄钟来集中您的学习时间。', // New
+  // Main Flashcards Page (src/app/[locale]/page.tsx)
+  'flashcards.dashboard.welcome': '抽认卡中心', // Changed from dashboard.welcome
+  'flashcards.dashboard.button.create': '创建新卡片',
+  'flashcards.dashboard.button.manageAll': '管理所有卡片', // New button
+  'flashcards.dashboard.button.decks': '管理卡组',
+  'flashcards.dashboard.button.review': '开始复习',
+  'flashcards.dashboard.howTo.title': '如何使用抽认卡', // Changed from dashboard.howTo.title
+  'flashcards.dashboard.howTo.step1': '为每张卡片添加问题和答案来创建新的抽认卡。',
+  'flashcards.dashboard.howTo.step2': '定期复习你的卡片。该应用程序使用智能算法来安排复习。',
+  'flashcards.dashboard.howTo.step3': '在仪表板上跟踪你的进度，看看你掌握了多少张卡片！',
+  'flashcards.dashboard.howTo.step4': '将您的卡片整理到卡组中以便集中学习。',
 
 
   // Progress Dashboard Component (src/components/ProgressDashboard.tsx)
@@ -152,7 +151,7 @@ export default {
   'review.tip.noSpacedRepetition': '提示：创建更多卡片或等待计划的复习以进行间隔重复模式。',
   'review.sessionComplete.title': '会话完成!',
   'review.sessionComplete.description': '您已复习完本次会话中的所有卡片。接下来做什么？',
-  'review.sessionComplete.button.backToDashboard': '返回仪表板',
+  'review.sessionComplete.button.backToDashboard': '返回抽认卡中心',
   'review.sessionComplete.button.reviewAllAgain': '再次复习所有卡片 ({count})',
   'review.loadingCard': '加载卡片中...',
   'review.cardProgress': '卡片 {currentIndex} / {totalCards}',
@@ -168,6 +167,7 @@ export default {
 
   // Pomodoro Page (src/app/[locale]/pomodoro/PomodoroClient.tsx)
   'pomodoro.title': '番茄钟计时器',
+  'pomodoro.settings.title': '设置',
   'pomodoro.settings.durationLabel': '番茄钟时长（分钟）：',
   'pomodoro.settings.durationPlaceholder': '例如：25',
   'pomodoro.button.start': '开始',
@@ -175,8 +175,12 @@ export default {
   'pomodoro.button.continue': '继续',
   'pomodoro.button.giveUp': '放弃',
   'pomodoro.button.reset': '重置计时器',
-  'pomodoro.notes.label': '快速笔记 / 任务残留：',
-  'pomodoro.notes.placeholder': '记下中断或您离开的地方...',
+  'pomodoro.notes.button.open': '笔记',
+  'pomodoro.notes.button.openWithNotes': '查看/编辑笔记',
+  'pomodoro.notes.sheet.title': '会话笔记',
+  'pomodoro.notes.sheet.description': '记下中断或您离开的地方...',
+  'pomodoro.notes.sheet.placeholder': '在此处输入您的笔记...',
+  'pomodoro.notes.sheet.button.done': '完成',
   'pomodoro.toast.completed': '番茄钟时间到！',
   'pomodoro.toast.completed.description': '休息一下吧。',
   'pomodoro.auth.required': '请登录以使用番茄钟功能。',

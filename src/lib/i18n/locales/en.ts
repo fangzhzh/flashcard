@@ -3,11 +3,11 @@
 export default {
   // Header
   'header.title': 'FlashFlow',
-  'nav.dashboard': 'Dashboard',
+  'nav.flashcards': 'Flashcards', // Renamed from nav.dashboard
   'nav.decks': 'Decks',
   'nav.manage': 'Manage Cards',
   'nav.review': 'Review',
-  'nav.pomodoro': 'Pomodoro', // New
+  'nav.pomodoro': 'Pomodoro',
   'theme.toggle': 'Toggle theme',
   'theme.light': 'Light',
   'theme.dark': 'Dark',
@@ -25,18 +25,17 @@ export default {
   'metadata.title': 'FlashFlow',
   'metadata.description': 'Master your studies with AI-powered flashcards and Pomodoro timer.',
 
-  // Dashboard Page (src/app/[locale]/page.tsx)
-  'dashboard.welcome': 'Welcome to FlashFlow',
-  'dashboard.button.create': 'Create New Card',
-  'dashboard.button.manage': 'Manage Cards',
-  'dashboard.button.decks': 'Manage Decks',
-  'dashboard.button.review': 'Start Review',
-  'dashboard.button.pomodoro': 'Start Pomodoro', // New
-  'dashboard.howTo.title': 'How to use FlashFlow',
-  'dashboard.howTo.step1': 'Add new flashcards with a question and answer for each.',
-  'dashboard.howTo.step2': 'Review your cards regularly. The app uses a smart algorithm to schedule reviews.',
-  'dashboard.howTo.step3': "Track your progress on the dashboard and see how many cards you've mastered!",
-  'dashboard.howTo.step4': 'Use the Pomodoro timer to focus your study sessions.', // New
+  // Main Flashcards Page (src/app/[locale]/page.tsx)
+  'flashcards.dashboard.welcome': 'Flashcards Hub', // Changed from dashboard.welcome
+  'flashcards.dashboard.button.create': 'Create New Card',
+  'flashcards.dashboard.button.manageAll': 'Manage All Cards', // New button
+  'flashcards.dashboard.button.decks': 'Manage Decks',
+  'flashcards.dashboard.button.review': 'Start Review',
+  'flashcards.dashboard.howTo.title': 'How to use Flashcards', // Changed from dashboard.howTo.title
+  'flashcards.dashboard.howTo.step1': 'Add new flashcards with a question and answer for each.',
+  'flashcards.dashboard.howTo.step2': 'Review your cards regularly. The app uses a smart algorithm to schedule reviews.',
+  'flashcards.dashboard.howTo.step3': "Track your progress on the dashboard and see how many cards you've mastered!",
+  'flashcards.dashboard.howTo.step4': 'Organize your cards into Decks for focused study.',
 
 
   // Progress Dashboard Component (src/components/ProgressDashboard.tsx)
@@ -75,7 +74,7 @@ export default {
   'toast.deck.error.nameRequired': 'Deck name cannot be empty.',
 
 
-  // Flashcards Page (src/app/[locale]/flashcards/page.tsx)
+  // Flashcards Page (src/app/[locale]/flashcards/page.tsx) - This is the "Manage All Cards" page
   'flashcards.title': 'Your Flashcards',
   'flashcards.button.create': 'Create New Card',
   // FlashcardListClient
@@ -155,7 +154,7 @@ export default {
   'review.tip.noSpacedRepetition': 'Tip: Create more cards or wait for scheduled reviews for the spaced repetition mode.',
   'review.sessionComplete.title': 'Session Complete!',
   'review.sessionComplete.description': "You've reviewed all cards in this session. What's next?",
-  'review.sessionComplete.button.backToDashboard': 'Back to Dashboard',
+  'review.sessionComplete.button.backToDashboard': 'Back to Flashcards Hub',
   'review.sessionComplete.button.reviewAllAgain': 'Review All Cards Again ({count})',
   'review.loadingCard': 'Loading card...',
   'review.cardProgress': 'Card {currentIndex} of {totalCards}',
@@ -171,6 +170,7 @@ export default {
 
   // Pomodoro Page (src/app/[locale]/pomodoro/PomodoroClient.tsx)
   'pomodoro.title': 'Pomodoro Timer',
+  'pomodoro.settings.title': 'Settings',
   'pomodoro.settings.durationLabel': 'Pomodoro Duration (minutes):',
   'pomodoro.settings.durationPlaceholder': 'e.g., 25',
   'pomodoro.button.start': 'Start',
@@ -178,8 +178,12 @@ export default {
   'pomodoro.button.continue': 'Continue',
   'pomodoro.button.giveUp': 'Give Up',
   'pomodoro.button.reset': 'Reset Timer',
-  'pomodoro.notes.label': 'Quick Notes / Task Residue:',
-  'pomodoro.notes.placeholder': 'Jot down interruptions or where you left off...',
+  'pomodoro.notes.button.open': 'Notes',
+  'pomodoro.notes.button.openWithNotes': 'View/Edit Notes',
+  'pomodoro.notes.sheet.title': 'Session Notes',
+  'pomodoro.notes.sheet.description': 'Jot down interruptions or where you left off...',
+  'pomodoro.notes.sheet.placeholder': 'Type your notes here...',
+  'pomodoro.notes.sheet.button.done': 'Done',
   'pomodoro.toast.completed': 'Pomodoro session complete!',
   'pomodoro.toast.completed.description': 'Time for a short break.',
   'pomodoro.auth.required': 'Please sign in to use the Pomodoro timer.',

@@ -7,11 +7,13 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Card, CardContent, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
-import { Play, Pause, RotateCcw, Settings2, Eraser, ShieldAlert, Loader2 } from 'lucide-react';
+import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription, SheetFooter, SheetTrigger, SheetClose } from '@/components/ui/sheet';
+import { Play, Pause, RotateCcw, Settings2, Eraser, ShieldAlert, Loader2, NotebookPen, NotebookText } from 'lucide-react';
 import { useI18n } from '@/lib/i18n/client';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/contexts/AuthContext';
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { cn } from '@/lib/utils';
 
 const DEFAULT_POMODORO_MINUTES = 25;
 
@@ -25,6 +27,7 @@ export default function PomodoroClient() {
   const [isActive, setIsActive] = useState(false);
   const [isPaused, setIsPaused] = useState(false);
   const [notes, setNotes] = useState('');
+  const [isNotesSheetOpen, setIsNotesSheetOpen] = useState(false);
   const intervalRef = useRef<NodeJS.Timeout | null>(null);
 
   const formatTime = (seconds: number): string => {
@@ -58,8 +61,7 @@ export default function PomodoroClient() {
               title: t('pomodoro.toast.completed'),
               description: t('pomodoro.toast.completed.description'),
             });
-            // Future: Add sound notification here if desired
-            return pomodoroDurationMinutes * 60; // Reset for next session
+            return pomodoroDurationMinutes * 60; 
           }
           return prevTime - 1;
         });
@@ -70,7 +72,6 @@ export default function PomodoroClient() {
     return () => stopTimer();
   }, [isActive, isPaused, stopTimer, pomodoroDurationMinutes, t, toast]);
   
-  // Reset timeLeft when pomodoroDurationMinutes changes and timer is not active
   useEffect(() => {
     if (!isActive) {
       setTimeLeft(pomodoroDurationMinutes * 60);
@@ -109,10 +110,10 @@ export default function PomodoroClient() {
 
   const handleDurationInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const newDuration = parseInt(e.target.value, 10);
-    if (!isNaN(newDuration) && newDuration > 0 && newDuration <= 120) { // Max 2 hours
+    if (!isNaN(newDuration) && newDuration > 0 && newDuration <= 120) { 
       setPomodoroDurationMinutes(newDuration);
     } else if (e.target.value === '') {
-       setPomodoroDurationMinutes(0); // Allow empty for typing
+       setPomodoroDurationMinutes(0); 
     }
   };
   
@@ -136,7 +137,7 @@ export default function PomodoroClient() {
 
 
   return (
-    <div className="flex flex-col items-center space-y-8">
+    <div className="flex flex-col items-center space-y-8 relative min-h-[calc(100vh-12rem)] pb-20"> {/* Added pb for notes button */}
       <Card className="w-full max-w-md shadow-xl">
         <CardHeader className="text-center">
           <CardTitle className="text-6xl font-bold text-primary tabular-nums">
@@ -167,44 +168,70 @@ export default function PomodoroClient() {
         </CardContent>
       </Card>
 
-      <Card className="w-full max-w-md shadow-lg">
-        <CardHeader>
-          <CardTitle className="text-lg flex items-center">
-            <Settings2 className="mr-2 h-5 w-5 text-muted-foreground" />
-            {t('pomodoro.settings.durationLabel')}
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="flex items-center gap-3">
-          <Input
-            type="number"
-            id="pomodoroDuration"
-            value={pomodoroDurationMinutes === 0 && !isActive ? '' : pomodoroDurationMinutes} // Show empty if 0 and not active
-            onChange={handleDurationInputChange}
-            placeholder={t('pomodoro.settings.durationPlaceholder')}
-            className="text-base"
-            disabled={isActive}
-            min="1"
-            max="120"
-          />
-          <Button onClick={handleResetSettings} variant="outline" size="icon" title={t('pomodoro.button.reset')} disabled={isActive}>
-            <Eraser className="h-5 w-5"/>
-          </Button>
-        </CardContent>
-      </Card>
+      {!isActive && (
+        <Card className="w-full max-w-md shadow-lg">
+          <CardHeader>
+            <CardTitle className="text-lg flex items-center">
+              <Settings2 className="mr-2 h-5 w-5 text-muted-foreground" />
+              {t('pomodoro.settings.title')}
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            <Label htmlFor="pomodoroDuration">{t('pomodoro.settings.durationLabel')}</Label>
+            <div className="flex items-center gap-3">
+              <Input
+                type="number"
+                id="pomodoroDuration"
+                value={pomodoroDurationMinutes === 0 && !isActive ? '' : pomodoroDurationMinutes}
+                onChange={handleDurationInputChange}
+                placeholder={t('pomodoro.settings.durationPlaceholder')}
+                className="text-base"
+                disabled={isActive}
+                min="1"
+                max="120"
+              />
+              <Button onClick={handleResetSettings} variant="outline" size="icon" title={t('pomodoro.button.reset')} disabled={isActive}>
+                <Eraser className="h-5 w-5"/>
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+      )}
       
-      <Card className="w-full max-w-md shadow-lg">
-        <CardHeader>
-            <CardTitle className="text-lg">{t('pomodoro.notes.label')}</CardTitle>
-        </CardHeader>
-        <CardContent>
-            <Textarea
-                value={notes}
-                onChange={(e) => setNotes(e.target.value)}
-                placeholder={t('pomodoro.notes.placeholder')}
-                className="min-h-[80px] text-sm" 
-            />
-        </CardContent>
-      </Card>
+      <Sheet open={isNotesSheetOpen} onOpenChange={setIsNotesSheetOpen}>
+        <SheetTrigger asChild>
+            <Button 
+                variant="outline" 
+                className={cn(
+                    "fixed bottom-6 right-6 z-50 rounded-full h-14 w-14 p-0 shadow-lg transition-all",
+                    notes.length > 0 ? "bg-accent text-accent-foreground hover:bg-accent/90 border-primary/30" : "bg-background/80 hover:bg-muted backdrop-blur-sm"
+                )}
+                title={notes.length > 0 ? t('pomodoro.notes.button.openWithNotes') : t('pomodoro.notes.button.open')}
+            >
+            {notes.length > 0 ? <NotebookText className="h-6 w-6" /> : <NotebookPen className="h-6 w-6" />}
+            </Button>
+        </SheetTrigger>
+        <SheetContent side="bottom" className="h-[75vh] flex flex-col">
+          <SheetHeader>
+            <SheetTitle>{t('pomodoro.notes.sheet.title')}</SheetTitle>
+            <SheetDescription>
+              {t('pomodoro.notes.sheet.description')}
+            </SheetDescription>
+          </SheetHeader>
+          <Textarea
+              value={notes}
+              onChange={(e) => setNotes(e.target.value)}
+              placeholder={t('pomodoro.notes.sheet.placeholder')}
+              className="flex-grow min-h-[150px] text-base my-4" 
+          />
+          <SheetFooter>
+            <SheetClose asChild>
+              <Button type="button" className="w-full sm:w-auto">{t('pomodoro.notes.sheet.button.done')}</Button>
+            </SheetClose>
+          </SheetFooter>
+        </SheetContent>
+      </Sheet>
+
     </div>
   );
 }

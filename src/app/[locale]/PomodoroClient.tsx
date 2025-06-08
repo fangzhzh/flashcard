@@ -15,7 +15,7 @@ import { usePomodoro } from '@/contexts/PomodoroContext';
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { cn } from '@/lib/utils';
 
-const DEFAULT_POMODORO_MINUTES_DISPLAY = 25; // For initial display before context loads
+const DEFAULT_POMODORO_MINUTES_DISPLAY = 25; 
 
 export default function PomodoroClient() {
   const t = useI18n();
@@ -35,14 +35,24 @@ export default function PomodoroClient() {
   const [localNotes, setLocalNotes] = useState('');
   const [isNotesSheetOpen, setIsNotesSheetOpen] = useState(false);
   const [isSettingsCardVisible, setIsSettingsCardVisible] = useState(false);
+  
   const [durationInput, setDurationInput] = useState(
-    sessionState?.userPreferredDurationMinutes || DEFAULT_POMODORO_MINUTES_DISPLAY
+    sessionState?.userPreferredDurationMinutes ?? DEFAULT_POMODORO_MINUTES_DISPLAY
   );
 
   useEffect(() => {
     if (sessionState) {
-      setLocalNotes(sessionState.notes);
-      setDurationInput(sessionState.userPreferredDurationMinutes);
+      setLocalNotes(sessionState.notes || ''); // Ensure notes is not undefined
+      // Ensure durationInput is a valid number, defaulting if necessary
+      setDurationInput(
+        sessionState.userPreferredDurationMinutes && sessionState.userPreferredDurationMinutes > 0
+          ? sessionState.userPreferredDurationMinutes
+          : DEFAULT_POMODORO_MINUTES_DISPLAY
+      );
+    } else {
+      // If sessionState is null (e.g. during initial load or if user logs out)
+      setDurationInput(DEFAULT_POMODORO_MINUTES_DISPLAY);
+      setLocalNotes('');
     }
   }, [sessionState]);
 
@@ -54,10 +64,11 @@ export default function PomodoroClient() {
 
   const handleStart = () => {
     if (!user) {
-      // This should ideally be caught by the page guard below, but good to have
       return;
     }
-    startPomodoro(durationInput);
+    // Use the current valid durationInput for starting
+    const validDuration = durationInput > 0 && durationInput <= 120 ? durationInput : DEFAULT_POMODORO_MINUTES_DISPLAY;
+    startPomodoro(validDuration);
     setIsSettingsCardVisible(false);
   };
 
@@ -66,7 +77,7 @@ export default function PomodoroClient() {
     if (!isNaN(newDuration) && newDuration > 0 && newDuration <= 120) {
       setDurationInput(newDuration);
     } else if (e.target.value === '') {
-      setDurationInput(0); // Or some placeholder / min value
+      setDurationInput(0); 
     }
   };
   
@@ -74,17 +85,17 @@ export default function PomodoroClient() {
      if (durationInput > 0 && durationInput <= 120) {
         updateUserPreferredDuration(durationInput);
      }
-     // Optionally close settings card or provide feedback
   };
 
   const handleResetSettings = () => {
-    const defaultDuration = DEFAULT_POMODORO_MINUTES_DISPLAY; // Or a constant from context/config
+    const defaultDuration = DEFAULT_POMODORO_MINUTES_DISPLAY;
     setDurationInput(defaultDuration);
     updateUserPreferredDuration(defaultDuration);
   };
 
   const toggleSettingsVisibility = () => {
-    if (sessionState?.status === 'idle') {
+    // Allow toggling only if idle, regardless of sessionState being briefly null during init
+    if (sessionState?.status === 'idle' || !sessionState) { 
       setIsSettingsCardVisible(!isSettingsCardVisible);
     }
   };
@@ -104,7 +115,7 @@ export default function PomodoroClient() {
     );
   }
 
-  if (!user && !authLoading) { // Ensure user is loaded and exists
+  if (!user && !authLoading) { 
     return (
        <Alert variant="destructive" className="mt-8 max-w-md mx-auto">
           <ShieldAlert className="h-5 w-5" />
@@ -115,6 +126,7 @@ export default function PomodoroClient() {
   }
   
   const timerIsActive = sessionState?.status === 'running' || sessionState?.status === 'paused';
+  const timerIsIdle = sessionState?.status === 'idle' || !sessionState; // Consider !sessionState as idle for UI purposes
 
   return (
     <div className="flex flex-col items-center space-y-8 relative min-h-[calc(100vh-12rem)] pb-20">
@@ -122,17 +134,17 @@ export default function PomodoroClient() {
         <CardHeader 
           className={cn(
             "text-center",
-            sessionState?.status === 'idle' && "cursor-pointer hover:bg-muted/50 rounded-t-lg transition-colors"
+            timerIsIdle && "cursor-pointer hover:bg-muted/50 rounded-t-lg transition-colors"
           )}
           onClick={toggleSettingsVisibility}
-          title={sessionState?.status === 'idle' ? t('pomodoro.settings.toggleHint') : undefined}
+          title={timerIsIdle ? t('pomodoro.settings.toggleHint') : undefined}
         >
           <CardTitle className="text-6xl font-bold text-primary tabular-nums">
             {formatTime(timeLeftSeconds)}
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-6">
-          {sessionState?.status === 'idle' && (
+          {timerIsIdle && (
             <Button onClick={handleStart} className="w-full text-lg py-3" size="lg" disabled={durationInput <=0 || durationInput > 120}>
               <Play className="mr-2 h-5 w-5" /> {t('pomodoro.button.start')}
             </Button>
@@ -155,7 +167,7 @@ export default function PomodoroClient() {
         </CardContent>
       </Card>
 
-      {isSettingsCardVisible && sessionState?.status === 'idle' && (
+      {isSettingsCardVisible && timerIsIdle && (
         <Card className="w-full max-w-md shadow-lg">
           <CardHeader>
             <CardTitle className="text-lg flex items-center">
@@ -171,7 +183,7 @@ export default function PomodoroClient() {
                 id="pomodoroDuration"
                 value={durationInput === 0 ? '' : durationInput}
                 onChange={handleDurationInputChange}
-                onBlur={handleDurationSettingsSave} // Save on blur or add explicit save button
+                onBlur={handleDurationSettingsSave} 
                 placeholder={t('pomodoro.settings.durationPlaceholder')}
                 className="text-base"
                 min="1"
@@ -196,11 +208,11 @@ export default function PomodoroClient() {
                 variant="outline" 
                 className={cn(
                     "fixed bottom-6 right-6 z-50 rounded-full h-14 w-14 p-0 shadow-lg transition-all",
-                    localNotes.length > 0 ? "bg-accent text-accent-foreground hover:bg-accent/90 border-primary/30" : "bg-background/80 hover:bg-muted backdrop-blur-sm"
+                    localNotes && localNotes.length > 0 ? "bg-accent text-accent-foreground hover:bg-accent/90 border-primary/30" : "bg-background/80 hover:bg-muted backdrop-blur-sm"
                 )}
-                title={localNotes.length > 0 ? t('pomodoro.notes.button.openWithNotes') : t('pomodoro.notes.button.open')}
+                title={localNotes && localNotes.length > 0 ? t('pomodoro.notes.button.openWithNotes') : t('pomodoro.notes.button.open')}
             >
-            {localNotes.length > 0 ? <NotebookText className="h-6 w-6" /> : <NotebookPen className="h-6 w-6" />}
+            {localNotes && localNotes.length > 0 ? <NotebookText className="h-6 w-6" /> : <NotebookPen className="h-6 w-6" />}
             </Button>
         </SheetTrigger>
         <SheetContent side="bottom" className="h-[75vh] flex flex-col">
@@ -227,3 +239,4 @@ export default function PomodoroClient() {
     </div>
   );
 }
+

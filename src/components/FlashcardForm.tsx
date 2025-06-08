@@ -1,5 +1,6 @@
 
 "use client";
+import * as React from 'react'; // Added this import
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
@@ -30,9 +31,9 @@ interface FlashcardFormProps {
   submitButtonTextKey?: keyof typeof import('@/lib/i18n/locales/en').default;
 }
 
-export default function FlashcardForm({ 
-  onSubmit, 
-  initialData, 
+export default function FlashcardForm({
+  onSubmit,
+  initialData,
   decks,
   isLoading = false,
   isLoadingDecks = false,
@@ -47,7 +48,7 @@ export default function FlashcardForm({
       deckId: initialData?.deckId || null,
     },
   });
-  
+
   // Update defaultValues when initialData or decks change, especially for deckId
   // biome-ignore lint/correctness/useExhaustiveDependencies: <explanation>
   React.useEffect(() => {
@@ -99,11 +100,11 @@ export default function FlashcardForm({
               render={({ field }) => (
                 <FormItem>
                   <FormLabel className="text-lg flex items-center">
-                    <Library className="mr-2 h-5 w-5 text-muted-foreground" /> 
+                    <Library className="mr-2 h-5 w-5 text-muted-foreground" />
                     {t('flashcard.form.label.deck')}
                   </FormLabel>
-                  <Select 
-                    onValueChange={(value) => field.onChange(value === "null" ? null : value)} 
+                  <Select
+                    onValueChange={(value) => field.onChange(value === "null" ? null : value)}
                     defaultValue={field.value || "null"}
                     disabled={isLoadingDecks || decks.length === 0}
                   >

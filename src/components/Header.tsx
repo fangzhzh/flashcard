@@ -27,11 +27,11 @@ export default function Header() {
   const { user, signInWithGoogle, signOut, loading: authLoading } = useAuth();
 
   const navItems = [
-    { href: '/', labelKey: 'nav.flashcards', icon: LayoutDashboard }, // Renamed 'nav.dashboard' to 'nav.flashcards'
+    { href: '/', labelKey: 'nav.pomodoro', icon: Timer },
+    { href: '/flashcards-hub', labelKey: 'nav.flashcards', icon: LayoutDashboard },
     { href: '/decks', labelKey: 'nav.decks', icon: Library },
     { href: '/flashcards', labelKey: 'nav.manage', icon: Layers },
     { href: '/review', labelKey: 'nav.review', icon: ClipboardCheck },
-    { href: '/pomodoro', labelKey: 'nav.pomodoro', icon: Timer },
   ];
 
   const basePathname = pathname.startsWith(`/${currentLocale}`)
@@ -120,3 +120,4 @@ export default function Header() {
     </header>
   );
 }
+

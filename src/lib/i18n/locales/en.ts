@@ -3,11 +3,11 @@
 export default {
   // Header
   'header.title': 'FlashFlow',
-  'nav.flashcards': 'Flashcards', // Renamed from nav.dashboard
+  'nav.pomodoro': 'Pomodoro', // Default page
+  'nav.flashcards': 'Flashcards Hub', // New hub for flashcard features
   'nav.decks': 'Decks',
   'nav.manage': 'Manage Cards',
   'nav.review': 'Review',
-  'nav.pomodoro': 'Pomodoro',
   'theme.toggle': 'Toggle theme',
   'theme.light': 'Light',
   'theme.dark': 'Dark',
@@ -25,13 +25,13 @@ export default {
   'metadata.title': 'FlashFlow',
   'metadata.description': 'Master your studies with AI-powered flashcards and Pomodoro timer.',
 
-  // Main Flashcards Page (src/app/[locale]/page.tsx)
-  'flashcards.dashboard.welcome': 'Flashcards Hub', // Changed from dashboard.welcome
+  // Main Flashcards Hub Page (src/app/[locale]/flashcards-hub/page.tsx)
+  'flashcards.dashboard.welcome': 'Flashcards Hub', 
   'flashcards.dashboard.button.create': 'Create New Card',
-  'flashcards.dashboard.button.manageAll': 'Manage All Cards', // New button
+  'flashcards.dashboard.button.manageAll': 'Manage All Cards', 
   'flashcards.dashboard.button.decks': 'Manage Decks',
   'flashcards.dashboard.button.review': 'Start Review',
-  'flashcards.dashboard.howTo.title': 'How to use Flashcards', // Changed from dashboard.howTo.title
+  'flashcards.dashboard.howTo.title': 'How to use Flashcards', 
   'flashcards.dashboard.howTo.step1': 'Add new flashcards with a question and answer for each.',
   'flashcards.dashboard.howTo.step2': 'Review your cards regularly. The app uses a smart algorithm to schedule reviews.',
   'flashcards.dashboard.howTo.step3': "Track your progress on the dashboard and see how many cards you've mastered!",
@@ -168,16 +168,17 @@ export default {
   'toast.progress.saved.description': 'Card marked as "{performance}". Next review on {nextReviewDate}.',
   'toast.progress.error': 'Could not save progress: {errorMessage}. Please try again.',
 
-  // Pomodoro Page (src/app/[locale]/pomodoro/PomodoroClient.tsx)
+  // Pomodoro Page (src/app/[locale]/pomodoro/PomodoroClient.tsx or src/app/[locale]/PomodoroClient.tsx)
   'pomodoro.title': 'Pomodoro Timer',
   'pomodoro.settings.title': 'Settings',
   'pomodoro.settings.durationLabel': 'Pomodoro Duration (minutes):',
   'pomodoro.settings.durationPlaceholder': 'e.g., 25',
+  'pomodoro.settings.toggleHint': 'Click timer to toggle settings (when idle)',
   'pomodoro.button.start': 'Start',
   'pomodoro.button.pause': 'Pause',
   'pomodoro.button.continue': 'Continue',
   'pomodoro.button.giveUp': 'Give Up',
-  'pomodoro.button.reset': 'Reset Timer',
+  'pomodoro.button.reset': 'Reset Settings',
   'pomodoro.notes.button.open': 'Notes',
   'pomodoro.notes.button.openWithNotes': 'View/Edit Notes',
   'pomodoro.notes.sheet.title': 'Session Notes',
@@ -194,3 +195,4 @@ export default {
   'error': 'Error',
 
 } as const;
+

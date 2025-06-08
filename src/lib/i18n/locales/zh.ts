@@ -3,11 +3,11 @@
 export default {
   // Header
   'header.title': '闪流',
-  'nav.flashcards': '抽认卡', // Renamed from nav.dashboard
+  'nav.pomodoro': '番茄钟', // Default page
+  'nav.flashcards': '抽认卡中心', // New hub for flashcard features
   'nav.decks': '卡组',
   'nav.manage': '管理卡片',
   'nav.review': '复习',
-  'nav.pomodoro': '番茄钟',
   'theme.toggle': '切换主题',
   'theme.light': '浅色',
   'theme.dark': '深色',
@@ -24,13 +24,13 @@ export default {
   'metadata.title': '闪流',
   'metadata.description': '通过 AI 驱动的抽认卡和番茄工作法掌握您的学习。',
 
-  // Main Flashcards Page (src/app/[locale]/page.tsx)
-  'flashcards.dashboard.welcome': '抽认卡中心', // Changed from dashboard.welcome
+  // Main Flashcards Hub Page (src/app/[locale]/flashcards-hub/page.tsx)
+  'flashcards.dashboard.welcome': '抽认卡中心', 
   'flashcards.dashboard.button.create': '创建新卡片',
-  'flashcards.dashboard.button.manageAll': '管理所有卡片', // New button
+  'flashcards.dashboard.button.manageAll': '管理所有卡片', 
   'flashcards.dashboard.button.decks': '管理卡组',
   'flashcards.dashboard.button.review': '开始复习',
-  'flashcards.dashboard.howTo.title': '如何使用抽认卡', // Changed from dashboard.howTo.title
+  'flashcards.dashboard.howTo.title': '如何使用抽认卡', 
   'flashcards.dashboard.howTo.step1': '为每张卡片添加问题和答案来创建新的抽认卡。',
   'flashcards.dashboard.howTo.step2': '定期复习你的卡片。该应用程序使用智能算法来安排复习。',
   'flashcards.dashboard.howTo.step3': '在仪表板上跟踪你的进度，看看你掌握了多少张卡片！',
@@ -165,16 +165,17 @@ export default {
   'toast.progress.saved.description': '卡片已标记为“{performance}”。下次复习时间：{nextReviewDate}。',
   'toast.progress.error': '无法保存进度：{errorMessage}。请稍后再试。',
 
-  // Pomodoro Page (src/app/[locale]/pomodoro/PomodoroClient.tsx)
+  // Pomodoro Page (src/app/[locale]/PomodoroClient.tsx)
   'pomodoro.title': '番茄钟计时器',
   'pomodoro.settings.title': '设置',
   'pomodoro.settings.durationLabel': '番茄钟时长（分钟）：',
   'pomodoro.settings.durationPlaceholder': '例如：25',
+  'pomodoro.settings.toggleHint': '点击计时器以切换设置（空闲时）',
   'pomodoro.button.start': '开始',
   'pomodoro.button.pause': '暂停',
   'pomodoro.button.continue': '继续',
   'pomodoro.button.giveUp': '放弃',
-  'pomodoro.button.reset': '重置计时器',
+  'pomodoro.button.reset': '重置设置',
   'pomodoro.notes.button.open': '笔记',
   'pomodoro.notes.button.openWithNotes': '查看/编辑笔记',
   'pomodoro.notes.sheet.title': '会话笔记',
@@ -191,3 +192,4 @@ export default {
   'error': '错误',
 
 } as const;
+

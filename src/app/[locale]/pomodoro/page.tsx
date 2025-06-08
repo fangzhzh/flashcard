@@ -1,16 +1,8 @@
 
-import PageContainer from '@/components/PageContainer';
-import PomodoroClient from './PomodoroClient';
-import { getI18n } from '@/lib/i18n/server';
-
-export default async function PomodoroPage() {
-  const t = await getI18n();
-  return (
-    <PageContainer>
-      <div className="flex flex-col items-center mb-8">
-        <h1 className="text-3xl font-bold tracking-tight">{t('pomodoro.title')}</h1>
-      </div>
-      <PomodoroClient />
-    </PageContainer>
-  );
+// This file is intentionally left blank as its content has been moved to /src/app/[locale]/page.tsx
+// to make Pomodoro the default page.
+// This file can be deleted if your routing/build system doesn't require it.
+// If it's deleted, ensure any imports or references to it are removed or updated.
+export default function DeprecatedPomodoroPage() {
+  return null;
 }

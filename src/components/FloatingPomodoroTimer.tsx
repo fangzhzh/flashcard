@@ -21,24 +21,16 @@ export default function FloatingPomodoroTimer() {
   const currentLocale = useCurrentLocale();
   const [isHovered, setIsHovered] = useState(false);
 
-  // If currentLocale is not yet available, don't render.
   if (!currentLocale) {
     return null;
   }
 
-  // Determine if the current page is the main Pomodoro page.
-  // The main Pomodoro page is at the root of the current locale.
-  // For the default locale 'en', the path might be '/' if hideDefaultLocalePrefix is effectively true or pathname hook behaves this way.
-  // For other locales, it will be /<locale_code> (e.g., /zh).
   let isMainPomodoroPage = false;
-  const defaultLocale = 'en'; // This should match your i18n configuration in middleware.ts
+  const defaultLocale = 'en'; 
 
   if (pathname === '/') {
-    // If path is '/', it's the main page only if the current locale IS the default locale
     isMainPomodoroPage = currentLocale === defaultLocale;
   } else {
-    // Otherwise, check if the path is exactly /<locale_code>
-    // This handles cases like /zh for non-default locales, or /en if explicitly navigated to.
     isMainPomodoroPage = pathname === `/${currentLocale}`;
   }
 
@@ -58,24 +50,27 @@ export default function FloatingPomodoroTimer() {
   };
 
   const isActive = sessionState.status === 'running';
+  const isPaused = sessionState.status === 'paused';
 
   return (
     <Button
-      variant={isActive ? "default" : "outline"}
-      size="lg"
+      variant={isActive ? "default" : "outline"} // 'outline' provides border for paused state
       className={cn(
         "fixed bottom-6 right-6 z-50 rounded-full h-16 w-16 p-0 shadow-xl transition-all flex items-center justify-center",
-        "hover:scale-105 focus:scale-105"
+        "hover:scale-105 focus:scale-105",
+        // If paused, override 'outline' variant's default bg, text, and hover with accent colors
+        isPaused && "bg-accent text-accent-foreground hover:bg-accent/90"
       )}
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
       onClick={isActive ? handlePauseClick : handleContinueClick}
-      aria-label={isActive ? "Pause Pomodoro" : "Continue Pomodoro"}
+      aria-label={isActive ? "Pause Pomodoro" : (isPaused ? "Continue Pomodoro" : "Pomodoro Timer")}
     >
       {isHovered ? (
         isActive ? (
           <Pause className="h-7 w-7" />
         ) : (
+          // isPaused will also be true here if !isActive
           <Play className="h-7 w-7" />
         )
       ) : (
@@ -86,3 +81,4 @@ export default function FloatingPomodoroTimer() {
     </Button>
   );
 }
+

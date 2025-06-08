@@ -3,8 +3,8 @@ import type { Metadata } from 'next';
 import { Geist } from 'next/font/google';
 import './globals.css';
 import { FlashcardsProvider } from '@/contexts/FlashcardsContext';
-import { AuthProvider } from '@/contexts/AuthContext'; 
-import { PomodoroProvider } from '@/contexts/PomodoroContext'; // Import PomodoroProvider
+import { AuthProvider } from '@/contexts/AuthContext';
+// PomodoroProvider is removed from here
 import { Toaster } from '@/components/ui/toaster';
 
 const geistSans = Geist({
@@ -15,7 +15,7 @@ const geistSans = Geist({
 // General metadata, specific title/description will be in [locale]/layout.tsx
 export const metadata: Metadata = {
   title: 'FlashFlow', // Generic fallback
-  description: 'Master your studies with AI-powered flashcards.', // Generic fallback
+  description: 'Master your studies with AI-powered flashcards and Pomodoro timer.', // Generic fallback
 };
 
 export default function RootLayout({
@@ -25,15 +25,13 @@ export default function RootLayout({
 }>) {
   return (
     <html suppressHydrationWarning><body className={`${geistSans.variable} antialiased`}>
-      <AuthProvider> 
+      <AuthProvider>
         <FlashcardsProvider>
-          <PomodoroProvider> {/* PomodoroProvider wraps the main content */}
-            <div className="flex min-h-screen flex-col">
-              {/* Header moved to [locale]/layout.tsx */}
-              <main className="flex-1">{children}</main>
-            </div>
-            <Toaster />
-          </PomodoroProvider>
+          {/* PomodoroProvider was here, now removed */}
+          <div className="flex min-h-screen flex-col">
+            <main className="flex-1">{children}</main>
+          </div>
+          <Toaster />
         </FlashcardsProvider>
       </AuthProvider>
       </body></html>

@@ -1,7 +1,7 @@
 
 "use client";
 import Link from 'next/link';
-import { BookOpenText, LayoutDashboard, Layers, ClipboardCheck, Languages, LogIn, LogOut, UserCircle, Library } from 'lucide-react';
+import { BookOpenText, LayoutDashboard, Layers, ClipboardCheck, Languages, LogIn, LogOut, UserCircle, Library, Timer } from 'lucide-react'; // Added Timer
 import { ThemeToggle } from '@/components/ThemeToggle';
 import { usePathname } from 'next/navigation';
 import { cn } from '@/lib/utils';
@@ -31,6 +31,7 @@ export default function Header() {
     { href: '/decks', labelKey: 'nav.decks', icon: Library },
     { href: '/flashcards', labelKey: 'nav.manage', icon: Layers },
     { href: '/review', labelKey: 'nav.review', icon: ClipboardCheck },
+    { href: '/pomodoro', labelKey: 'nav.pomodoro', icon: Timer }, // New Pomodoro Link
   ];
 
   const basePathname = pathname.startsWith(`/${currentLocale}`)

@@ -7,6 +7,7 @@ export default {
   'nav.decks': '卡组', 
   'nav.manage': '管理卡片',
   'nav.review': '复习',
+  'nav.pomodoro': '番茄钟', // New
   'theme.toggle': '切换主题',
   'theme.light': '浅色',
   'theme.dark': '深色',
@@ -21,18 +22,21 @@ export default {
 
   // Metadata
   'metadata.title': '闪流',
-  'metadata.description': '通过 AI 驱动的抽认卡掌握您的学习。',
+  'metadata.description': '通过 AI 驱动的抽认卡和番茄工作法掌握您的学习。',
 
   // Dashboard Page (src/app/[locale]/page.tsx)
   'dashboard.welcome': '欢迎使用闪流',
   'dashboard.button.create': '创建新卡片',
   'dashboard.button.manage': '管理卡片',
-  'dashboard.button.decks': '管理卡组', // New
+  'dashboard.button.decks': '管理卡组',
   'dashboard.button.review': '开始复习',
+  'dashboard.button.pomodoro': '开始番茄钟', // New
   'dashboard.howTo.title': '如何使用闪流',
   'dashboard.howTo.step1': '为每张卡片添加问题和答案来创建新的抽认卡。',
   'dashboard.howTo.step2': '定期复习你的卡片。该应用程序使用智能算法来安排复习。',
   'dashboard.howTo.step3': '在仪表板上跟踪你的进度，看看你掌握了多少张卡片！',
+  'dashboard.howTo.step4': '使用番茄钟来集中您的学习时间。', // New
+
 
   // Progress Dashboard Component (src/components/ProgressDashboard.tsx)
   'progress.total': '总卡片数',
@@ -161,6 +165,22 @@ export default {
   'toast.progress.saved': '进度已保存',
   'toast.progress.saved.description': '卡片已标记为“{performance}”。下次复习时间：{nextReviewDate}。',
   'toast.progress.error': '无法保存进度：{errorMessage}。请稍后再试。',
+
+  // Pomodoro Page (src/app/[locale]/pomodoro/PomodoroClient.tsx)
+  'pomodoro.title': '番茄钟计时器',
+  'pomodoro.settings.durationLabel': '番茄钟时长（分钟）：',
+  'pomodoro.settings.durationPlaceholder': '例如：25',
+  'pomodoro.button.start': '开始',
+  'pomodoro.button.pause': '暂停',
+  'pomodoro.button.continue': '继续',
+  'pomodoro.button.giveUp': '放弃',
+  'pomodoro.button.reset': '重置计时器',
+  'pomodoro.notes.label': '快速笔记 / 任务残留：',
+  'pomodoro.notes.placeholder': '记下中断或您离开的地方...',
+  'pomodoro.toast.completed': '番茄钟时间到！',
+  'pomodoro.toast.completed.description': '休息一下吧。',
+  'pomodoro.auth.required': '请登录以使用番茄钟功能。',
+
 
   // General
   'success': '成功',

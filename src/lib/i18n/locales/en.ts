@@ -7,6 +7,7 @@ export default {
   'nav.decks': 'Decks',
   'nav.manage': 'Manage Cards',
   'nav.review': 'Review',
+  'nav.pomodoro': 'Pomodoro', // New
   'theme.toggle': 'Toggle theme',
   'theme.light': 'Light',
   'theme.dark': 'Dark',
@@ -22,18 +23,21 @@ export default {
 
   // Metadata
   'metadata.title': 'FlashFlow',
-  'metadata.description': 'Master your studies with AI-powered flashcards.',
+  'metadata.description': 'Master your studies with AI-powered flashcards and Pomodoro timer.',
 
   // Dashboard Page (src/app/[locale]/page.tsx)
   'dashboard.welcome': 'Welcome to FlashFlow',
   'dashboard.button.create': 'Create New Card',
   'dashboard.button.manage': 'Manage Cards',
-  'dashboard.button.decks': 'Manage Decks', // New
+  'dashboard.button.decks': 'Manage Decks',
   'dashboard.button.review': 'Start Review',
+  'dashboard.button.pomodoro': 'Start Pomodoro', // New
   'dashboard.howTo.title': 'How to use FlashFlow',
   'dashboard.howTo.step1': 'Add new flashcards with a question and answer for each.',
   'dashboard.howTo.step2': 'Review your cards regularly. The app uses a smart algorithm to schedule reviews.',
   'dashboard.howTo.step3': "Track your progress on the dashboard and see how many cards you've mastered!",
+  'dashboard.howTo.step4': 'Use the Pomodoro timer to focus your study sessions.', // New
+
 
   // Progress Dashboard Component (src/components/ProgressDashboard.tsx)
   'progress.total': 'Total Cards',
@@ -164,6 +168,22 @@ export default {
   'toast.progress.saved': 'Progress Saved',
   'toast.progress.saved.description': 'Card marked as "{performance}". Next review on {nextReviewDate}.',
   'toast.progress.error': 'Could not save progress: {errorMessage}. Please try again.',
+
+  // Pomodoro Page (src/app/[locale]/pomodoro/PomodoroClient.tsx)
+  'pomodoro.title': 'Pomodoro Timer',
+  'pomodoro.settings.durationLabel': 'Pomodoro Duration (minutes):',
+  'pomodoro.settings.durationPlaceholder': 'e.g., 25',
+  'pomodoro.button.start': 'Start',
+  'pomodoro.button.pause': 'Pause',
+  'pomodoro.button.continue': 'Continue',
+  'pomodoro.button.giveUp': 'Give Up',
+  'pomodoro.button.reset': 'Reset Timer',
+  'pomodoro.notes.label': 'Quick Notes / Task Residue:',
+  'pomodoro.notes.placeholder': 'Jot down interruptions or where you left off...',
+  'pomodoro.toast.completed': 'Pomodoro session complete!',
+  'pomodoro.toast.completed.description': 'Time for a short break.',
+  'pomodoro.auth.required': 'Please sign in to use the Pomodoro timer.',
+
 
   // General
   'success': 'Success',

@@ -4,7 +4,7 @@ import Link from 'next/link';
 import PageContainer from '@/components/PageContainer';
 import ProgressDashboard from '@/components/ProgressDashboard';
 import { Button } from '@/components/ui/button';
-import { Layers, ClipboardCheck, PlusCircle, ShieldAlert, Library } from 'lucide-react';
+import { Layers, ClipboardCheck, PlusCircle, ShieldAlert, Library, Timer } from 'lucide-react'; // Added Timer
 import { useI18n } from '@/lib/i18n/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
@@ -40,7 +40,7 @@ export default function DashboardPage() {
           <>
             <ProgressDashboard />
 
-            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-2 xl:grid-cols-4"> {/* Adjusted grid for more items */}
               <Link href="/flashcards/new" passHref>
                 <Button size="lg" className="w-full py-8 text-lg shadow-md hover:shadow-lg transition-shadow">
                   <PlusCircle className="mr-3 h-6 w-6" /> {t('dashboard.button.create')}
@@ -56,19 +56,23 @@ export default function DashboardPage() {
                   <ClipboardCheck className="mr-3 h-6 w-6" /> {t('dashboard.button.review')}
                 </Button>
               </Link>
+              <Link href="/pomodoro" passHref> {/* New Pomodoro Button */}
+                <Button variant="default" size="lg" className="w-full py-8 text-lg shadow-md hover:shadow-lg transition-shadow bg-accent text-accent-foreground hover:bg-accent/90">
+                  <Timer className="mr-3 h-6 w-6" /> {t('dashboard.button.pomodoro')}
+                </Button>
+              </Link>
             </div>
           </>
         )}
         
         <div className="mt-12 p-6 bg-card border rounded-lg shadow">
           <h2 className="text-2xl font-semibold mb-4">{t('dashboard.howTo.title')}</h2>
-          <p className="text-muted-foreground">
-            1. <span className="font-medium text-foreground">{t('dashboard.howTo.step1')}</span>
-            <br />
-            2. <span className="font-medium text-foreground">{t('dashboard.howTo.step2')}</span>
-            <br />
-            3. <span className="font-medium text-foreground">{t('dashboard.howTo.step3')}</span>
-          </p>
+          <ul className="list-decimal pl-5 space-y-1 text-muted-foreground">
+            <li><span className="font-medium text-foreground">{t('dashboard.howTo.step1')}</span></li>
+            <li><span className="font-medium text-foreground">{t('dashboard.howTo.step2')}</span></li>
+            <li><span className="font-medium text-foreground">{t('dashboard.howTo.step3')}</span></li>
+            <li><span className="font-medium text-foreground">{t('dashboard.howTo.step4')}</span></li>
+          </ul>
         </div>
 
       </div>

@@ -1,14 +1,13 @@
 
 import type { Metadata } from 'next';
-import { Geist } from 'next/font/google';
+import { Inter } from 'next/font/google'; // Changed from Geist to Inter
 import './globals.css';
 import { FlashcardsProvider } from '@/contexts/FlashcardsContext';
 import { AuthProvider } from '@/contexts/AuthContext';
-// PomodoroProvider is removed from here
 import { Toaster } from '@/components/ui/toaster';
 
-const geistSans = Geist({
-  variable: '--font-geist-sans',
+const inter = Inter({ // Changed from geistSans to inter
+  variable: '--font-inter', // Changed variable name
   subsets: ['latin'],
 });
 
@@ -24,10 +23,9 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html suppressHydrationWarning><body className={`${geistSans.variable} antialiased`}>
+    <html suppressHydrationWarning><body className={`${inter.variable} antialiased`}>
       <AuthProvider>
         <FlashcardsProvider>
-          {/* PomodoroProvider was here, now removed */}
           <div className="flex min-h-screen flex-col">
             <main className="flex-1">{children}</main>
           </div>

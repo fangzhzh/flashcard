@@ -7,7 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import type { Flashcard, PerformanceRating } from '@/types';
 import { useToast } from '@/hooks/use-toast';
-import { RefreshCw, CheckCircle2, SkipForward, RotateCcw, PlayCircle, ThumbsUp, PlusCircle, Layers, LayoutDashboard, Loader2, ShieldAlert } from 'lucide-react';
+import { RefreshCw, CheckCircle2, SkipForward, RotateCcw, PlayCircle, ThumbsUp, PlusCircle, Layers, LayoutDashboard, Loader2, ShieldAlert, Volume2 } from 'lucide-react';
 import { formatISO, addDays } from 'date-fns';
 import Link from 'next/link';
 import ReactMarkdown from 'react-markdown';
@@ -45,6 +45,30 @@ export default function ReviewModeClient() {
 
   const handleFlip = () => {
     setIsFlipped(!isFlipped);
+  };
+
+  const handleSpeak = (text: string, lang?: string) => {
+    if ('speechSynthesis' in window) {
+      window.speechSynthesis.cancel();
+      const utterance = new SpeechSynthesisUtterance(text);
+      if (lang) {
+        utterance.lang = lang;
+      }
+      window.speechSynthesis.speak(utterance);
+    } else {
+      toast({
+        title: "Speech Error",
+        description: "Your browser does not support text-to-speech.",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const detectLanguage = (text: string) => {
+    if (/[\u4E00-\u9FFF]/.test(text)) {
+      return 'zh-CN';
+    }
+    return 'en-US';
   };
 
   const handleProgress = async (performance: PerformanceRating) => {
@@ -275,28 +299,46 @@ export default function ReviewModeClient() {
     { labelKey: 'review.button.progress.later', rating: 'Later', icon: SkipForward, variant: 'secondary' },
     { labelKey: 'review.button.progress.mastered', rating: 'Mastered', icon: CheckCircle2, variant: 'default' },
   ];
+  
+  const currentCardText = isFlipped ? currentCard.back : currentCard.front;
+  const currentCardLang = detectLanguage(currentCardText);
 
   return (
     <div className="flex flex-col items-center p-4 pt-12">
       <p className="text-muted-foreground mb-4">{t('review.cardProgress', { currentIndex: currentCardIndex + 1, totalCards: reviewQueue.length })}</p>
       <Card className="w-full max-w-2xl min-h-[350px] flex flex-col shadow-xl transition-all duration-500 ease-in-out transform hover:scale-[1.01]">
-        <CardHeader className="flex-grow flex items-center justify-center p-8"> {/* Changed p-6 to p-8 */}
-          <CardTitle className="text-3xl md:text-4xl font-semibold">
-            <div className="markdown-content whitespace-pre-wrap">
-              <ReactMarkdown remarkPlugins={[remarkGfm]}>
-                {isFlipped ? currentCard.back : currentCard.front}
-              </ReactMarkdown>
-            </div>
-          </CardTitle>
+        <CardHeader className="flex-grow flex items-center justify-center p-8">
+          <div className="flex items-start w-full">
+            <CardTitle className="text-3xl md:text-4xl font-semibold flex-grow">
+              <div className="markdown-content whitespace-pre-wrap">
+                <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                  {currentCardText}
+                </ReactMarkdown>
+              </div>
+            </CardTitle>
+            <Button
+              variant="ghost"
+              size="icon"
+              className="ml-4 flex-shrink-0"
+              onClick={(e) => {
+                e.stopPropagation(); // Prevent card flip if button is inside clickable area
+                handleSpeak(currentCardText, currentCardLang);
+              }}
+              title={t('review.speakContent' as any, { defaultValue: "Speak content"})}
+              disabled={isSubmittingProgress}
+            >
+              <Volume2 className="h-6 w-6" />
+            </Button>
+          </div>
         </CardHeader>
-        <CardContent className="p-8 border-t"> {/* Changed p-6 to p-8 */}
+        <CardContent className="p-8 border-t"> 
           <Button onClick={handleFlip} variant="outline" className="w-full text-lg py-6 mb-6" disabled={isSubmittingProgress}>
             <RefreshCw className={`mr-2 h-5 w-5 ${isFlipped ? 'animate-pulse' : ''}`} />
             {isFlipped ? t('review.button.flip.showQuestion') : t('review.button.flip.showAnswer')}
           </Button>
         </CardContent>
         {isFlipped && (
-          <CardFooter className="grid grid-cols-3 gap-3 p-8 border-t"> {/* Changed p-6 to p-8 */}
+          <CardFooter className="grid grid-cols-3 gap-3 p-8 border-t">
             {progressOptions.map(opt => (
               <Button
                 key={opt.rating}

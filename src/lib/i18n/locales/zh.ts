@@ -91,6 +91,9 @@ export default {
   'flashcard.item.delete.confirm.description': '此操作无法撤销。这将永久删除此抽认卡。',
   'flashcard.item.delete.confirm.cancel': '取消',
   'flashcard.item.delete.confirm.delete': '删除',
+  'flashcard.item.speakFront': '朗读正面内容',
+  'flashcard.item.speakBack': '朗读背面内容',
+
 
   // Flashcard Form Page (src/components/FlashcardFormPage.tsx)
   'flashcard.form.page.button.back': '返回',
@@ -161,6 +164,7 @@ export default {
   'review.button.progress.later': '稍后',
   'review.button.progress.mastered': '已掌握',
   'review.processing': '处理中...',
+  'review.speakContent': '朗读内容',
   'toast.progress.saved': '进度已保存',
   'toast.progress.saved.description': '卡片已标记为“{performance}”。下次复习时间：{nextReviewDate}。',
   'toast.progress.error': '无法保存进度：{errorMessage}。请稍后再试。',

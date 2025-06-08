@@ -93,6 +93,8 @@ export default {
   'flashcard.item.delete.confirm.description': 'This action cannot be undone. This will permanently delete this flashcard.',
   'flashcard.item.delete.confirm.cancel': 'Cancel',
   'flashcard.item.delete.confirm.delete': 'Delete',
+  'flashcard.item.speakFront': 'Speak front content',
+  'flashcard.item.speakBack': 'Speak back content',
 
 
   // Flashcard Form Page (src/components/FlashcardFormPage.tsx)
@@ -164,6 +166,7 @@ export default {
   'review.button.progress.later': 'Later',
   'review.button.progress.mastered': 'Mastered',
   'review.processing': 'Processing...',
+  'review.speakContent': 'Speak content',
   'toast.progress.saved': 'Progress Saved',
   'toast.progress.saved.description': 'Card marked as "{performance}". Next review on {nextReviewDate}.',
   'toast.progress.error': 'Could not save progress: {errorMessage}. Please try again.',

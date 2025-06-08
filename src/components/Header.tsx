@@ -1,7 +1,7 @@
 
 "use client";
 import Link from 'next/link';
-import { BookOpenText, LayoutDashboard, Layers, ClipboardCheck, Languages, LogIn, LogOut, UserCircle, Library, Timer } from 'lucide-react';
+import { BookOpenText, LayoutDashboard, Timer, Languages, LogIn, LogOut, UserCircle } from 'lucide-react'; // Removed Layers, ClipboardCheck, Library
 import { ThemeToggle } from '@/components/ThemeToggle';
 import { usePathname } from 'next/navigation';
 import { cn } from '@/lib/utils';
@@ -26,12 +26,11 @@ export default function Header() {
   const pathname = usePathname();
   const { user, signInWithGoogle, signOut, loading: authLoading } = useAuth();
 
+  // Simplified navItems
   const navItems = [
     { href: '/', labelKey: 'nav.pomodoro', icon: Timer },
     { href: '/flashcards-hub', labelKey: 'nav.flashcards', icon: LayoutDashboard },
-    { href: '/decks', labelKey: 'nav.decks', icon: Library },
-    { href: '/flashcards', labelKey: 'nav.manage', icon: Layers },
-    { href: '/review', labelKey: 'nav.review', icon: ClipboardCheck },
+    // Removed: Decks, Manage Cards, Review from direct header navigation
   ];
 
   const basePathname = pathname.startsWith(`/${currentLocale}`)
@@ -120,4 +119,3 @@ export default function Header() {
     </header>
   );
 }
-

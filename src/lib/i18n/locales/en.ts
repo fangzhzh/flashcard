@@ -3,11 +3,11 @@
 export default {
   // Header
   'header.title': 'FlashFlow',
-  'nav.pomodoro': 'Pomodoro', // Default page
-  'nav.flashcards': 'Flashcards Hub', // New hub for flashcard features
-  'nav.decks': 'Decks',
-  'nav.manage': 'Manage Cards',
-  'nav.review': 'Review',
+  'nav.pomodoro': 'Pomodoro', 
+  'nav.flashcards': 'Flashcards', 
+  'nav.decks': 'Decks', // Kept for potential future use, but not directly in header
+  'nav.manage': 'Manage Cards', // Kept for potential future use
+  'nav.review': 'Review', // Kept for potential future use
   'theme.toggle': 'Toggle theme',
   'theme.light': 'Light',
   'theme.dark': 'Dark',
@@ -168,11 +168,12 @@ export default {
   'toast.progress.saved.description': 'Card marked as "{performance}". Next review on {nextReviewDate}.',
   'toast.progress.error': 'Could not save progress: {errorMessage}. Please try again.',
 
-  // Pomodoro Page (src/app/[locale]/pomodoro/PomodoroClient.tsx or src/app/[locale]/PomodoroClient.tsx)
+  // Pomodoro Page (src/app/[locale]/PomodoroClient.tsx or src/app/[locale]/page.tsx)
   'pomodoro.title': 'Pomodoro Timer',
   'pomodoro.settings.title': 'Settings',
   'pomodoro.settings.durationLabel': 'Pomodoro Duration (minutes):',
   'pomodoro.settings.durationPlaceholder': 'e.g., 25',
+  'pomodoro.settings.durationError': 'Duration must be between 1 and 120 minutes.',
   'pomodoro.settings.toggleHint': 'Click timer to toggle settings (when idle)',
   'pomodoro.button.start': 'Start',
   'pomodoro.button.pause': 'Pause',
@@ -195,4 +196,3 @@ export default {
   'error': 'Error',
 
 } as const;
-

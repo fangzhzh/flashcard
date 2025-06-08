@@ -34,3 +34,15 @@ export interface FlashcardSourceDataItem {
 
 // Simplified user type for AuthContext
 export type AppUser = Pick<FirebaseUser, 'uid' | 'displayName' | 'email' | 'photoURL'> | null;
+
+// State for the Pomodoro timer, to be stored in Firestore
+export interface PomodoroSessionState {
+  userId: string;
+  status: 'running' | 'paused' | 'idle';
+  targetEndTime: number | null; // Unix timestamp (ms) or null if idle
+  pausedTimeLeftSeconds: number | null; // Seconds remaining when paused
+  currentSessionInitialDurationMinutes: number; // Duration set when the current/last session started
+  userPreferredDurationMinutes: number; // User's default duration for new sessions
+  notes: string;
+  updatedAt: any; // Firestore serverTimestamp for the last update to this state
+}

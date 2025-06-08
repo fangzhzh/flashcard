@@ -1,9 +1,9 @@
 
 import PageContainer from '@/components/PageContainer';
-import PomodoroClient from './PomodoroClient'; // Updated import path
+import PomodoroClient from './PomodoroClient'; 
 import { getI18n } from '@/lib/i18n/server';
 
-export default async function PomodoroAsDefaultPage() { // Renamed component
+export default async function PomodoroAsDefaultPage() { 
   const t = await getI18n();
   return (
     <PageContainer>
@@ -14,4 +14,3 @@ export default async function PomodoroAsDefaultPage() { // Renamed component
     </PageContainer>
   );
 }
-

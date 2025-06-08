@@ -2,14 +2,17 @@
 "use client";
 import { useState, useEffect, useCallback } from 'react';
 import { useFlashcards } from '@/contexts/FlashcardsContext';
+import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import type { Flashcard, PerformanceRating } from '@/types';
 import { useToast } from '@/hooks/use-toast';
-import { RefreshCw, CheckCircle2, SkipForward, RotateCcw, PlayCircle, ThumbsUp, PlusCircle, Layers, LayoutDashboard, Loader2 } from 'lucide-react';
+import { RefreshCw, CheckCircle2, SkipForward, RotateCcw, PlayCircle, ThumbsUp, PlusCircle, Layers, LayoutDashboard, Loader2, ShieldAlert } from 'lucide-react';
 import { formatISO, addDays } from 'date-fns';
 import Link from 'next/link';
 import { useI18n } from '@/lib/i18n/client';
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+
 
 const MASTERED_MULTIPLIER = 2;
 const LATER_MULTIPLIER = 1.3;
@@ -18,7 +21,8 @@ const MIN_INTERVAL = 1; // 1 day
 const MAX_INTERVAL = 365; // 1 year
 
 export default function ReviewModeClient() {
-  const { getReviewQueue, updateFlashcard, flashcards: allFlashcardsFromContext, isLoading: contextLoading } = useFlashcards();
+  const { user, loading: authLoading } = useAuth();
+  const { getReviewQueue, updateFlashcard, flashcards: allFlashcardsFromContext, isLoading: contextLoading, isSeeding } = useFlashcards();
   const [reviewQueue, setReviewQueue] = useState<Flashcard[]>([]);
   const [currentCardIndex, setCurrentCardIndex] = useState(0);
   const [isFlipped, setIsFlipped] = useState(false);
@@ -30,19 +34,19 @@ export default function ReviewModeClient() {
   const currentCard = reviewQueue[currentCardIndex];
 
   const loadSpacedRepetitionQueue = useCallback(() => {
-    if (contextLoading) return;
+    if (contextLoading || !user) return;
     const queue = getReviewQueue();
     setReviewQueue(queue);
     setCurrentCardIndex(0);
     setIsFlipped(false);
-  }, [getReviewQueue, contextLoading]);
+  }, [getReviewQueue, contextLoading, user]);
 
   const handleFlip = () => {
     setIsFlipped(!isFlipped);
   };
 
-  const handleProgress = (performance: PerformanceRating) => {
-    if (!currentCard) return;
+  const handleProgress = async (performance: PerformanceRating) => {
+    if (!currentCard || !user) return;
 
     setIsSubmittingProgress(true);
     try {
@@ -69,7 +73,7 @@ export default function ReviewModeClient() {
       const lastReviewedDateString = formatISO(currentDate, { representation: 'date' });
       const newStatus = performance === 'Mastered' ? 'mastered' : 'learning';
 
-      updateFlashcard(currentCard.id, {
+      await updateFlashcard(currentCard.id, {
         lastReviewed: lastReviewedDateString,
         nextReviewDate: nextReviewDateString,
         interval: newInterval,
@@ -108,7 +112,7 @@ export default function ReviewModeClient() {
     }
   };
   
-  if (contextLoading) {
+  if (authLoading || (contextLoading && user) || (isSeeding && user)) {
     return (
       <div className="flex flex-col items-center justify-center min-h-[calc(100vh-10rem)] p-4 text-center">
         <Loader2 className="h-12 w-12 animate-spin text-primary mb-4" />
@@ -116,6 +120,19 @@ export default function ReviewModeClient() {
       </div>
     );
   }
+
+  if (!user && !authLoading) {
+     return (
+      <div className="flex flex-col items-center justify-center min-h-[calc(100vh-10rem)] p-4 text-center">
+        <Alert variant="destructive" className="mt-8">
+            <ShieldAlert className="h-5 w-5" />
+            <AlertTitle>{t('error')}</AlertTitle>
+            <AlertDescription>{t('auth.pleaseSignIn')}</AlertDescription>
+        </Alert>
+      </div>
+    );
+  }
+
 
   if (!isSessionStarted) {
     const initialSpacedRepetitionQueue = getReviewQueue();

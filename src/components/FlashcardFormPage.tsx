@@ -1,3 +1,4 @@
+
 "use client";
 import { useEffect, useState } from 'react';
 import { useRouter, useParams } from 'next/navigation'; // Using next/navigation
@@ -10,6 +11,9 @@ import { useToast } from '@/hooks/use-toast';
 import { Button } from '@/components/ui/button';
 import { ArrowLeft, ListPlus, FilePlus2, Loader2 } from 'lucide-react';
 import { useI18n } from '@/lib/i18n/client';
+import { useAuth } from '@/contexts/AuthContext';
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { ShieldAlert } from 'lucide-react';
 
 interface FlashcardFormPageProps {
   mode: 'create' | 'edit';
@@ -17,7 +21,8 @@ interface FlashcardFormPageProps {
 
 export default function FlashcardFormPage({ mode }: FlashcardFormPageProps) {
   const router = useRouter();
-  const params = useParams(); // params will include locale
+  const params = useParams(); 
+  const { user, loading: authLoading } = useAuth();
   const { addFlashcard, updateFlashcard, getFlashcardById, isLoading: contextLoading } = useFlashcards();
   const [initialData, setInitialData] = useState<Partial<Flashcard> | undefined>(undefined);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -28,29 +33,33 @@ export default function FlashcardFormPage({ mode }: FlashcardFormPageProps) {
   const cardId = mode === 'edit' ? (params.id as string) : undefined;
 
   useEffect(() => {
-    if (mode === 'edit' && cardId && !contextLoading) {
+    if (mode === 'edit' && cardId && !contextLoading && user) {
       setCurrentFormMode('single');
       const card = getFlashcardById(cardId);
       if (card) {
         setInitialData(card);
       } else {
         toast({ title: t('error'), description: t('toast.flashcard.notFound'), variant: "destructive" });
-        router.push('/flashcards'); // Will be prefixed by locale by Link/router
+        router.push(`/${params.locale}/flashcards`);
       }
     }
-  }, [mode, cardId, getFlashcardById, router, toast, contextLoading, t]);
+  }, [mode, cardId, getFlashcardById, router, toast, contextLoading, user, params.locale, t]);
 
-  const handleSingleSubmit = (data: { front: string; back: string }) => {
+  const handleSingleSubmit = async (data: { front: string; back: string }) => {
+    if (!user) {
+      toast({ title: t('error'), description: t('auth.pleaseSignIn'), variant: "destructive" });
+      return;
+    }
     setIsSubmitting(true);
     try {
       if (mode === 'create') {
-        addFlashcard(data);
+        await addFlashcard(data);
         toast({ title: t('success'), description: t('toast.flashcard.created') });
       } else if (cardId) {
-        updateFlashcard(cardId, data);
+        await updateFlashcard(cardId, data);
         toast({ title: t('success'), description: t('toast.flashcard.updated') });
       }
-      router.push('/flashcards');
+      router.push(`/${params.locale}/flashcards`);
     } catch (error) {
       toast({ title: t('error'), description: t('toast.flashcard.error.save'), variant: "destructive" });
       console.error("Failed to save flashcard:", error);
@@ -59,7 +68,11 @@ export default function FlashcardFormPage({ mode }: FlashcardFormPageProps) {
     }
   };
 
-  const handleBatchSubmit = (rawBatchInput: string) => {
+  const handleBatchSubmit = async (rawBatchInput: string) => {
+    if (!user) {
+      toast({ title: t('error'), description: t('auth.pleaseSignIn'), variant: "destructive" });
+      return;
+    }
     setIsSubmitting(true);
     const lines = rawBatchInput.split('\n').filter(line => line.trim() !== '');
     const cardsToAdd: { front: string; back: string }[] = [];
@@ -100,7 +113,7 @@ export default function FlashcardFormPage({ mode }: FlashcardFormPageProps) {
       setIsSubmitting(false);
       if (cardsToAdd.length === 0) return;
     }
-
+    
     if (cardsToAdd.length === 0 && parseErrors.length === 0 && lines.length > 0) {
         toast({ title: t('error'), description: t('toast.batch.error.noValidCards'), variant: "destructive" });
         setIsSubmitting(false);
@@ -114,15 +127,15 @@ export default function FlashcardFormPage({ mode }: FlashcardFormPageProps) {
 
     try {
       let createdCount = 0;
-      cardsToAdd.forEach(cardData => {
-        addFlashcard(cardData);
+      for (const cardData of cardsToAdd) {
+        await addFlashcard(cardData);
         createdCount++;
-      });
+      }
       if (createdCount > 0) {
         toast({ title: t('success'), description: t('toast.batch.success', { count: createdCount} ) });
       }
       if (createdCount > 0 || parseErrors.length === 0) {
-         router.push('/flashcards');
+         router.push(`/${params.locale}/flashcards`);
       }
     } catch (error) {
       toast({ title: t('error'), description: t('toast.batch.error.save'), variant: "destructive" });
@@ -131,9 +144,32 @@ export default function FlashcardFormPage({ mode }: FlashcardFormPageProps) {
       setIsSubmitting(false);
     }
   };
-
-  if (contextLoading || (mode === 'edit' && !initialData && cardId)) {
+  
+  if (authLoading || (contextLoading && user)) {
     return (
+      <PageContainer>
+        <div className="flex justify-center items-center mt-8">
+          <Loader2 className="h-8 w-8 animate-spin text-primary" />
+          <p className="ml-2 text-muted-foreground">{t('flashcard.form.page.loading')}</p>
+        </div>
+      </PageContainer>
+    );
+  }
+
+  if (!user && !authLoading) {
+    return (
+      <PageContainer>
+        <Alert variant="destructive" className="mt-8">
+          <ShieldAlert className="h-5 w-5" />
+          <AlertTitle>{t('error')}</AlertTitle>
+          <AlertDescription>{t('auth.pleaseSignIn')}</AlertDescription>
+        </Alert>
+      </PageContainer>
+    );
+  }
+  
+  if (mode === 'edit' && !initialData && cardId && user) {
+     return ( // Still loading specific card data
       <PageContainer>
         <div className="flex justify-center items-center mt-8">
           <Loader2 className="h-8 w-8 animate-spin text-primary" />

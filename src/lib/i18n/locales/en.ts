@@ -1,3 +1,4 @@
+
 // src/lib/i18n/locales/en.ts
 export default {
   // Header
@@ -11,6 +12,12 @@ export default {
   'theme.system': 'System',
   'lang.switch.en': 'English',
   'lang.switch.zh': '中文',
+
+  // Auth
+  'auth.signInWithGoogle': 'Sign in with Google',
+  'auth.signOut': 'Sign Out',
+  'auth.pleaseSignIn': 'Please sign in to continue.',
+
 
   // Metadata
   'metadata.title': 'FlashFlow',

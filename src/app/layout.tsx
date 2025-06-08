@@ -1,7 +1,9 @@
+
 import type { Metadata } from 'next';
 import { Geist } from 'next/font/google';
 import './globals.css';
 import { FlashcardsProvider } from '@/contexts/FlashcardsContext';
+import { AuthProvider } from '@/contexts/AuthContext'; // Import AuthProvider
 import { Toaster } from '@/components/ui/toaster';
 
 const geistSans = Geist({
@@ -22,6 +24,7 @@ export default function RootLayout({
 }>) {
   return (
     <html suppressHydrationWarning><body className={`${geistSans.variable} antialiased`}>
+      <AuthProvider> {/* AuthProvider wraps FlashcardsProvider */}
         <FlashcardsProvider>
           <div className="flex min-h-screen flex-col">
             {/* Header moved to [locale]/layout.tsx */}
@@ -29,6 +32,7 @@ export default function RootLayout({
           </div>
           <Toaster />
         </FlashcardsProvider>
+      </AuthProvider>
       </body></html>
   );
 }

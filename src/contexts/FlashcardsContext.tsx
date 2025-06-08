@@ -1,114 +1,209 @@
 
 "use client";
-import type { Flashcard, FlashcardSourceDataItem } from '@/types';
-import { useLocalStorage } from '@/hooks/use-local-storage';
+import type { Flashcard, FlashcardSourceDataItem, AppUser } from '@/types';
 import React, { createContext, useContext, ReactNode, useCallback, useMemo, useEffect, useState } from 'react';
-import { v4 as uuidv4 } from 'uuid';
+import { db } from '@/lib/firebase';
+import {
+  collection,
+  addDoc,
+  updateDoc,
+  deleteDoc,
+  doc,
+  onSnapshot,
+  query,
+  orderBy,
+  serverTimestamp,
+  Timestamp,
+  getDocs,
+  writeBatch,
+} from 'firebase/firestore';
+import { useAuth } from './AuthContext';
 import { formatISO, parseISO } from 'date-fns';
-import flashcardJsonData from '../../flashcard.json'; // Import the JSON data
+import flashcardJsonData from '../../flashcard.json';
 
 const EMPTY_FLASHCARDS: Flashcard[] = [];
 
 interface FlashcardsContextType {
   flashcards: Flashcard[];
-  addFlashcard: (data: { front: string; back: string }) => Flashcard;
-  updateFlashcard: (id: string, updates: Partial<Omit<Flashcard, 'id'>>) => Flashcard | null;
-  deleteFlashcard: (id: string) => void;
+  addFlashcard: (data: { front: string; back: string }) => Promise<Flashcard | null>;
+  updateFlashcard: (id: string, updates: Partial<Omit<Flashcard, 'id'>>) => Promise<Flashcard | null>;
+  deleteFlashcard: (id: string) => Promise<void>;
   getFlashcardById: (id: string) => Flashcard | undefined;
   getReviewQueue: () => Flashcard[];
   getStatistics: () => { total: number; mastered: number; learning: number; new: number; dueToday: number };
-  isLoading: boolean; // To indicate initial data processing
+  isLoading: boolean; // For flashcard data loading
+  isSeeding: boolean; // For initial data seeding
 }
 
 const FlashcardsContext = createContext<FlashcardsContextType | undefined>(undefined);
 
 export const FlashcardsProvider = ({ children }: { children: ReactNode }) => {
-  const [storedFlashcards, setStoredFlashcards] = useLocalStorage<Flashcard[]>('flashcards', EMPTY_FLASHCARDS);
+  const { user } = useAuth();
+  const [flashcards, setFlashcards] = useState<Flashcard[]>(EMPTY_FLASHCARDS);
   const [isLoading, setIsLoading] = useState(true);
+  const [isSeeding, setIsSeeding] = useState(false);
 
-  // Effect for initial seeding from flashcard.json
-  useEffect(() => {
-    setIsLoading(true);
-    // Ensure the structure matches FlashcardSourceDataItem after json import
-    const vocabulary = flashcardJsonData.vocabulary as FlashcardSourceDataItem[];
-    
-    setStoredFlashcards(prevStoredFlashcards => {
-      let updatedFlashcards = [...prevStoredFlashcards];
-      // Use a Set to track sourceQuestions of cards already processed from localStorage
-      // to prevent re-adding them from flashcard.json
-      const existingSourceQuestions = new Set(
-        prevStoredFlashcards.map(fc => fc.sourceQuestion).filter(Boolean) as string[]
-      );
+  const seedInitialData = useCallback(async (currentUser: AppUser) => {
+    if (!currentUser || !currentUser.uid) return;
+    setIsSeeding(true);
+    try {
+      const flashcardsCollectionRef = collection(db, 'users', currentUser.uid, 'flashcards');
+      const existingCardsSnapshot = await getDocs(flashcardsCollectionRef);
+
+      if (!existingCardsSnapshot.empty) {
+        setIsSeeding(false);
+        return; // Data already exists or seeded
+      }
+
+      const vocabulary = flashcardJsonData.vocabulary as FlashcardSourceDataItem[];
+      const batch = writeBatch(db);
+      const now = serverTimestamp();
 
       vocabulary.forEach(item => {
-        // Check if a card from this JSON item (identified by its question) already exists
-        if (!existingSourceQuestions.has(item.question)) {
-          const newCardFromSource: Flashcard = {
-            id: uuidv4(),
-            front: item.question,
-            back: item.answer,
-            lastReviewed: null,
-            nextReviewDate: formatISO(new Date(), { representation: 'date' }),
-            interval: 1,
-            status: 'new',
-            sourceQuestion: item.question, // Store the original question for deduplication
-          };
-          updatedFlashcards.push(newCardFromSource);
-          existingSourceQuestions.add(item.question); // Mark this question as processed
-        }
+        const newCardDocRef = doc(flashcardsCollectionRef); // Auto-generate ID
+        const newCardFromSource: Omit<Flashcard, 'id' | 'createdAt' | 'updatedAt'> & { createdAt: Timestamp, updatedAt: Timestamp } = {
+          front: item.question,
+          back: item.answer,
+          lastReviewed: null,
+          nextReviewDate: formatISO(new Date(), { representation: 'date' }),
+          interval: 1,
+          status: 'new',
+          sourceQuestion: item.question,
+          createdAt: now as Timestamp, // Firestore will convert serverTimestamp
+          updatedAt: now as Timestamp,
+        };
+        batch.set(newCardDocRef, newCardFromSource);
       });
-      return updatedFlashcards;
-    });
-    setIsLoading(false);
-  }, [setStoredFlashcards]);
 
-  const addFlashcard = useCallback((data: { front: string; back: string }): Flashcard => {
-    const newFlashcard: Flashcard = {
-      ...data,
-      id: uuidv4(),
-      lastReviewed: null,
-      nextReviewDate: formatISO(new Date(), { representation: 'date' }),
-      interval: 1,
-      status: 'new',
-      // sourceQuestion is not set for manually added cards
-    };
-    setStoredFlashcards(prev => [...prev, newFlashcard]);
-    return newFlashcard;
-  }, [setStoredFlashcards]);
+      await batch.commit();
+    } catch (error) {
+      console.error("Error seeding initial flashcards:", error);
+    } finally {
+      setIsSeeding(false);
+    }
+  }, []);
 
-  const updateFlashcard = useCallback((id: string, updates: Partial<Omit<Flashcard, 'id'>>): Flashcard | null => {
-    let updatedCard: Flashcard | null = null;
-    setStoredFlashcards(prev =>
-      prev.map(card => {
-        if (card.id === id) {
-          updatedCard = { ...card, ...updates };
-          // Ensure sourceQuestion is not accidentally wiped if it existed and not in updates
-          if (!('sourceQuestion' in updates) && card.sourceQuestion) {
-            (updatedCard as Flashcard).sourceQuestion = card.sourceQuestion;
-          }
-          return updatedCard;
+  useEffect(() => {
+    if (user && user.uid) {
+      setIsLoading(true);
+      
+      // Check for seeding condition first
+      const checkAndSeed = async () => {
+        const flashcardsCollectionRef = collection(db, 'users', user.uid, 'flashcards');
+        const existingCardsSnapshot = await getDocs(flashcardsCollectionRef);
+        if (existingCardsSnapshot.empty) {
+          await seedInitialData(user);
         }
-        return card;
-      })
-    );
-    return updatedCard;
-  }, [setStoredFlashcards]);
+      };
 
-  const deleteFlashcard = useCallback((id: string) => {
-    setStoredFlashcards(prev => prev.filter(card => card.id !== id));
-  }, [setStoredFlashcards]);
+      checkAndSeed().then(() => {
+        const flashcardsCollectionRef = collection(db, 'users', user.uid, 'flashcards');
+        const q = query(flashcardsCollectionRef, orderBy('createdAt', 'desc'));
+
+        const unsubscribe = onSnapshot(q, (snapshot) => {
+          const fetchedFlashcards = snapshot.docs.map(doc => {
+            const data = doc.data();
+            return {
+              id: doc.id,
+              ...data,
+              createdAt: data.createdAt?.toDate ? formatISO(data.createdAt.toDate()) : null,
+              updatedAt: data.updatedAt?.toDate ? formatISO(data.updatedAt.toDate()) : null,
+            } as Flashcard;
+          });
+          setFlashcards(fetchedFlashcards);
+          setIsLoading(false);
+        }, (error) => {
+          console.error("Error fetching flashcards:", error);
+          setIsLoading(false);
+          setFlashcards(EMPTY_FLASHCARDS);
+        });
+        return () => unsubscribe();
+      });
+
+    } else {
+      setFlashcards(EMPTY_FLASHCARDS);
+      setIsLoading(false);
+    }
+  }, [user, seedInitialData]);
+
+  const addFlashcard = useCallback(async (data: { front: string; back: string }): Promise<Flashcard | null> => {
+    if (!user || !user.uid) {
+      console.error("User not authenticated to add flashcard");
+      return null;
+    }
+    setIsLoading(true);
+    try {
+      const flashcardsCollectionRef = collection(db, 'users', user.uid, 'flashcards');
+      const now = serverTimestamp();
+      const newFlashcardData = {
+        ...data,
+        lastReviewed: null,
+        nextReviewDate: formatISO(new Date(), { representation: 'date' }),
+        interval: 1,
+        status: 'new' as 'new' | 'learning' | 'mastered',
+        createdAt: now,
+        updatedAt: now,
+      };
+      const docRef = await addDoc(flashcardsCollectionRef, newFlashcardData);
+      setIsLoading(false);
+      // Optimistically, we could update local state, but onSnapshot will handle it.
+      // For now, return the shape of what was added, Firestore ID will come from snapshot.
+      return { id: docRef.id, ...newFlashcardData, createdAt: formatISO(new Date()), updatedAt: formatISO(new Date()) } as Flashcard;
+    } catch (error) {
+      console.error("Error adding flashcard:", error);
+      setIsLoading(false);
+      return null;
+    }
+  }, [user]);
+
+  const updateFlashcard = useCallback(async (id: string, updates: Partial<Omit<Flashcard, 'id' | 'createdAt'>>): Promise<Flashcard | null> => {
+    if (!user || !user.uid) {
+      console.error("User not authenticated to update flashcard");
+      return null;
+    }
+    setIsLoading(true);
+    try {
+      const flashcardDocRef = doc(db, 'users', user.uid, 'flashcards', id);
+      const updateData = { ...updates, updatedAt: serverTimestamp() };
+      await updateDoc(flashcardDocRef, updateData);
+      setIsLoading(false);
+      // onSnapshot will update local state.
+      const card = flashcards.find(fc => fc.id === id);
+      return card ? { ...card, ...updates, updatedAt: formatISO(new Date()) } : null;
+    } catch (error) {
+      console.error("Error updating flashcard:", error);
+      setIsLoading(false);
+      return null;
+    }
+  }, [user, flashcards]);
+
+  const deleteFlashcard = useCallback(async (id: string) => {
+    if (!user || !user.uid) {
+      console.error("User not authenticated to delete flashcard");
+      return;
+    }
+    setIsLoading(true);
+    try {
+      const flashcardDocRef = doc(db, 'users', user.uid, 'flashcards', id);
+      await deleteDoc(flashcardDocRef);
+      setIsLoading(false); // onSnapshot will update local state.
+    } catch (error) {
+      console.error("Error deleting flashcard:", error);
+      setIsLoading(false);
+    }
+  }, [user]);
 
   const getFlashcardById = useCallback((id: string) => {
-    return storedFlashcards.find(card => card.id === id);
-  }, [storedFlashcards]);
+    return flashcards.find(card => card.id === id);
+  }, [flashcards]);
 
   const getReviewQueue = useCallback(() => {
-    if (isLoading) return [];
+    if (isLoading || !user) return [];
     const today = formatISO(new Date(), { representation: 'date' });
-    return storedFlashcards
+    return flashcards
       .filter(card => {
         if (card.status === 'mastered') return false;
-        if (!card.nextReviewDate) return true; 
+        if (!card.nextReviewDate) return true;
         return card.nextReviewDate <= today;
       })
       .sort((a, b) => {
@@ -120,30 +215,31 @@ export const FlashcardsProvider = ({ children }: { children: ReactNode }) => {
         if (b.status === 'new' && a.status !== 'new') return 1;
         return 0;
       });
-  }, [storedFlashcards, isLoading]);
+  }, [flashcards, isLoading, user]);
 
   const getStatistics = useCallback(() => {
-    if (isLoading) return { total: 0, mastered: 0, learning: 0, new: 0, dueToday: 0 };
+    if (isLoading || !user) return { total: 0, mastered: 0, learning: 0, new: 0, dueToday: 0 };
     const today = formatISO(new Date(), { representation: 'date' });
     return {
-      total: storedFlashcards.length,
-      mastered: storedFlashcards.filter(c => c.status === 'mastered').length,
-      learning: storedFlashcards.filter(c => c.status === 'learning').length,
-      new: storedFlashcards.filter(c => c.status === 'new').length,
-      dueToday: storedFlashcards.filter(c => c.status !== 'mastered' && c.nextReviewDate && c.nextReviewDate <= today).length,
+      total: flashcards.length,
+      mastered: flashcards.filter(c => c.status === 'mastered').length,
+      learning: flashcards.filter(c => c.status === 'learning').length,
+      new: flashcards.filter(c => c.status === 'new').length,
+      dueToday: flashcards.filter(c => c.status !== 'mastered' && c.nextReviewDate && c.nextReviewDate <= today).length,
     };
-  }, [storedFlashcards, isLoading]);
+  }, [flashcards, isLoading, user]);
 
   const contextValue = useMemo(() => ({
-    flashcards: isLoading ? EMPTY_FLASHCARDS : storedFlashcards,
+    flashcards: user ? flashcards : EMPTY_FLASHCARDS,
     addFlashcard,
     updateFlashcard,
     deleteFlashcard,
     getFlashcardById,
     getReviewQueue,
     getStatistics,
-    isLoading,
-  }), [storedFlashcards, addFlashcard, updateFlashcard, deleteFlashcard, getFlashcardById, getReviewQueue, getStatistics, isLoading]);
+    isLoading: isLoading || isSeeding,
+    isSeeding,
+  }), [flashcards, addFlashcard, updateFlashcard, deleteFlashcard, getFlashcardById, getReviewQueue, getStatistics, isLoading, user, isSeeding]);
 
   return (
     <FlashcardsContext.Provider value={contextValue}>

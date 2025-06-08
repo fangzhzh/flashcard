@@ -1,13 +1,20 @@
+
 "use client";
 import { useFlashcards } from '@/contexts/FlashcardsContext';
+import { useAuth } from '@/contexts/AuthContext';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Layers, CheckCircle2, BookOpen, AlertTriangle, Loader2 } from 'lucide-react';
+import { Layers, CheckCircle2, BookOpen, AlertTriangle, Loader2, ShieldAlert } from 'lucide-react';
 import { useI18n } from '@/lib/i18n/client';
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+
 
 export default function ProgressDashboard() {
-  const { getStatistics, isLoading } = useFlashcards();
+  const { user, loading: authLoading } = useAuth();
+  const { getStatistics, isLoading: flashcardsLoading, isSeeding } = useFlashcards();
   const t = useI18n();
   
+  const isLoading = authLoading || (flashcardsLoading && user) || (isSeeding && user);
+
   if (isLoading) {
     return (
       <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
@@ -26,6 +33,17 @@ export default function ProgressDashboard() {
       </div>
     );
   }
+
+  if (!user && !authLoading) {
+    return (
+       <Alert variant="destructive" className="my-8">
+          <ShieldAlert className="h-5 w-5" />
+          <AlertTitle>{t('error')}</AlertTitle>
+          <AlertDescription>{t('auth.pleaseSignIn')}</AlertDescription>
+        </Alert>
+    );
+  }
+
 
   const stats = getStatistics();
   const statItems = [

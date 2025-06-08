@@ -1,3 +1,4 @@
+
 // src/lib/i18n/locales/zh.ts
 export default {
   // Header
@@ -11,6 +12,11 @@ export default {
   'theme.system': '系统',
   'lang.switch.en': 'English',
   'lang.switch.zh': '中文',
+
+  // Auth
+  'auth.signInWithGoogle': '使用谷歌登录',
+  'auth.signOut': '登出',
+  'auth.pleaseSignIn': '请登录后继续。',
 
   // Metadata
   'metadata.title': '闪流',

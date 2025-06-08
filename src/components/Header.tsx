@@ -1,24 +1,29 @@
+
 "use client";
 import Link from 'next/link';
-import { BookOpenText, LayoutDashboard, Layers, ClipboardCheck, Languages } from 'lucide-react';
+import { BookOpenText, LayoutDashboard, Layers, ClipboardCheck, Languages, LogIn, LogOut, UserCircle } from 'lucide-react';
 import { ThemeToggle } from '@/components/ThemeToggle';
-import { usePathname } from 'next/navigation'; // Keep for active link styling
+import { usePathname } from 'next/navigation';
 import { cn } from '@/lib/utils';
 import { useI18n, useChangeLocale, useCurrentLocale } from '@/lib/i18n/client';
+import { useAuth } from '@/contexts/AuthContext';
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
+  DropdownMenuSeparator,
 } from "@/components/ui/dropdown-menu";
 import { Button } from '@/components/ui/button';
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 
 
 export default function Header() {
   const t = useI18n();
   const changeLocale = useChangeLocale();
   const currentLocale = useCurrentLocale();
-  const pathname = usePathname(); // Get the full path including current locale
+  const pathname = usePathname();
+  const { user, signInWithGoogle, signOut, loading: authLoading } = useAuth();
 
   const navItems = [
     { href: '/', labelKey: 'nav.dashboard', icon: LayoutDashboard },
@@ -26,9 +31,8 @@ export default function Header() {
     { href: '/review', labelKey: 'nav.review', icon: ClipboardCheck },
   ];
 
-  // Remove locale prefix for comparison if present, as navItems.href are relative to locale root
-  const basePathname = pathname.startsWith(`/${currentLocale}`) 
-    ? pathname.substring(`/${currentLocale}`.length) || '/' 
+  const basePathname = pathname.startsWith(`/${currentLocale}`)
+    ? pathname.substring(`/${currentLocale}`.length) || '/'
     : pathname;
 
 
@@ -40,15 +44,14 @@ export default function Header() {
           <span className="text-2xl font-bold tracking-tight">{t('header.title')}</span>
         </Link>
         <nav className="flex items-center gap-2 md:gap-4">
-          {navItems.map((item) => (
+          {user && navItems.map((item) => (
             <Link
               key={item.href}
-              href={item.href} // next-international middleware handles locale prefixing
+              href={item.href}
               className={cn(
                 "text-sm font-medium transition-colors hover:text-primary",
-                // Ensure basePathname comparison works correctly
                 (basePathname === item.href || (basePathname === '' && item.href === '/'))
-                  ? "text-primary" 
+                  ? "text-primary"
                   : "text-muted-foreground"
               )}
             >
@@ -61,7 +64,7 @@ export default function Header() {
             <DropdownMenuTrigger asChild>
               <Button variant="outline" size="icon">
                 <Languages className="h-[1.2rem] w-[1.2rem]" />
-                <span className="sr-only">{t('theme.toggle')}</span> {/* Re-use for SR, or add new key */}
+                <span className="sr-only">{t('theme.toggle')}</span>
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end">
@@ -75,6 +78,40 @@ export default function Header() {
           </DropdownMenu>
 
           <ThemeToggle />
+
+          {authLoading ? (
+            <Button variant="outline" size="icon" disabled>
+              <Loader2 className="h-[1.2rem] w-[1.2rem] animate-spin" />
+            </Button>
+          ) : user ? (
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="ghost" className="relative h-8 w-8 rounded-full">
+                  <Avatar className="h-8 w-8">
+                    <AvatarImage src={user.photoURL || undefined} alt={user.displayName || user.email || 'User'} />
+                    <AvatarFallback>
+                      {user.displayName ? user.displayName.charAt(0).toUpperCase() : <UserCircle className="h-5 w-5" />}
+                    </AvatarFallback>
+                  </Avatar>
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                <DropdownMenuItem disabled className="text-xs text-muted-foreground">
+                  {user.displayName || user.email}
+                </DropdownMenuItem>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem onClick={signOut}>
+                  <LogOut className="mr-2 h-4 w-4" />
+                  {t('auth.signOut')}
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          ) : (
+            <Button variant="outline" onClick={signInWithGoogle}>
+              <LogIn className="mr-2 h-4 w-4" />
+              {t('auth.signInWithGoogle')}
+            </Button>
+          )}
         </nav>
       </div>
     </header>

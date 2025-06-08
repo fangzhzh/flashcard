@@ -4,8 +4,10 @@ import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardFooter, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { FilePenLine, Trash2, Eye, EyeOff, Library } from 'lucide-react';
-import type { Flashcard, Deck } from '@/types';
+import type { Flashcard } from '@/types';
 import { useState, useMemo } from 'react';
+import ReactMarkdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -41,7 +43,13 @@ export default function FlashcardItem({ flashcard, onDelete }: FlashcardItemProp
   return (
     <Card className="flex flex-col h-full shadow-lg hover:shadow-xl transition-shadow duration-300">
       <CardHeader>
-        <CardTitle className="truncate text-xl">{flashcard.front}</CardTitle>
+        <CardTitle className="text-xl">
+          <div className="markdown-content whitespace-pre-wrap">
+            <ReactMarkdown remarkPlugins={[remarkGfm]}>
+              {flashcard.front}
+            </ReactMarkdown>
+          </div>
+        </CardTitle>
         <div className="flex flex-col space-y-1 text-xs mt-1">
             {deckName && (
               <div className="flex items-center text-muted-foreground">
@@ -57,7 +65,13 @@ export default function FlashcardItem({ flashcard, onDelete }: FlashcardItemProp
         </div>
       </CardHeader>
       <CardContent className="flex-grow">
-        {showBack && <p className="text-muted-foreground whitespace-pre-wrap">{flashcard.back}</p>}
+        {showBack && (
+          <div className="markdown-content whitespace-pre-wrap">
+            <ReactMarkdown remarkPlugins={[remarkGfm]}>
+              {flashcard.back}
+            </ReactMarkdown>
+          </div>
+        )}
       </CardContent>
       <CardFooter className="flex flex-col sm:flex-row justify-between items-center gap-2 pt-4 border-t">
         <Button variant="ghost" size="sm" onClick={() => setShowBack(!showBack)} className="w-full sm:w-auto">

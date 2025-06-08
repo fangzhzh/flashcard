@@ -10,6 +10,8 @@ import { useToast } from '@/hooks/use-toast';
 import { RefreshCw, CheckCircle2, SkipForward, RotateCcw, PlayCircle, ThumbsUp, PlusCircle, Layers, LayoutDashboard, Loader2, ShieldAlert } from 'lucide-react';
 import { formatISO, addDays } from 'date-fns';
 import Link from 'next/link';
+import ReactMarkdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
 import { useI18n } from '@/lib/i18n/client';
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 
@@ -279,8 +281,12 @@ export default function ReviewModeClient() {
       <p className="text-muted-foreground mb-4">{t('review.cardProgress', { currentIndex: currentCardIndex + 1, totalCards: reviewQueue.length })}</p>
       <Card className="w-full max-w-2xl min-h-[350px] flex flex-col shadow-xl transition-all duration-500 ease-in-out transform hover:scale-[1.01]">
         <CardHeader className="flex-grow flex items-center justify-center p-6 text-center">
-          <CardTitle className="text-3xl md:text-4xl font-semibold whitespace-pre-wrap">
-            {isFlipped ? currentCard.back : currentCard.front}
+          <CardTitle className="text-3xl md:text-4xl font-semibold">
+            <div className="markdown-content whitespace-pre-wrap">
+              <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                {isFlipped ? currentCard.back : currentCard.front}
+              </ReactMarkdown>
+            </div>
           </CardTitle>
         </CardHeader>
         <CardContent className="p-6 border-t">

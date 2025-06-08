@@ -22,16 +22,13 @@ export default function FloatingPomodoroTimer() {
   const [isHovered, setIsHovered] = useState(false);
 
   // If currentLocale is not yet available, don't render.
-  // This can happen during initial hydration or if context is not ready.
   if (!currentLocale) {
     return null;
   }
 
-  // Determine if the current page is the main Pomodoro page.
-  // The Pomodoro page is the root of the current locale (e.g., /en, /zh).
-  // It should have exactly one path segment, which is the current locale.
-  const pathSegments = pathname.split('/').filter(segment => segment.length > 0);
-  const isMainPomodoroPage = pathSegments.length === 1 && pathSegments[0] === currentLocale;
+  // The main Pomodoro page is at the root of the current locale, e.g., /en or /zh
+  const expectedMainPomodoroPath = `/${currentLocale}`;
+  const isMainPomodoroPage = pathname === expectedMainPomodoroPath;
 
   if (!sessionState || (sessionState.status !== 'running' && sessionState.status !== 'paused') || isMainPomodoroPage) {
     return null;

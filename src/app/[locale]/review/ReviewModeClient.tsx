@@ -280,7 +280,7 @@ export default function ReviewModeClient() {
     <div className="flex flex-col items-center p-4 pt-12">
       <p className="text-muted-foreground mb-4">{t('review.cardProgress', { currentIndex: currentCardIndex + 1, totalCards: reviewQueue.length })}</p>
       <Card className="w-full max-w-2xl min-h-[350px] flex flex-col shadow-xl transition-all duration-500 ease-in-out transform hover:scale-[1.01]">
-        <CardHeader className="flex-grow flex items-center justify-center p-6"> {/* Removed text-center */}
+        <CardHeader className="flex-grow flex items-center justify-center p-8"> {/* Changed p-6 to p-8 */}
           <CardTitle className="text-3xl md:text-4xl font-semibold">
             <div className="markdown-content whitespace-pre-wrap">
               <ReactMarkdown remarkPlugins={[remarkGfm]}>
@@ -289,14 +289,14 @@ export default function ReviewModeClient() {
             </div>
           </CardTitle>
         </CardHeader>
-        <CardContent className="p-6 border-t">
+        <CardContent className="p-8 border-t"> {/* Changed p-6 to p-8 */}
           <Button onClick={handleFlip} variant="outline" className="w-full text-lg py-6 mb-6" disabled={isSubmittingProgress}>
             <RefreshCw className={`mr-2 h-5 w-5 ${isFlipped ? 'animate-pulse' : ''}`} />
             {isFlipped ? t('review.button.flip.showQuestion') : t('review.button.flip.showAnswer')}
           </Button>
         </CardContent>
         {isFlipped && (
-          <CardFooter className="grid grid-cols-3 gap-3 p-6 border-t">
+          <CardFooter className="grid grid-cols-3 gap-3 p-8 border-t"> {/* Changed p-6 to p-8 */}
             {progressOptions.map(opt => (
               <Button
                 key={opt.rating}
@@ -315,3 +315,4 @@ export default function ReviewModeClient() {
     </div>
   );
 }
+

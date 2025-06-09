@@ -1,25 +1,26 @@
 
 "use client";
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription, SheetFooter, SheetTrigger, SheetClose } from '@/components/ui/sheet';
-import { Play, Pause, RotateCcw, Settings2, Eraser, Loader2, NotebookPen, NotebookText, ShieldAlert, Coffee, SkipForward } from 'lucide-react'; // Added Coffee, SkipForward
+import { Play, Pause, RotateCcw, Settings2, Eraser, Loader2, NotebookPen, NotebookText, ShieldAlert, Coffee, SkipForward } from 'lucide-react';
 import { useI18n } from '@/lib/i18n/client';
 import { useAuth } from '@/contexts/AuthContext';
-import { usePomodoro } from '@/contexts/PomodoroContext';
+import { usePomodoro } from '@/contexts/PomodoroContext'; // For logged-in users
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { cn } from '@/lib/utils';
+// BreakOptionsDialog is now rendered by PomodoroProvider for this client
 
 const DEFAULT_POMODORO_MINUTES_DISPLAY = 25; 
 
 export default function PomodoroClient() {
   const t = useI18n();
-  const { user, loading: authLoading } = useAuth();
+  const { user, loading: authLoading } = useAuth(); // Still needed for the auth guard
   const { 
     sessionState, 
     timeLeftSeconds, 
@@ -30,10 +31,11 @@ export default function PomodoroClient() {
     giveUpPomodoro,
     updateUserPreferredDuration,
     updateNotes,
-    isResting, // Added
-    restTimeLeftSeconds, // Added
-    skipRest // Added
-  } = usePomodoro();
+    isResting,
+    restTimeLeftSeconds,
+    skipRest,
+    // isBreakDialogOpen and setIsBreakDialogOpen are handled by PomodoroProvider
+  } = usePomodoro(); // Consumes Firestore-backed context
 
   const [localNotes, setLocalNotes] = useState('');
   const [isNotesSheetOpen, setIsNotesSheetOpen] = useState(false);
@@ -51,7 +53,7 @@ export default function PomodoroClient() {
           ? sessionState.userPreferredDurationMinutes
           : DEFAULT_POMODORO_MINUTES_DISPLAY
       );
-    } else {
+    } else { // Should not happen if user is present and context is loaded
       setDurationInput(DEFAULT_POMODORO_MINUTES_DISPLAY);
       setLocalNotes('');
     }
@@ -64,9 +66,7 @@ export default function PomodoroClient() {
   };
 
   const handleStart = () => {
-    if (!user) {
-      return;
-    }
+    if (!user) return; // Should be guarded by page level
     const validDuration = durationInput > 0 && durationInput <= 120 ? durationInput : DEFAULT_POMODORO_MINUTES_DISPLAY;
     startPomodoro(validDuration);
     setIsSettingsCardVisible(false);
@@ -94,7 +94,7 @@ export default function PomodoroClient() {
   };
 
   const toggleSettingsVisibility = () => {
-    if (isResting) return; // Don't allow settings toggle during rest
+    if (isResting) return;
     if (sessionState?.status === 'idle' || !sessionState) { 
       setIsSettingsCardVisible(!isSettingsCardVisible);
     }
@@ -107,7 +107,8 @@ export default function PomodoroClient() {
     setIsNotesSheetOpen(false);
   }
   
-  if (authLoading || pomodoroLoading) {
+  // Auth loading check at page level, here assume user context loaded if this component is rendered
+  if (pomodoroLoading) { // Pomodoro context specific loading
     return (
       <div className="flex justify-center items-center mt-8">
         <Loader2 className="h-8 w-8 animate-spin text-primary" />
@@ -115,6 +116,8 @@ export default function PomodoroClient() {
     );
   }
 
+  // This component should only be rendered if a user is logged in (handled by page.tsx)
+  // A redundant check here for safety, though page.tsx is the primary guard.
   if (!user && !authLoading) { 
     return (
        <Alert variant="destructive" className="mt-8 max-w-md mx-auto">
@@ -127,7 +130,6 @@ export default function PomodoroClient() {
   
   const timerIsActive = sessionState?.status === 'running' || sessionState?.status === 'paused';
   const timerIsIdle = sessionState?.status === 'idle' || !sessionState;
-
   const displayTime = isResting ? restTimeLeftSeconds : timeLeftSeconds;
 
   return (
@@ -251,8 +253,9 @@ export default function PomodoroClient() {
           </SheetFooter>
         </SheetContent>
       </Sheet>
-
+      {/* BreakOptionsDialog is now part of PomodoroProvider for logged-in users */}
     </div>
   );
 }
 
+    

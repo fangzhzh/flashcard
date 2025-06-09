@@ -1,12 +1,13 @@
 
 "use client";
 
-import { useState } from 'react';
-import { usePomodoro } from '@/contexts/PomodoroContext';
+import { useState, useEffect } from 'react'; // Added useEffect
+import { usePomodoro } from '@/contexts/PomodoroContext'; // This is the Firestore-backed context
+import { useAuth } from '@/contexts/AuthContext'; // To check if user is logged in
 import { usePathname } from 'next/navigation';
 import { useCurrentLocale } from '@/lib/i18n/client';
 import { Button } from '@/components/ui/button';
-import { Pause, Play, Coffee } from 'lucide-react'; // Added Coffee
+import { Pause, Play, Coffee } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 const formatTime = (seconds: number): string => {
@@ -16,47 +17,65 @@ const formatTime = (seconds: number): string => {
 };
 
 export default function FloatingPomodoroTimer() {
+  const { user } = useAuth(); // Check for user
   const { 
     sessionState, 
     timeLeftSeconds, 
     pausePomodoro, 
     continuePomodoro, 
-    isResting,        // Added
-    restTimeLeftSeconds // Added
+    isResting,
+    restTimeLeftSeconds
   } = usePomodoro();
+  
   const pathname = usePathname();
   const currentLocale = useCurrentLocale();
   const [isHovered, setIsHovered] = useState(false);
+  const [isVisible, setIsVisible] = useState(false); // Manage visibility
 
-  if (!currentLocale) {
+  useEffect(() => {
+    if (!user || !sessionState || !currentLocale) {
+      setIsVisible(false);
+      return;
+    }
+
+    let isMainPomodoroPage = false;
+    const defaultLocale = 'en'; 
+    if (pathname === '/') {
+      isMainPomodoroPage = currentLocale === defaultLocale;
+    } else {
+      isMainPomodoroPage = pathname === `/${currentLocale}`;
+    }
+
+    if (isMainPomodoroPage) {
+      setIsVisible(false);
+      return;
+    }
+
+    // Conditions for visibility (user logged in, not on main page, timer active or resting)
+    const timerActiveOrResting = (sessionState.status === 'running' || sessionState.status === 'paused') || isResting;
+    setIsVisible(timerActiveOrResting);
+
+  }, [user, sessionState, pathname, currentLocale, isResting]);
+
+
+  if (!isVisible) { // Controlled by useEffect now
     return null;
   }
-
-  let isMainPomodoroPage = false;
-  const defaultLocale = 'en'; 
-
-  if (pathname === '/') {
-    isMainPomodoroPage = currentLocale === defaultLocale;
-  } else {
-    isMainPomodoroPage = pathname === `/${currentLocale}`;
-  }
-
-  if (!sessionState || isMainPomodoroPage) {
-    return null;
-  }
-
+  
   // If resting, show rest timer in floating button
   if (isResting) {
     return (
       <Button
-        variant="default" // Using default as it will be styled with accent below
+        variant="default"
         className={cn(
           "fixed bottom-6 right-6 z-50 rounded-full h-16 w-16 p-0 shadow-xl transition-all flex items-center justify-center",
           "hover:scale-105 focus:scale-105",
-          "bg-accent text-accent-foreground hover:bg-accent/90" // Accent style for rest
+          "bg-accent text-accent-foreground hover:bg-accent/90"
         )}
-        // onClick could skip rest in future, or navigate to main timer page
+        onMouseEnter={() => setIsHovered(true)}
+        onMouseLeave={() => setIsHovered(false)}
         aria-label="Rest Timer"
+        // onClick could skip rest or navigate, but for now it's display only
       >
         {isHovered ? (
             <Coffee className="h-7 w-7" />
@@ -70,12 +89,9 @@ export default function FloatingPomodoroTimer() {
   }
 
   // Existing logic for Pomodoro running/paused (if not resting)
-  if (sessionState.status !== 'running' && sessionState.status !== 'paused') {
-    return null;
-  }
-
-  const isActive = sessionState.status === 'running';
-  const isPaused = sessionState.status === 'paused';
+  // This part will only be reached if sessionState is not null (checked by isVisible logic)
+  const isActive = sessionState!.status === 'running';
+  const isPaused = sessionState!.status === 'paused';
 
   return (
     <Button
@@ -105,3 +121,5 @@ export default function FloatingPomodoroTimer() {
     </Button>
   );
 }
+
+    

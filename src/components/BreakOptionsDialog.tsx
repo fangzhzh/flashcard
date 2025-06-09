@@ -13,10 +13,13 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { useI18n } from '@/lib/i18n/client';
+import type { default as enLocale } from '@/lib/i18n/locales/en';
+
+type TranslationKeys = keyof typeof enLocale;
 
 interface BreakOption {
   id: string;
-  labelKey: keyof typeof import('@/lib/i18n/locales/en').default; // For type safety with i18n keys
+  labelKey: TranslationKeys; 
 }
 
 const breakOptions: BreakOption[] = [

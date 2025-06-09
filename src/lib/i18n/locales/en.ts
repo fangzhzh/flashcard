@@ -5,9 +5,9 @@ export default {
   'header.title': 'FlashFlow',
   'nav.pomodoro': 'Pomodoro', 
   'nav.flashcards': 'Flashcards', 
-  'nav.decks': 'Decks', // Kept for potential future use, but not directly in header
-  'nav.manage': 'Manage Cards', // Kept for potential future use
-  'nav.review': 'Review', // Kept for potential future use
+  'nav.decks': 'Decks', 
+  'nav.manage': 'Manage Cards', 
+  'nav.review': 'Review', 
   'theme.toggle': 'Toggle theme',
   'theme.light': 'Light',
   'theme.dark': 'Dark',
@@ -124,10 +124,9 @@ export default {
   'toast.deck.error.nameRequired': 'Deck name cannot be empty.',
 
 
-  // Flashcards Page (src/app/[locale]/flashcards/page.tsx) - This is the "Manage All Cards" page
+  // Flashcards Page (src/app/[locale]/flashcards/page.tsx) 
   'flashcards.title': 'Your Flashcards',
   'flashcards.button.create': 'Create New Card',
-  // FlashcardListClient
   'flashcards.list.loading': 'Loading your flashcards...',
   'flashcards.list.empty.title': 'No Flashcards Yet!',
   'flashcards.list.empty.description': 'You haven\'t created any flashcards. Click the "Create New Card" button to get started.',
@@ -156,7 +155,6 @@ export default {
   'flashcard.form.page.button.switchToSingle': 'Switch to Single Card Mode',
   'flashcard.form.page.loading': 'Loading form...',
   'flashcard.form.page.loadingSpecific': 'Loading flashcard details...',
-  // FlashcardForm
   'flashcard.form.title.edit': 'Edit Flashcard',
   'flashcard.form.title.create': 'Create New Flashcard',
   'flashcard.form.label.front': 'Front',
@@ -173,14 +171,12 @@ export default {
   'flashcard.form.button.create': 'Create Flashcard',
   'flashcard.form.button.update': 'Update Flashcard',
   'flashcard.form.button.saving': 'Saving...',
-  // BatchFlashcardForm
   'flashcard.batchForm.title': 'Create Flashcards (Batch Mode)',
   'flashcard.batchForm.label.input': 'Batch Input',
   'flashcard.batchForm.placeholder': "Enter flashcards, one per line, in the format: question:answer\nExample:\nWhat is the capital of France?:Paris\n2 + 2?:4",
   'flashcard.batchForm.description': 'Each line should contain one flashcard. The question and answer should be separated by a colon (:). Cards created in batch will be unassigned to any deck.',
   'flashcard.batchForm.button.save': 'Save Batch Flashcards',
   'flashcard.batchForm.button.saving': 'Saving Batch...',
-  // Toasts
   'toast.flashcard.notFound': 'Flashcard not found.',
   'toast.flashcard.created': 'Flashcard created successfully.',
   'toast.flashcard.updated': 'Flashcard updated successfully.',
@@ -221,7 +217,7 @@ export default {
   'toast.progress.saved.description': 'Card marked as "{performance}". Next review on {nextReviewDate}.',
   'toast.progress.error': 'Could not save progress: {errorMessage}. Please try again.',
 
-  // Pomodoro Page (src/app/[locale]/PomodoroClient.tsx or src/app/[locale]/page.tsx)
+  // Pomodoro Page & Context
   'pomodoro.title': 'Pomodoro Timer',
   'pomodoro.settings.title': 'Settings',
   'pomodoro.settings.durationLabel': 'Pomodoro Duration (minutes):',
@@ -239,11 +235,29 @@ export default {
   'pomodoro.notes.sheet.description': 'Jot down interruptions or where you left off...',
   'pomodoro.notes.sheet.placeholder': 'Type your notes here...',
   'pomodoro.notes.sheet.button.done': 'Done',
-  'pomodoro.toast.completed': 'Pomodoro session complete!',
-  'pomodoro.toast.completed.description': 'Time for a short break.',
   'pomodoro.auth.required': 'Please sign in to use the Pomodoro timer.',
   'pomodoro.notification.title': 'Pomodoro Complete!',
   'pomodoro.notification.body': 'Your Pomodoro session has ended. Time for a break!',
+  'pomodoro.rest.titlePrefix': 'Rest:',
+  'pomodoro.rest.notification.title': 'Rest period finished!',
+  'pomodoro.rest.notification.body': 'Your break is over. Ready for the next session?',
+  'pomodoro.break.dialog.title': 'Choose Your Break Activity',
+  'pomodoro.break.dialog.description': 'Select how you\'d like to spend your 5-minute break.',
+  'pomodoro.break.dialog.button.skip': 'Skip Break',
+  'pomodoro.break.dialog.button.startRest': 'Start {duration} min Rest',
+  'pomodoro.break.option.stretch': 'Stretch',
+  'pomodoro.break.option.deepBreath': 'Deep Breath',
+  'pomodoro.break.option.mindfulDrink': 'Mindful Drink',
+  'pomodoro.break.option.chat': 'Quick Chat',
+  'pomodoro.break.option.drawObject': 'Quick Doodle',
+  'pomodoro.break.option.lookOutside': 'Look Outside',
+  'pomodoro.break.option.walk': 'Short Walk',
+  'pomodoro.break.option.meditate': 'Meditate',
+  'pomodoro.break.option.listenMusic': 'Listen to Music',
+  'pomodoro.break.option.microExercise': 'Micro-Exercise',
+  'pomodoro.break.option.lightAdjust': 'Light Adjustment',
+  'pomodoro.break.option.workflowWrapUp': 'Workflow Wrap-up Note',
+  'pomodoro.break.option.ritualRest': 'Ritual Rest (e.g. white noise)',
 
 
   // Notifications (General)
@@ -253,7 +267,6 @@ export default {
   'notifications.denied.description': 'You have denied notification permissions. You can change this in your browser settings.',
   'notifications.error.title': 'Notification Error',
   'notifications.error.description': 'Could not request notification permission.',
-
 
   // General
   'success': 'Success',

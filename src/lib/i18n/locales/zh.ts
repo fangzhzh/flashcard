@@ -5,9 +5,9 @@ export default {
   'header.title': '闪流',
   'nav.pomodoro': '番茄钟', 
   'nav.flashcards': '抽认卡', 
-  'nav.decks': '卡组', // Kept for potential future use
-  'nav.manage': '管理卡片', // Kept for potential future use
-  'nav.review': '复习', // Kept for potential future use
+  'nav.decks': '卡组', 
+  'nav.manage': '管理卡片', 
+  'nav.review': '复习', 
   'theme.toggle': '切换主题',
   'theme.light': '浅色',
   'theme.dark': '深色',
@@ -126,7 +126,6 @@ export default {
   // Flashcards Page (src/app/[locale]/flashcards/page.tsx)
   'flashcards.title': '你的抽认卡',
   'flashcards.button.create': '创建新卡片',
-  // FlashcardListClient
   'flashcards.list.loading': '正在加载您的抽认卡...',
   'flashcards.list.empty.title': '还没有抽认卡!',
   'flashcards.list.empty.description': '您还没有创建任何抽认卡。点击“创建新卡片”按钮开始吧。',
@@ -155,7 +154,6 @@ export default {
   'flashcard.form.page.button.switchToSingle': '切换到单卡模式',
   'flashcard.form.page.loading': '加载表单中...',
   'flashcard.form.page.loadingSpecific': '加载抽认卡详情中...',
-  // FlashcardForm
   'flashcard.form.title.edit': '编辑抽认卡',
   'flashcard.form.title.create': '创建新抽认卡',
   'flashcard.form.label.front': '正面',
@@ -172,14 +170,12 @@ export default {
   'flashcard.form.button.create': '创建抽认卡',
   'flashcard.form.button.update': '更新抽认卡',
   'flashcard.form.button.saving': '保存中...',
-  // BatchFlashcardForm
   'flashcard.batchForm.title': '批量创建抽认卡',
   'flashcard.batchForm.label.input': '批量输入',
   'flashcard.batchForm.placeholder': "每行输入一张抽认卡，格式为：问题:答案\n例如：\n法国的首都是什么？:巴黎\n2 + 2？:4",
   'flashcard.batchForm.description': '每行应包含一张抽认卡。问题和答案应用冒号（:）分隔。批量创建的卡片将不会分配到任何卡组。',
   'flashcard.batchForm.button.save': '保存批量抽认卡',
   'flashcard.batchForm.button.saving': '批量保存中...',
-  // Toasts
   'toast.flashcard.notFound': '未找到抽认卡。',
   'toast.flashcard.created': '抽认卡创建成功。',
   'toast.flashcard.updated': '抽认卡更新成功。',
@@ -220,7 +216,7 @@ export default {
   'toast.progress.saved.description': '卡片已标记为“{performance}”。下次复习时间：{nextReviewDate}。',
   'toast.progress.error': '无法保存进度：{errorMessage}。请稍后再试。',
 
-  // Pomodoro Page (src/app/[locale]/PomodoroClient.tsx or src/app/[locale]/page.tsx)
+  // Pomodoro Page & Context
   'pomodoro.title': '番茄钟计时器',
   'pomodoro.settings.title': '设置',
   'pomodoro.settings.durationLabel': '番茄钟时长（分钟）：',
@@ -238,11 +234,30 @@ export default {
   'pomodoro.notes.sheet.description': '记下中断或您离开的地方...',
   'pomodoro.notes.sheet.placeholder': '在此处输入您的笔记...',
   'pomodoro.notes.sheet.button.done': '完成',
-  'pomodoro.toast.completed': '番茄钟时间到！',
-  'pomodoro.toast.completed.description': '休息一下吧。',
   'pomodoro.auth.required': '请登录以使用番茄钟功能。',
   'pomodoro.notification.title': '番茄钟完成！',
   'pomodoro.notification.body': '您的番茄钟会话已结束。休息一下吧！',
+  'pomodoro.rest.titlePrefix': '休息:',
+  'pomodoro.rest.notification.title': '休息时间结束！',
+  'pomodoro.rest.notification.body': '您的休息结束了。准备好开始下一个会话了吗？',
+  'pomodoro.break.dialog.title': '选择您的休息活动',
+  'pomodoro.break.dialog.description': '选择您希望如何度过5分钟的休息时间。',
+  'pomodoro.break.dialog.button.skip': '跳过休息',
+  'pomodoro.break.dialog.button.startRest': '开始 {duration} 分钟休息',
+  'pomodoro.break.option.stretch': '伸懒腰',
+  'pomodoro.break.option.deepBreath': '深呼吸',
+  'pomodoro.break.option.mindfulDrink': '正念饮水',
+  'pomodoro.break.option.chat': '闲聊片刻',
+  'pomodoro.break.option.drawObject': '随手涂鸦',
+  'pomodoro.break.option.lookOutside': '远眺窗外',
+  'pomodoro.break.option.walk': '短暂散步',
+  'pomodoro.break.option.meditate': '冥想',
+  'pomodoro.break.option.listenMusic': '听音乐',
+  'pomodoro.break.option.microExercise': '微型运动',
+  'pomodoro.break.option.lightAdjust': '光照调节',
+  'pomodoro.break.option.workflowWrapUp': '工作流收尾笔记',
+  'pomodoro.break.option.ritualRest': '仪式感休息 (例如白噪音)',
+
 
   // Notifications (General)
   'notifications.enabled.title': '通知已启用',
@@ -251,7 +266,6 @@ export default {
   'notifications.denied.description': '您已拒绝通知权限。您可以在浏览器设置中更改此设置。',
   'notifications.error.title': '通知错误',
   'notifications.error.description': '无法请求通知权限。',
-
 
   // General
   'success': '成功',

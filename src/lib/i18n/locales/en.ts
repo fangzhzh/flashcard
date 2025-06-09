@@ -241,6 +241,8 @@ export default {
   'pomodoro.rest.titlePrefix': 'Rest:',
   'pomodoro.rest.notification.title': 'Rest period finished!',
   'pomodoro.rest.notification.body': 'Your break is over. Ready for the next session?',
+  'pomodoro.rest.stateIndicator': 'Resting...',
+  'pomodoro.rest.button.skip': 'Skip Rest',
   'pomodoro.break.dialog.title': 'Choose Your Break Activity',
   'pomodoro.break.dialog.description': 'Select how you\'d like to spend your 5-minute break.',
   'pomodoro.break.dialog.button.skip': 'Skip Break',
@@ -273,3 +275,4 @@ export default {
   'error': 'Error',
 
 } as const;
+

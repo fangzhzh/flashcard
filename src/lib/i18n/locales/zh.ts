@@ -240,6 +240,8 @@ export default {
   'pomodoro.rest.titlePrefix': '休息:',
   'pomodoro.rest.notification.title': '休息时间结束！',
   'pomodoro.rest.notification.body': '您的休息结束了。准备好开始下一个会话了吗？',
+  'pomodoro.rest.stateIndicator': '休息中...',
+  'pomodoro.rest.button.skip': '跳过休息',
   'pomodoro.break.dialog.title': '选择您的休息活动',
   'pomodoro.break.dialog.description': '选择您希望如何度过5分钟的休息时间。',
   'pomodoro.break.dialog.button.skip': '跳过休息',
@@ -272,3 +274,4 @@ export default {
   'error': '错误',
 
 } as const;
+

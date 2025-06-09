@@ -8,7 +8,7 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription, SheetFooter, SheetTrigger, SheetClose } from '@/components/ui/sheet';
-import { Play, Pause, RotateCcw, Settings2, Eraser, Loader2, NotebookPen, NotebookText, ShieldAlert } from 'lucide-react';
+import { Play, Pause, RotateCcw, Settings2, Eraser, Loader2, NotebookPen, NotebookText, ShieldAlert, Coffee, SkipForward } from 'lucide-react'; // Added Coffee, SkipForward
 import { useI18n } from '@/lib/i18n/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { usePomodoro } from '@/contexts/PomodoroContext';
@@ -29,7 +29,10 @@ export default function PomodoroClient() {
     continuePomodoro, 
     giveUpPomodoro,
     updateUserPreferredDuration,
-    updateNotes
+    updateNotes,
+    isResting, // Added
+    restTimeLeftSeconds, // Added
+    skipRest // Added
   } = usePomodoro();
 
   const [localNotes, setLocalNotes] = useState('');
@@ -42,15 +45,13 @@ export default function PomodoroClient() {
 
   useEffect(() => {
     if (sessionState) {
-      setLocalNotes(sessionState.notes || ''); // Ensure notes is not undefined
-      // Ensure durationInput is a valid number, defaulting if necessary
+      setLocalNotes(sessionState.notes || '');
       setDurationInput(
         sessionState.userPreferredDurationMinutes && sessionState.userPreferredDurationMinutes > 0
           ? sessionState.userPreferredDurationMinutes
           : DEFAULT_POMODORO_MINUTES_DISPLAY
       );
     } else {
-      // If sessionState is null (e.g. during initial load or if user logs out)
       setDurationInput(DEFAULT_POMODORO_MINUTES_DISPLAY);
       setLocalNotes('');
     }
@@ -66,7 +67,6 @@ export default function PomodoroClient() {
     if (!user) {
       return;
     }
-    // Use the current valid durationInput for starting
     const validDuration = durationInput > 0 && durationInput <= 120 ? durationInput : DEFAULT_POMODORO_MINUTES_DISPLAY;
     startPomodoro(validDuration);
     setIsSettingsCardVisible(false);
@@ -94,7 +94,7 @@ export default function PomodoroClient() {
   };
 
   const toggleSettingsVisibility = () => {
-    // Allow toggling only if idle, regardless of sessionState being briefly null during init
+    if (isResting) return; // Don't allow settings toggle during rest
     if (sessionState?.status === 'idle' || !sessionState) { 
       setIsSettingsCardVisible(!isSettingsCardVisible);
     }
@@ -126,48 +126,64 @@ export default function PomodoroClient() {
   }
   
   const timerIsActive = sessionState?.status === 'running' || sessionState?.status === 'paused';
-  const timerIsIdle = sessionState?.status === 'idle' || !sessionState; // Consider !sessionState as idle for UI purposes
+  const timerIsIdle = sessionState?.status === 'idle' || !sessionState;
+
+  const displayTime = isResting ? restTimeLeftSeconds : timeLeftSeconds;
 
   return (
     <div className="flex flex-col items-center space-y-8 relative min-h-[calc(100vh-12rem)] pb-20">
       <Card className="w-full max-w-md shadow-xl">
         <CardHeader 
           className={cn(
-            "text-center",
-            timerIsIdle && "cursor-pointer hover:bg-muted/50 rounded-t-lg transition-colors"
+            "text-center transition-colors duration-300",
+            isResting ? "bg-accent text-accent-foreground rounded-t-lg" 
+                      : (timerIsIdle && !isResting ? "cursor-pointer hover:bg-muted/50 rounded-t-lg" 
+                                                 : "bg-card text-card-foreground rounded-t-lg")
           )}
           onClick={toggleSettingsVisibility}
-          title={timerIsIdle ? t('pomodoro.settings.toggleHint') : undefined}
+          title={timerIsIdle && !isResting ? t('pomodoro.settings.toggleHint') : undefined}
         >
-          <CardTitle className="text-6xl font-bold text-primary tabular-nums">
-            {formatTime(timeLeftSeconds)}
+          <CardTitle className={cn(
+            "text-6xl font-bold tabular-nums",
+            isResting ? "text-accent-foreground" : "text-primary"
+          )}>
+            {formatTime(displayTime)}
           </CardTitle>
+          {isResting && <p className="text-sm font-medium">{t('pomodoro.rest.stateIndicator')}</p>}
         </CardHeader>
         <CardContent className="space-y-6">
-          {timerIsIdle && (
-            <Button onClick={handleStart} className="w-full text-lg py-3" size="lg" disabled={durationInput <=0 || durationInput > 120}>
-              <Play className="mr-2 h-5 w-5" /> {t('pomodoro.button.start')}
+          {isResting ? (
+            <Button onClick={skipRest} className="w-full text-lg py-3" size="lg" variant="outline">
+              <SkipForward className="mr-2 h-5 w-5" /> {t('pomodoro.rest.button.skip')}
             </Button>
-          )}
-          {sessionState?.status === 'running' && (
-            <Button onClick={pausePomodoro} variant="outline" className="w-full text-lg py-3" size="lg">
-              <Pause className="mr-2 h-5 w-5" /> {t('pomodoro.button.pause')}
-            </Button>
-          )}
-          {sessionState?.status === 'paused' && (
-            <div className="grid grid-cols-2 gap-4">
-              <Button onClick={continuePomodoro} variant="outline" className="w-full text-lg py-3" size="lg">
-                <Play className="mr-2 h-5 w-5" /> {t('pomodoro.button.continue')}
-              </Button>
-              <Button onClick={giveUpPomodoro} variant="destructive" className="w-full text-lg py-3" size="lg">
-                <RotateCcw className="mr-2 h-5 w-5" /> {t('pomodoro.button.giveUp')}
-              </Button>
-            </div>
+          ) : (
+            <>
+              {timerIsIdle && (
+                <Button onClick={handleStart} className="w-full text-lg py-3" size="lg" disabled={durationInput <=0 || durationInput > 120}>
+                  <Play className="mr-2 h-5 w-5" /> {t('pomodoro.button.start')}
+                </Button>
+              )}
+              {sessionState?.status === 'running' && (
+                <Button onClick={pausePomodoro} variant="outline" className="w-full text-lg py-3" size="lg">
+                  <Pause className="mr-2 h-5 w-5" /> {t('pomodoro.button.pause')}
+                </Button>
+              )}
+              {sessionState?.status === 'paused' && (
+                <div className="grid grid-cols-2 gap-4">
+                  <Button onClick={continuePomodoro} variant="outline" className="w-full text-lg py-3" size="lg">
+                    <Play className="mr-2 h-5 w-5" /> {t('pomodoro.button.continue')}
+                  </Button>
+                  <Button onClick={giveUpPomodoro} variant="destructive" className="w-full text-lg py-3" size="lg">
+                    <RotateCcw className="mr-2 h-5 w-5" /> {t('pomodoro.button.giveUp')}
+                  </Button>
+                </div>
+              )}
+            </>
           )}
         </CardContent>
       </Card>
 
-      {isSettingsCardVisible && timerIsIdle && (
+      {isSettingsCardVisible && timerIsIdle && !isResting && (
         <Card className="w-full max-w-md shadow-lg">
           <CardHeader>
             <CardTitle className="text-lg flex items-center">
@@ -188,9 +204,9 @@ export default function PomodoroClient() {
                 className="text-base"
                 min="1"
                 max="120"
-                disabled={timerIsActive}
+                disabled={timerIsActive || isResting}
               />
-              <Button onClick={handleResetSettings} variant="outline" size="icon" title={t('pomodoro.button.reset')} disabled={timerIsActive}>
+              <Button onClick={handleResetSettings} variant="outline" size="icon" title={t('pomodoro.button.reset')} disabled={timerIsActive || isResting}>
                 <Eraser className="h-5 w-5"/>
               </Button>
             </div>

@@ -246,19 +246,34 @@ export default {
   'pomodoro.break.dialog.description': '选择您希望如何度过5分钟的休息时间。',
   'pomodoro.break.dialog.button.skip': '跳过休息',
   'pomodoro.break.dialog.button.startRest': '开始 {duration} 分钟休息',
+
   'pomodoro.break.option.stretch': '伸懒腰',
   'pomodoro.break.option.deepBreath': '深呼吸',
   'pomodoro.break.option.mindfulDrink': '正念饮水',
   'pomodoro.break.option.chat': '闲聊片刻',
-  'pomodoro.break.option.drawObject': '随手涂鸦',
-  'pomodoro.break.option.lookOutside': '远眺窗外',
-  'pomodoro.break.option.walk': '短暂散步',
+  'pomodoro.break.option.drawObject': '脑中绘制预定物',
+  'pomodoro.break.option.lookOutside': '看窗外',
+  'pomodoro.break.option.walk': '散步',
   'pomodoro.break.option.meditate': '冥想',
   'pomodoro.break.option.listenMusic': '听音乐',
   'pomodoro.break.option.microExercise': '微型运动',
   'pomodoro.break.option.lightAdjust': '光照调节',
-  'pomodoro.break.option.workflowWrapUp': '工作流收尾笔记',
-  'pomodoro.break.option.ritualRest': '仪式感休息 (例如白噪音)',
+  'pomodoro.break.option.workflowWrapUp': '工作流收尾语',
+  'pomodoro.break.option.ritualRest': '进入式休息',
+
+  'pomodoro.break.benefit.stretch': '促进血液循环，增加氧气供应，活动筋骨，防止脊柱弯曲。',
+  'pomodoro.break.benefit.deepBreath': '排出肺内残气，吸入更多氧气，激活心肺功能，降低压力。',
+  'pomodoro.break.benefit.mindfulDrink': '结合正念技术和补水，同时获得水分补充和注意力重置的双重好处。',
+  'pomodoro.break.benefit.chat': '社交互动可减轻压力，但可能导致注意力分散。',
+  'pomodoro.break.benefit.drawObject': '激活默认模式网络(DMN)，促进创造性思维。',
+  'pomodoro.break.benefit.lookOutside': '远距离视觉休息，减轻眼部疲劳，激活默认模式网络。',
+  'pomodoro.break.benefit.walk': '促进血液循环，增强心肺功能，放松心情，提升生活质量。',
+  'pomodoro.break.benefit.meditate': '提高注意力，改善认知功能，降低压力，增强免疫系统。',
+  'pomodoro.break.benefit.listenMusic': '促进放松，改善情绪，提高专注力。',
+  'pomodoro.break.benefit.microExercise': '短时间的肢体活动可促进血液循环，增加大脑供氧，补充神经递质。',
+  'pomodoro.break.benefit.lightAdjust': '适当接触自然光可调节褪黑素和血清素水平，改善情绪和认知功能。',
+  'pomodoro.break.benefit.workflowWrapUp': '在休息前写下当前进度和下一步计划，让大脑“缓存落地”，使休息更有效。',
+  'pomodoro.break.benefit.ritualRest': '通过白噪音或深呼吸冥想2分钟，用“仪式感”切断大脑回路。',
 
 
   // Notifications (General)
@@ -274,4 +289,3 @@ export default {
   'error': '错误',
 
 } as const;
-

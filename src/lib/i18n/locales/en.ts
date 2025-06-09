@@ -247,6 +247,7 @@ export default {
   'pomodoro.break.dialog.description': 'Select how you\'d like to spend your 5-minute break.',
   'pomodoro.break.dialog.button.skip': 'Skip Break',
   'pomodoro.break.dialog.button.startRest': 'Start {duration} min Rest',
+
   'pomodoro.break.option.stretch': 'Stretch',
   'pomodoro.break.option.deepBreath': 'Deep Breath',
   'pomodoro.break.option.mindfulDrink': 'Mindful Drink',
@@ -259,7 +260,21 @@ export default {
   'pomodoro.break.option.microExercise': 'Micro-Exercise',
   'pomodoro.break.option.lightAdjust': 'Light Adjustment',
   'pomodoro.break.option.workflowWrapUp': 'Workflow Wrap-up Note',
-  'pomodoro.break.option.ritualRest': 'Ritual Rest (e.g. white noise)',
+  'pomodoro.break.option.ritualRest': 'Ritual Rest',
+
+  'pomodoro.break.benefit.stretch': 'Promotes blood circulation, increases oxygen supply, exercises muscles and bones, prevents spinal curvature.',
+  'pomodoro.break.benefit.deepBreath': 'Expels residual air from lungs, inhales more oxygen, activates cardiopulmonary function, reduces stress.',
+  'pomodoro.break.benefit.mindfulDrink': 'Combines mindfulness techniques with hydration for both physical replenishment and mental reset.',
+  'pomodoro.break.benefit.chat': 'Social interaction can reduce stress but may lead to distraction.',
+  'pomodoro.break.benefit.drawObject': 'Activates the Default Mode Network (DMN), promoting creative thinking.',
+  'pomodoro.break.benefit.lookOutside': 'Rests the eyes with distant vision, alleviates eye fatigue, activates DMN.',
+  'pomodoro.break.benefit.walk': 'Promotes blood circulation, enhances cardiopulmonary function, relaxes the mind, improves quality of life.',
+  'pomodoro.break.benefit.meditate': 'Improves attention, enhances cognitive function, reduces stress, boosts immune system.',
+  'pomodoro.break.benefit.listenMusic': 'Promotes relaxation, improves mood, enhances focus.',
+  'pomodoro.break.benefit.microExercise': 'Short bursts of physical activity promote blood circulation, increase brain oxygen supply, replenish neurotransmitters.',
+  'pomodoro.break.benefit.lightAdjust': 'Appropriate exposure to natural light can regulate melatonin and serotonin levels, improving mood and cognitive function.',
+  'pomodoro.break.benefit.workflowWrapUp': 'Before resting, write down current progress and next steps to "offload the cache," making rest more effective.',
+  'pomodoro.break.benefit.ritualRest': 'Interrupt brain circuits with a "ritual" like 2 minutes of white noise or deep breathing meditation.',
 
 
   // Notifications (General)
@@ -275,4 +290,3 @@ export default {
   'error': 'Error',
 
 } as const;
-

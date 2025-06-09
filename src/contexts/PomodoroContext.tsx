@@ -7,7 +7,7 @@ import { db } from '@/lib/firebase';
 import { doc, onSnapshot, setDoc, serverTimestamp, Timestamp, type FieldValue } from 'firebase/firestore';
 import { useToast } from '@/hooks/use-toast';
 import { useI18n } from '@/lib/i18n/client';
-import BreakOptionsDialog from '@/components/BreakOptionsDialog';
+import BreakOptionsDialog from '@/components/BreakOptionsDialog'; // Import the dialog
 
 const DEFAULT_POMODORO_MINUTES = 25;
 const DEFAULT_REST_MINUTES = 5;
@@ -41,16 +41,15 @@ export const PomodoroProvider = ({ children }: { children: ReactNode }) => {
   const [timeLeftSeconds, setTimeLeftSeconds] = useState(DEFAULT_POMODORO_MINUTES * 60);
   const [isLoading, setIsLoading] = useState(true);
   
-  const pomodoroIntervalRef = useRef<NodeJS.Timeout | null>(null);
+  const pomodoroIntervalRef = useRef<NodeJS.Timeout | null>(null); // Switched to useRef
   
   const [originalTitle, setOriginalTitle] = useState('');
   const [originalFaviconHref, setOriginalFaviconHref] = useState<string | null>(null);
 
   const [isBreakDialogOpen, setIsBreakDialogOpen] = useState(false);
-  const [selectedBreakOptionId, setSelectedBreakOptionId] = useState<string>('stretch');
+  const [selectedBreakOptionId, setSelectedBreakOptionId] = useState<string>('stretch'); // Default, context tracks it
   const [isResting, setIsResting] = useState(false);
   const [restTimeLeftSeconds, setRestTimeLeftSeconds] = useState(DEFAULT_REST_MINUTES * 60);
-
 
   useEffect(() => {
     if (typeof window !== 'undefined') {
@@ -67,6 +66,7 @@ export const PomodoroProvider = ({ children }: { children: ReactNode }) => {
     return doc(db, 'users', user.uid, 'pomodoro', 'state');
   }, [user?.uid]);
 
+  // Firestore listener for sessionState
   useEffect(() => {
     if (authLoading) {
       setIsLoading(true);
@@ -148,7 +148,57 @@ export const PomodoroProvider = ({ children }: { children: ReactNode }) => {
   }, [user, authLoading, pomodoroDocRef]);
 
 
-  // Effect for main Pomodoro timer logic (setting interval, handling completion)
+  const formatTime = (seconds: number): string => {
+    const minutes = Math.floor(seconds / 60);
+    const remainingSeconds = seconds % 60;
+    return `${minutes.toString().padStart(2, '0')}:${remainingSeconds.toString().padStart(2, '0')}`;
+  };
+
+  const updateFaviconWithTime = useCallback((minutes: number | null, useRestStyling: boolean, isPomodoroIdle: boolean) => {
+    if (typeof window === 'undefined') return;
+    const faviconSize = 32;
+    const canvas = document.createElement('canvas');
+    canvas.width = faviconSize;
+    canvas.height = faviconSize;
+    const context = canvas.getContext('2d');
+
+    if (!context) return;
+    context.clearRect(0, 0, faviconSize, faviconSize);
+    
+    if (minutes === null || (isPomodoroIdle && !useRestStyling)) { 
+        if (originalFaviconHref) {
+             const link = document.querySelector<HTMLLinkElement>("link[rel*='icon']") || document.createElement('link');
+             link.type = 'image/x-icon';
+             link.rel = 'shortcut icon';
+             link.href = originalFaviconHref;
+             if(!link.parentNode) document.getElementsByTagName('head')[0].appendChild(link);
+        }
+        return;
+    }
+
+    context.beginPath();
+    context.arc(faviconSize / 2, faviconSize / 2, faviconSize / 2, 0, 2 * Math.PI);
+    context.fillStyle = useRestStyling 
+        ? (getComputedStyle(document.documentElement).getPropertyValue('--accent').trim() || '#F48FB1') 
+        : (getComputedStyle(document.documentElement).getPropertyValue('--primary').trim() || '#7E57C2'); 
+    context.fill();
+
+    context.font = `bold ${faviconSize * (String(minutes).length > 1 ? 0.5 : 0.6)}px Arial`;
+    context.fillStyle = getComputedStyle(document.documentElement).getPropertyValue('--primary-foreground').trim() || '#FFFFFF';
+    context.textAlign = 'center';
+    context.textBaseline = 'middle';
+    context.fillText(String(minutes), faviconSize / 2, faviconSize / 2 + faviconSize * 0.05);
+
+    const link = document.querySelector<HTMLLinkElement>("link[rel*='icon']") || document.createElement('link');
+    link.type = 'image/png';
+    link.rel = 'icon';
+    link.href = canvas.toDataURL('image/png');
+    if (!link.parentNode) {
+      document.getElementsByTagName('head')[0].appendChild(link);
+    }
+  }, [originalFaviconHref]);
+
+  // Effect for MAIN Pomodoro timer logic (interval & Firestore writes at session end)
   useEffect(() => {
     const docRef = pomodoroDocRef(); 
 
@@ -227,6 +277,7 @@ export const PomodoroProvider = ({ children }: { children: ReactNode }) => {
     return () => { 
       if (pomodoroIntervalRef.current) {
         clearInterval(pomodoroIntervalRef.current);
+        pomodoroIntervalRef.current = null;
       }
     };
   }, [ 
@@ -240,57 +291,6 @@ export const PomodoroProvider = ({ children }: { children: ReactNode }) => {
     pomodoroDocRef, 
     t 
   ]);
-
-
-  const formatTime = (seconds: number): string => {
-    const minutes = Math.floor(seconds / 60);
-    const remainingSeconds = seconds % 60;
-    return `${minutes.toString().padStart(2, '0')}:${remainingSeconds.toString().padStart(2, '0')}`;
-  };
-
-  const updateFaviconWithTime = useCallback((minutes: number | null, useRestStyling: boolean, isPomodoroIdle: boolean) => {
-    if (typeof window === 'undefined') return;
-    const faviconSize = 32;
-    const canvas = document.createElement('canvas');
-    canvas.width = faviconSize;
-    canvas.height = faviconSize;
-    const context = canvas.getContext('2d');
-
-    if (!context) return;
-    context.clearRect(0, 0, faviconSize, faviconSize);
-    
-    if (minutes === null || (isPomodoroIdle && !useRestStyling)) { 
-        if (originalFaviconHref) {
-             const link = document.querySelector<HTMLLinkElement>("link[rel*='icon']") || document.createElement('link');
-             link.type = 'image/x-icon';
-             link.rel = 'shortcut icon';
-             link.href = originalFaviconHref;
-             if(!link.parentNode) document.getElementsByTagName('head')[0].appendChild(link);
-        }
-        return;
-    }
-
-    context.beginPath();
-    context.arc(faviconSize / 2, faviconSize / 2, faviconSize / 2, 0, 2 * Math.PI);
-    context.fillStyle = useRestStyling 
-        ? (getComputedStyle(document.documentElement).getPropertyValue('--accent').trim() || '#F48FB1') 
-        : (getComputedStyle(document.documentElement).getPropertyValue('--primary').trim() || '#7E57C2'); 
-    context.fill();
-
-    context.font = `bold ${faviconSize * (String(minutes).length > 1 ? 0.5 : 0.6)}px Arial`;
-    context.fillStyle = getComputedStyle(document.documentElement).getPropertyValue('--primary-foreground').trim() || '#FFFFFF';
-    context.textAlign = 'center';
-    context.textBaseline = 'middle';
-    context.fillText(String(minutes), faviconSize / 2, faviconSize / 2 + faviconSize * 0.05);
-
-    const link = document.querySelector<HTMLLinkElement>("link[rel*='icon']") || document.createElement('link');
-    link.type = 'image/png';
-    link.rel = 'icon';
-    link.href = canvas.toDataURL('image/png');
-    if (!link.parentNode) {
-      document.getElementsByTagName('head')[0].appendChild(link);
-    }
-  }, [originalFaviconHref]);
 
   // Effect for UI updates (title and favicon) - No Firestore writes here
   useEffect(() => {
@@ -374,14 +374,11 @@ export const PomodoroProvider = ({ children }: { children: ReactNode }) => {
         if (Notification.permission === "default") {
             try {
                 const permissionResult = await Notification.requestPermission();
-                // Check the static property after request, as permissionResult might just be the action taken by user
-                if (Notification.permission === "granted") {
+                if (Notification.permission === "granted") { // Check static property after request
                     toast({ title: t('notifications.enabled.title'), description: t('notifications.enabled.description') });
-                } else if (permissionResult === "denied" || Notification.permission === "denied") { // User explicitly denied
+                } else if (permissionResult === "denied" || Notification.permission === "denied") {
                     toast({ title: t('notifications.denied.title'), description: t('notifications.denied.description'), variant: "destructive" });
                 }
-                // If permissionResult is "default", it means the user dismissed the prompt without making a choice.
-                // Notification.permission would still be "default". No specific toast for this.
             } catch (error) {
                  console.error("Error requesting notification permission:", error);
                  toast({ title: t('notifications.error.title'), description: t('notifications.error.description'), variant: "destructive" });
@@ -537,4 +534,3 @@ export const usePomodoro = () => {
   }
   return context;
 };
-

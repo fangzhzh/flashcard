@@ -3,6 +3,8 @@ import type { Metadata, Viewport } from 'next';
 import { I18nProviderClient } from '@/lib/i18n/client';
 import { getI18n } from '@/lib/i18n/server';
 import Header from '@/components/Header';
+import { AuthProvider } from '@/contexts/AuthContext'; // Added
+import { FlashcardsProvider } from '@/contexts/FlashcardsContext'; // Added
 import { PomodoroProvider } from '@/contexts/PomodoroContext';
 import FloatingPomodoroTimer from '@/components/FloatingPomodoroTimer'; // Import the new component
 
@@ -30,13 +32,17 @@ export default function LocaleLayout({
 }) {
   return (
     <I18nProviderClient locale={locale}>
-      <PomodoroProvider>
-        <>
-          <Header />
-          {children}
-          <FloatingPomodoroTimer /> {/* Add the floating timer here */}
-        </>
-      </PomodoroProvider>
+      <AuthProvider>
+        <FlashcardsProvider>
+          <PomodoroProvider>
+            <>
+              <Header />
+              {children}
+              <FloatingPomodoroTimer /> {/* Add the floating timer here */}
+            </>
+          </PomodoroProvider>
+        </FlashcardsProvider>
+      </AuthProvider>
     </I18nProviderClient>
   );
 }

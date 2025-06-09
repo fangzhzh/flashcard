@@ -1,7 +1,7 @@
 
 import { initializeApp, getApps, type FirebaseApp } from 'firebase/app';
 import { getFirestore, type Firestore } from 'firebase/firestore';
-import { getAuth, type Auth } from 'firebase/auth';
+import { getAuth, type Auth, type ActionCodeSettings as FirebaseAuthActionCodeSettings } from 'firebase/auth';
 
 // Ensure these variable names match exactly what's in your .env.local
 const firebaseConfig = {
@@ -50,4 +50,21 @@ if (getApps().length === 0) {
 const db: Firestore = getFirestore(app);
 const auth: Auth = getAuth(app);
 
-export { db, auth, app };
+const actionCodeSettings: FirebaseAuthActionCodeSettings = {
+  // URL you want to redirect back to. The domain (www.example.com)
+  // must be whitelisted in the Firebase Console.
+  url: typeof window !== 'undefined' ? `${window.location.origin}/auth` : 'http://localhost:9002/auth', // Fallback for server context, adjust port if needed
+  handleCodeInApp: true, // This must be true.
+  // iOS: {
+  //   bundleId: 'com.example.ios'
+  // },
+  // android: {
+  //   packageName: 'com.example.android',
+  //   installApp: true,
+  //   minimumVersion: '12'
+  // },
+  // dynamicLinkDomain: 'yourapp.page.link' // If you use dynamic links
+};
+
+
+export { db, auth, app, actionCodeSettings };

@@ -1,7 +1,7 @@
 
 "use client";
 import Link from 'next/link';
-import { BookOpenText, LayoutDashboard, Timer, Languages, LogIn, LogOut, UserCircle } from 'lucide-react'; // Removed Layers, ClipboardCheck, Library
+import { BookOpenText, LayoutDashboard, Timer, Languages, LogIn, LogOut, UserCircle, KeyRound } from 'lucide-react'; // Added KeyRound
 import { ThemeToggle } from '@/components/ThemeToggle';
 import { usePathname } from 'next/navigation';
 import { cn } from '@/lib/utils';
@@ -24,7 +24,7 @@ export default function Header() {
   const changeLocale = useChangeLocale();
   const currentLocale = useCurrentLocale();
   const pathname = usePathname();
-  const { user, signInWithGoogle, signOut, loading: authLoading } = useAuth();
+  const { user, signOut, loading: authLoading } = useAuth(); // Removed signInWithGoogle
 
   // Simplified navItems
   const navItems = [
@@ -82,13 +82,13 @@ export default function Header() {
           <ThemeToggle />
 
           {authLoading ? (
-            <Button variant="outline" size="icon" disabled>
+            <Button variant="outline" size="icon" disabled className="ml-2">
               <Loader2 className="h-[1.2rem] w-[1.2rem] animate-spin" />
             </Button>
           ) : user ? (
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <Button variant="ghost" className="relative h-8 w-8 rounded-full">
+                <Button variant="ghost" className="relative h-8 w-8 rounded-full ml-2">
                   <Avatar className="h-8 w-8">
                     <AvatarImage src={user.photoURL || undefined} alt={user.displayName || user.email || 'User'} />
                     <AvatarFallback>
@@ -109,9 +109,11 @@ export default function Header() {
               </DropdownMenuContent>
             </DropdownMenu>
           ) : (
-            <Button variant="outline" onClick={signInWithGoogle}>
-              <LogIn className="mr-2 h-4 w-4" />
-              {t('auth.signInWithGoogle')}
+            <Button variant="outline" asChild className="ml-2">
+              <Link href="/auth">
+                <KeyRound className="mr-2 h-4 w-4" /> 
+                {t('auth.signIn')}
+              </Link>
             </Button>
           )}
         </nav>

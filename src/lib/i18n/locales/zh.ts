@@ -41,6 +41,7 @@ export default {
   'auth.emailLink.error.generic': '无法通过邮件链接登录。请重试或使用其他方法。',
   'auth.emailLink.error.noEmail': '未提供登录链接的邮箱。请重新发送链接。',
   'auth.emailLink.error.sendFailed': '发送登录链接失败。请检查邮箱并重试。',
+  'auth.emailLink.error.config': '由于配置问题，发送登录链接失败。请在 Firebase 项目设置中检查授权域名，或查看控制台获取详细信息。',
   'auth.emailLink.promptEmail': '请输入您的邮箱地址以完成登录：',
   'auth.emailLink.checkYourEmail': '登录链接已发送至您的邮箱。请检查您的收件箱（以及垃圾邮件文件夹）。',
   'auth.emailLink.sendAnotherLink': '重新发送链接',
@@ -67,6 +68,7 @@ export default {
   'auth/missing-email': '必须填写邮箱地址。',
   'auth/invalid-action-code': '登录链接无效或已过期。请请求新的链接。',
   'auth/requires-recent-login': '此操作较为敏感，需要近期进行身份验证。请重新登录。',
+  'auth/unauthorized-continue-uri': '无法处理登录链接。请确保该域名已在 Firebase 项目设置中列入白名单。',
 
 
   // Metadata

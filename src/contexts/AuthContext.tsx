@@ -2,7 +2,7 @@
 "use client";
 import type { AppUser } from '@/types';
 import React, { createContext, useContext, useEffect, useState, ReactNode, useCallback } from 'react';
-import { auth, actionCodeSettings } from '@/lib/firebase'; // Added actionCodeSettings
+import { auth, actionCodeSettings } from '@/lib/firebase'; // actionCodeSettings is already imported
 import { 
   onAuthStateChanged, 
   GoogleAuthProvider, 
@@ -14,11 +14,13 @@ import {
   sendSignInLinkToEmail as firebaseSendSignInLinkToEmail,
   isSignInWithEmailLink as firebaseIsSignInWithEmailLink,
   signInWithEmailLink as firebaseSignInWithEmailLink,
+  type ActionCodeSettings as FirebaseAuthActionCodeSettings, // For typing if needed, but actionCodeSettings is imported value
 } from 'firebase/auth';
 import { Loader2 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { useI18n } from '@/lib/i18n/client';
 import { useRouter, usePathname } from 'next/navigation';
+import type { FieldValue } from 'firebase/firestore'; // Not used here, but good for consistency if other contexts use it
 
 const EMAIL_FOR_SIGN_IN_LINK_KEY = 'emailForSignInLink';
 
@@ -69,9 +71,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         setIsProcessingLink(true);
         let email = window.localStorage.getItem(EMAIL_FOR_SIGN_IN_LINK_KEY);
         if (!email) {
-          // User opened the link on a different device. To prevent session fixation
-          // attacks, ask the user to provide the email again. For simplicity,
-          // we'll use a prompt. In a real app, you'd use a dedicated UI.
           email = window.prompt(t('auth.emailLink.promptEmail'));
         }
         if (email) {
@@ -80,7 +79,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
             setUser(mapFirebaseUserToAppUser(result.user));
             window.localStorage.removeItem(EMAIL_FOR_SIGN_IN_LINK_KEY);
             toast({ title: t('success'), description: t('auth.emailLink.success') });
-            // Redirect to home or dashboard after successful sign-in
             const locale = pathname.split('/')[1] || 'en';
             router.push(`/${locale}/`);
           } catch (error: any) {
@@ -90,7 +88,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         } else {
            toast({ title: t('error'), description: t('auth.emailLink.error.noEmail'), variant: 'destructive' });
         }
-        // Clean up the URL
         if (window.history && window.history.replaceState) {
             window.history.replaceState({}, document.title, window.location.pathname);
         }
@@ -99,20 +96,16 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     };
     completeLinkSignIn();
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [t, toast, router, pathname]); // pathname to re-evaluate on route change for potential link in URL
+  }, [t, toast, router, pathname]);
 
   const signInWithGoogle = async () => {
     setLoading(true);
     const provider = new GoogleAuthProvider();
     try {
       await signInWithPopup(auth, provider);
-      // onAuthStateChanged will handle setting the user state
-      // User will be redirected or state will update, causing re-render
     } catch (error: any) {
       console.error("Error signing in with Google:", error);
       toast({ title: t('error'), description: t(error.code as any) || t('auth.error.googleSignInFailed'), variant: "destructive" });
-    } finally {
-        // setLoading(false) // onAuthStateChanged will handle this
     }
   };
 
@@ -120,7 +113,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     setLoading(true);
     try {
       const userCredential = await createUserWithEmailAndPassword(auth, email, pass);
-      // onAuthStateChanged will set the user
       return mapFirebaseUserToAppUser(userCredential.user);
     } catch (error: any) {
       console.error("Error signing up:", error);
@@ -134,7 +126,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     setLoading(true);
     try {
       const userCredential = await signInWithEmailAndPassword(auth, email, pass);
-      // onAuthStateChanged will set the user
       return mapFirebaseUserToAppUser(userCredential.user);
     } catch (error: any) {
       console.error("Error signing in:", error);
@@ -152,7 +143,28 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       toast({ title: t('success'), description: t('auth.emailLink.sent') });
     } catch (error: any) {
       console.error("Error sending sign-in link:", error);
-      toast({ title: t('error'), description: t(error.code as any) || t('auth.emailLink.error.sendFailed'), variant: "destructive" });
+      // Default error message key
+      let toastDescriptionKey: keyof typeof import('@/lib/i18n/locales/en').default = (error.code as keyof typeof import('@/lib/i18n/locales/en').default) || 'auth.emailLink.error.sendFailed';
+      
+      if (error.code === 'auth/unauthorized-continue-uri') {
+        // actionCodeSettings.url will resolve correctly in the browser context here
+        const unauthorizedUrl = actionCodeSettings.url; 
+        console.error(
+          `Firebase Auth Error (auth/unauthorized-continue-uri): The domain of the continue URL ('${unauthorizedUrl}') is not whitelisted. ` +
+          `Please go to your Firebase project console -> Authentication -> Settings -> Authorized domains, and add the domain (e.g., '${new URL(unauthorizedUrl).hostname}').`
+        );
+        // Use a more specific translation key if the generic one for the code doesn't exist or to provide a clearer hint
+        if (!t(error.code as any)) {
+             toastDescriptionKey = 'auth.emailLink.error.config';
+        } else {
+            // If a specific translation for auth/unauthorized-continue-uri exists, use it.
+            // Otherwise, you might still want to point to a general config error.
+            // For now, let's assume if t(error.code) exists, it's good enough.
+            // If not, or if you want to override:
+            // toastDescriptionKey = 'auth.emailLink.error.config';
+        }
+      }
+      toast({ title: t('error'), description: t(toastDescriptionKey), variant: "destructive" });
     } finally {
       setLoading(false);
     }
@@ -162,17 +174,13 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     setLoading(true);
     try {
       await firebaseSignOut(auth);
-      // onAuthStateChanged will handle setting the user state to null
-      // User will be redirected or state will update causing re-render.
     } catch (error: any) {
       console.error("Error signing out:", error);
       toast({ title: t('error'), description: t(error.code as any) || t('auth.error.signOutFailed'), variant: "destructive" });
-    } finally {
-      // setLoading(false); // onAuthStateChanged will handle this
     }
   };
 
-  if (loading && isProcessingLink) { // Show loader if initial auth check or link processing is happening
+  if (loading && isProcessingLink) { 
     return (
       <div className="flex justify-center items-center min-h-screen">
         <Loader2 className="h-12 w-12 animate-spin text-primary" />
@@ -183,7 +191,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   return (
     <AuthContext.Provider value={{ 
       user, 
-      loading: loading || isProcessingLink, // Combine loading states for consumers
+      loading: loading || isProcessingLink, 
       isProcessingLink,
       signInWithGoogle, 
       signUpWithEmailPassword,
@@ -203,3 +211,4 @@ export const useAuth = () => {
   }
   return context;
 };
+

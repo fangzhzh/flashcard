@@ -41,6 +41,7 @@ export default {
   'auth.emailLink.error.generic': 'Could not sign in with email link. Please try again or use another method.',
   'auth.emailLink.error.noEmail': 'Email not provided for sign-in link. Please try sending the link again.',
   'auth.emailLink.error.sendFailed': 'Failed to send sign-in link. Please check the email and try again.',
+  'auth.emailLink.error.config': 'Failed to send sign-in link due to a configuration issue. Please check authorized domains in Firebase project settings, or see console for details.',
   'auth.emailLink.promptEmail': 'Please enter your email address to complete sign-in:',
   'auth.emailLink.checkYourEmail': 'A sign-in link has been sent to your email address. Please check your inbox (and spam folder).',
   'auth.emailLink.sendAnotherLink': 'Send another link',
@@ -67,6 +68,7 @@ export default {
   'auth/missing-email': 'Email address is required.',
   'auth/invalid-action-code': 'The sign-in link is invalid or has expired. Please request a new one.',
   'auth/requires-recent-login': 'This operation is sensitive and requires recent authentication. Please sign in again.',
+  'auth/unauthorized-continue-uri': 'Sign-in link cannot be processed. Ensure the domain is whitelisted in Firebase project settings.',
 
 
   // Metadata

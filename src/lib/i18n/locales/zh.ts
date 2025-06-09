@@ -241,6 +241,16 @@ export default {
   'pomodoro.toast.completed': '番茄钟时间到！',
   'pomodoro.toast.completed.description': '休息一下吧。',
   'pomodoro.auth.required': '请登录以使用番茄钟功能。',
+  'pomodoro.notification.title': '番茄钟完成！',
+  'pomodoro.notification.body': '您的番茄钟会话已结束。休息一下吧！',
+
+  // Notifications (General)
+  'notifications.enabled.title': '通知已启用',
+  'notifications.enabled.description': '您现在将收到番茄钟会话的通知。',
+  'notifications.denied.title': '通知已禁用',
+  'notifications.denied.description': '您已拒绝通知权限。您可以在浏览器设置中更改此设置。',
+  'notifications.error.title': '通知错误',
+  'notifications.error.description': '无法请求通知权限。',
 
 
   // General

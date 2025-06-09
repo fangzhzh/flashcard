@@ -242,6 +242,17 @@ export default {
   'pomodoro.toast.completed': 'Pomodoro session complete!',
   'pomodoro.toast.completed.description': 'Time for a short break.',
   'pomodoro.auth.required': 'Please sign in to use the Pomodoro timer.',
+  'pomodoro.notification.title': 'Pomodoro Complete!',
+  'pomodoro.notification.body': 'Your Pomodoro session has ended. Time for a break!',
+
+
+  // Notifications (General)
+  'notifications.enabled.title': 'Notifications Enabled',
+  'notifications.enabled.description': 'You will now receive notifications for Pomodoro sessions.',
+  'notifications.denied.title': 'Notifications Denied',
+  'notifications.denied.description': 'You have denied notification permissions. You can change this in your browser settings.',
+  'notifications.error.title': 'Notification Error',
+  'notifications.error.description': 'Could not request notification permission.',
 
 
   // General

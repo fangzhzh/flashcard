@@ -33,6 +33,67 @@ export const PomodoroProvider = ({ children }: { children: ReactNode }) => {
   const [timeLeftSeconds, setTimeLeftSeconds] = useState(DEFAULT_POMODORO_MINUTES * 60);
   const [isLoading, setIsLoading] = useState(true);
   const [intervalId, setIntervalId] = useState<NodeJS.Timeout | null>(null);
+  const [originalTitle, setOriginalTitle] = useState('');
+  const [originalFaviconHref, setOriginalFaviconHref] = useState<string | null>(null);
+
+
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      setOriginalTitle(document.title);
+      const faviconElement = document.querySelector<HTMLLinkElement>("link[rel*='icon']");
+      if (faviconElement) {
+        setOriginalFaviconHref(faviconElement.href);
+      }
+    }
+  }, []);
+
+  const updateFaviconWithTime = useCallback((minutes: number | null) => {
+    if (typeof window === 'undefined') return;
+    const faviconSize = 32;
+    const canvas = document.createElement('canvas');
+    canvas.width = faviconSize;
+    canvas.height = faviconSize;
+    const context = canvas.getContext('2d');
+
+    if (!context) return;
+
+    // Clear canvas
+    context.clearRect(0, 0, faviconSize, faviconSize);
+    
+    if (minutes === null || sessionState?.status === 'idle') { // Restore original or clear
+        if (originalFaviconHref) {
+             const link = document.querySelector<HTMLLinkElement>("link[rel*='icon']") || document.createElement('link');
+             link.type = 'image/x-icon';
+             link.rel = 'shortcut icon';
+             link.href = originalFaviconHref;
+             document.getElementsByTagName('head')[0].appendChild(link);
+        }
+        return;
+    }
+
+    // Draw background circle (optional, adjust color as needed)
+    context.beginPath();
+    context.arc(faviconSize / 2, faviconSize / 2, faviconSize / 2, 0, 2 * Math.PI);
+    context.fillStyle = getComputedStyle(document.documentElement).getPropertyValue('--primary').trim() || '#7E57C2'; // Use theme primary
+    context.fill();
+
+    // Draw text (minutes)
+    context.font = `bold ${faviconSize * 0.6}px Arial`;
+    context.fillStyle = getComputedStyle(document.documentElement).getPropertyValue('--primary-foreground').trim() || '#FFFFFF'; // Use theme primary foreground
+    context.textAlign = 'center';
+    context.textBaseline = 'middle';
+    context.fillText(String(minutes), faviconSize / 2, faviconSize / 2 + faviconSize * 0.05); // Slight Y offset for better centering
+
+    // Update favicon link
+    const link = document.querySelector<HTMLLinkElement>("link[rel*='icon']") || document.createElement('link');
+    link.type = 'image/png'; // Use PNG for canvas generated favicons
+    link.rel = 'icon'; // 'icon' is more standard for dynamic favicons
+    link.href = canvas.toDataURL('image/png');
+    if (!link.parentNode) {
+      document.getElementsByTagName('head')[0].appendChild(link);
+    }
+  }, [originalFaviconHref, sessionState?.status]);
+
 
   const pomodoroDocRef = useCallback(() => {
     if (!user?.uid) return null;
@@ -50,6 +111,8 @@ export const PomodoroProvider = ({ children }: { children: ReactNode }) => {
       setIsLoading(false);
       if (intervalId) clearInterval(intervalId);
       setIntervalId(null);
+      if (typeof window !== 'undefined') document.title = originalTitle;
+      updateFaviconWithTime(null);
       return;
     }
 
@@ -113,7 +176,7 @@ export const PomodoroProvider = ({ children }: { children: ReactNode }) => {
     });
 
     return () => unsubscribe();
-  }, [user, authLoading, pomodoroDocRef]);
+  }, [user, authLoading, pomodoroDocRef, originalTitle, updateFaviconWithTime]);
 
 
   useEffect(() => {
@@ -122,7 +185,24 @@ export const PomodoroProvider = ({ children }: { children: ReactNode }) => {
       setIntervalId(null); 
     }
 
-    if (!sessionState) return; // Guard against null sessionState
+    if (!sessionState || typeof window === 'undefined') {
+      if (originalTitle) document.title = originalTitle;
+      updateFaviconWithTime(null);
+      return;
+    }
+
+    const minutesLeft = Math.floor(timeLeftSeconds / 60);
+
+    if (sessionState.status === 'running') {
+        document.title = `⏲️ ${formatTime(timeLeftSeconds)} - ${originalTitle}`;
+        updateFaviconWithTime(minutesLeft);
+    } else if (sessionState.status === 'paused') {
+        document.title = `⏸️ ${formatTime(timeLeftSeconds)} - ${originalTitle}`;
+        updateFaviconWithTime(minutesLeft); // Show paused time on favicon too
+    } else { // idle
+        document.title = originalTitle;
+        updateFaviconWithTime(null); // Restore original favicon
+    }
 
     if (sessionState.status === 'running' && sessionState.targetEndTime) {
       const updateTimer = () => {
@@ -148,7 +228,7 @@ export const PomodoroProvider = ({ children }: { children: ReactNode }) => {
               status: 'idle', 
               targetEndTime: null,
               pausedTimeLeftSeconds: null,
-              currentSessionInitialDurationMinutes: currentPreferredDuration, // Reset to preferred
+              currentSessionInitialDurationMinutes: currentPreferredDuration, 
               updatedAt: serverTimestamp() 
             }, { merge: true });
           }
@@ -156,6 +236,14 @@ export const PomodoroProvider = ({ children }: { children: ReactNode }) => {
             title: t('pomodoro.toast.completed'),
             description: t('pomodoro.toast.completed.description'),
           });
+          if (Notification.permission === "granted") {
+            new Notification(t('pomodoro.notification.title'), {
+              body: t('pomodoro.notification.body'),
+              icon: '/favicon.ico' // Optional: use your app's icon
+            });
+          }
+          document.title = originalTitle; // Restore title immediately on completion
+          updateFaviconWithTime(null); // Restore favicon
         }
       };
       
@@ -175,23 +263,47 @@ export const PomodoroProvider = ({ children }: { children: ReactNode }) => {
       }
     };
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [sessionState, pomodoroDocRef, user?.uid, t, toast]); // Rely on sessionState object itself
+  }, [sessionState, pomodoroDocRef, user?.uid, t, toast, originalTitle, updateFaviconWithTime]); 
+
+  const formatTime = (seconds: number): string => {
+    const minutes = Math.floor(seconds / 60);
+    const remainingSeconds = seconds % 60;
+    return `${minutes.toString().padStart(2, '0')}:${remainingSeconds.toString().padStart(2, '0')}`;
+  };
+
 
   const startPomodoro = async (durationMinutes: number) => {
     const docRef = pomodoroDocRef();
     if (!docRef || !user?.uid) return;
 
+    if (typeof window !== 'undefined' && 'Notification' in window) {
+        if (Notification.permission === "default") {
+            try {
+                const permission = await Notification.requestPermission();
+                if (permission === "granted") {
+                    toast({ title: t('notifications.enabled.title'), description: t('notifications.enabled.description') });
+                } else {
+                    toast({ title: t('notifications.denied.title'), description: t('notifications.denied.description'), variant: "destructive" });
+                }
+            } catch (error) {
+                 console.error("Error requesting notification permission:", error);
+                 toast({ title: t('notifications.error.title'), description: t('notifications.error.description'), variant: "destructive" });
+            }
+        }
+    }
+
+
     const now = Date.now();
     const targetEndTime = now + durationMinutes * 60 * 1000;
-    const newState: PomodoroSessionState = { // Construct a full state object
+    const newState: Omit<PomodoroSessionState, 'updatedAt'> & {updatedAt: FieldValue} = { 
       userId: user.uid,
       status: 'running',
       targetEndTime,
       currentSessionInitialDurationMinutes: durationMinutes,
-      userPreferredDurationMinutes: durationMinutes, 
+      userPreferredDurationMinutes: sessionState?.userPreferredDurationMinutes || durationMinutes, 
       pausedTimeLeftSeconds: null,
-      notes: sessionState?.notes || '', // Preserve existing notes
-      updatedAt: serverTimestamp(), // This will be FieldValue for Firestore
+      notes: sessionState?.notes || '', 
+      updatedAt: serverTimestamp(), 
     };
     await setDoc(docRef, newState, { merge: true }).catch(e => console.error("Error starting pomodoro:", e));
   };
@@ -229,15 +341,13 @@ export const PomodoroProvider = ({ children }: { children: ReactNode }) => {
 
   const giveUpPomodoro = async () => {
     const docRef = pomodoroDocRef();
-    if (!docRef || !user?.uid) return; // Check user.uid here directly
+    if (!docRef || !user?.uid) return; 
     
     const updateData = {
       userId: user.uid,
       status: 'idle',
       targetEndTime: null,
       pausedTimeLeftSeconds: null,
-      // currentSessionInitialDurationMinutes might remain or be reset to userPreferred, depends on desired logic
-      // userPreferredDurationMinutes remains as is
       updatedAt: serverTimestamp(),
     };
     await setDoc(docRef, updateData, { merge: true }).catch(e => console.error("Error giving up pomodoro:", e));
@@ -245,7 +355,7 @@ export const PomodoroProvider = ({ children }: { children: ReactNode }) => {
 
   const updateUserPreferredDuration = async (minutes: number) => {
     const docRef = pomodoroDocRef();
-    if (!docRef || !user?.uid ) return; // Removed sessionState check, can update even if sessionState is briefly null
+    if (!docRef || !user?.uid ) return; 
     const newDuration = Math.max(1, Math.min(minutes, 120)); 
     
     const updateData: Partial<PomodoroSessionState> & {userId: string, updatedAt: FieldValue} = {
@@ -253,7 +363,6 @@ export const PomodoroProvider = ({ children }: { children: ReactNode }) => {
         userPreferredDurationMinutes: newDuration,
         updatedAt: serverTimestamp(),
     };
-    // Only update currentSessionInitialDurationMinutes if currently idle
     if(sessionState?.status === 'idle') {
         updateData.currentSessionInitialDurationMinutes = newDuration;
     }
@@ -291,4 +400,3 @@ export const usePomodoro = () => {
   }
   return context;
 };
-

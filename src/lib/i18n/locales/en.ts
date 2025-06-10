@@ -104,6 +104,7 @@ export default {
   'deck.item.cardsCount': '{count} cards',
   'deck.item.edit': 'Edit Name',
   'deck.item.delete': 'Delete Deck',
+  'deck.item.review': 'Review Deck', // New
   'deck.item.delete.confirm.title': 'Are you sure you want to delete this deck?',
   'deck.item.delete.confirm.description': 'This action cannot be undone. This will permanently delete the deck and all flashcards within it.',
   'deck.item.delete.confirm.cancel': 'Cancel',
@@ -190,20 +191,32 @@ export default {
   'toast.batch.error.save': 'Failed to save batch flashcards.',
 
   // Review Page (src/app/[locale]/review/ReviewModeClient.tsx)
+  'review.pageTitle.default': 'Review Session', // New
+  'review.pageTitle.deck': 'Reviewing: {deckName}', // New
   'review.loading': 'Loading review session...',
   'review.noCards.title': 'No Flashcards Yet!',
   'review.noCards.description': 'Create some flashcards to start your learning journey.',
   'review.noCards.button.create': 'Create Flashcards',
+  'review.noCardsInDeck.title': 'No Cards in this Deck', // New
+  'review.noCardsInDeck.description': 'This deck is empty. Add some flashcards to it to start reviewing.', // New
   'review.ready.title': 'Ready to Review?',
+  'review.ready.title.deck': 'Ready to Review "{deckName}"?', // New
   'review.ready.due.text': 'You have {count} card(s) due for spaced repetition.',
+  'review.ready.due.text.deck': 'You have {count} card(s) due for spaced repetition in this deck.', // New
   'review.ready.due.none': 'No cards are currently due for spaced repetition.',
+  'review.ready.due.none.deck': 'No cards are currently due for spaced repetition in this deck.', // New
   'review.button.startSpaced': 'Start Spaced Repetition ({count})',
   'review.button.reviewAll': 'Review All Cards ({count})',
   'review.tip.noSpacedRepetition': 'Tip: Create more cards or wait for scheduled reviews for the spaced repetition mode.',
+  'review.tip.noSpacedRepetition.deck': 'Tip: Add more cards to this deck or wait for scheduled reviews for the spaced repetition mode.', // New
   'review.sessionComplete.title': 'Session Complete!',
+  'review.sessionComplete.title.deck': 'Deck Review Complete!', // New
   'review.sessionComplete.description': "You've reviewed all cards in this session. What's next?",
+  'review.sessionComplete.description.deck': "You've reviewed all cards in this deck. What's next?", // New
   'review.sessionComplete.button.backToDashboard': 'Back to Flashcards Hub',
+  'review.sessionComplete.button.backToDecks': 'Back to Decks', // New
   'review.sessionComplete.button.reviewAllAgain': 'Review All Cards Again ({count})',
+  'review.sessionComplete.button.reviewDeckAgain': 'Review This Deck Again ({count})', // New
   'review.loadingCard': 'Loading card...',
   'review.cardProgress': 'Card {currentIndex} of {totalCards}',
   'review.button.flip.showQuestion': 'Show Question',
@@ -290,3 +303,5 @@ export default {
   'error': 'Error',
 
 } as const;
+
+    

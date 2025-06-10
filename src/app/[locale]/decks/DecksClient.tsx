@@ -28,17 +28,19 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
-import { PlusCircle, Edit3, Trash2, Loader2, Info, ShieldAlert, Library } from 'lucide-react';
+import { PlusCircle, Edit3, Trash2, Loader2, Info, ShieldAlert, Library, ClipboardCheck } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
-import { useI18n } from '@/lib/i18n/client';
+import { useI18n, useCurrentLocale } from '@/lib/i18n/client';
 import type { Deck } from '@/types';
 import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
+import Link from 'next/link';
 
 export default function DecksClient() {
   const { user, loading: authLoading } = useAuth();
   const { decks, flashcards, addDeck, updateDeck, deleteDeck, isLoadingDecks, isSeeding } = useFlashcards();
   const { toast } = useToast();
   const t = useI18n();
+  const currentLocale = useCurrentLocale();
 
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [currentDeck, setCurrentDeck] = useState<Partial<Deck> | null>(null);
@@ -90,7 +92,7 @@ export default function DecksClient() {
       toast({ title: t('error'), description: t('auth.pleaseSignIn'), variant: "destructive" });
       return;
     }
-    setIsSubmittingDeck(true); // Use general submit state for delete as well
+    setIsSubmittingDeck(true); 
     try {
       await deleteDeck(deckId);
       toast({ title: t('success'), description: t('toast.deck.deleted') });
@@ -157,7 +159,12 @@ export default function DecksClient() {
             <CardContent className="flex-grow">
               {/* Future: Could show some stats or recent cards here */}
             </CardContent>
-            <CardFooter className="flex flex-col sm:flex-row justify-end items-center gap-2 pt-4 border-t">
+            <CardFooter className="flex flex-col sm:flex-row justify-end items-stretch sm:items-center gap-2 pt-4 border-t">
+              <Link href={`/${currentLocale}/review?deckId=${deck.id}`} passHref className="w-full sm:w-auto">
+                <Button variant="default" size="sm" className="w-full">
+                  <ClipboardCheck className="mr-2 h-4 w-4" /> {t('deck.item.review')}
+                </Button>
+              </Link>
               <Button variant="outline" size="sm" onClick={() => openEditDeckDialog(deck)} className="w-full sm:w-auto">
                 <Edit3 className="mr-2 h-4 w-4" /> {t('deck.item.edit')}
               </Button>
@@ -226,3 +233,5 @@ export default function DecksClient() {
     </>
   );
 }
+
+    

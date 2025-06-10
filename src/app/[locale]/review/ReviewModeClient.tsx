@@ -1,19 +1,20 @@
 
 "use client";
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import { useFlashcards } from '@/contexts/FlashcardsContext';
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
-import type { Flashcard, PerformanceRating } from '@/types';
+import type { Flashcard, PerformanceRating, Deck } from '@/types';
 import { useToast } from '@/hooks/use-toast';
-import { RefreshCw, CheckCircle2, SkipForward, RotateCcw, PlayCircle, ThumbsUp, PlusCircle, Layers, LayoutDashboard, Loader2, ShieldAlert, Volume2 } from 'lucide-react';
+import { RefreshCw, CheckCircle2, SkipForward, RotateCcw, PlayCircle, ThumbsUp, PlusCircle, Layers, LayoutDashboard, Loader2, ShieldAlert, Volume2, Library } from 'lucide-react';
 import { formatISO, addDays } from 'date-fns';
 import Link from 'next/link';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
-import { useI18n } from '@/lib/i18n/client';
+import { useI18n, useCurrentLocale } from '@/lib/i18n/client';
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { useSearchParams, useRouter } from 'next/navigation';
 
 
 const MASTERED_MULTIPLIER = 2;
@@ -24,7 +25,7 @@ const MAX_INTERVAL = 365; // 1 year
 
 export default function ReviewModeClient() {
   const { user, loading: authLoading } = useAuth();
-  const { getReviewQueue, updateFlashcard, flashcards: allFlashcardsFromContext, isLoading: contextLoading, isSeeding } = useFlashcards();
+  const { getReviewQueue, updateFlashcard, flashcards: allFlashcardsFromContext, isLoading: contextLoading, isSeeding, getDeckById } = useFlashcards();
   const [reviewQueue, setReviewQueue] = useState<Flashcard[]>([]);
   const [currentCardIndex, setCurrentCardIndex] = useState(0);
   const [isFlipped, setIsFlipped] = useState(false);
@@ -32,16 +33,48 @@ export default function ReviewModeClient() {
   const [isSessionStarted, setIsSessionStarted] = useState(false);
   const { toast } = useToast();
   const t = useI18n();
+  const currentLocale = useCurrentLocale();
+  const router = useRouter();
+
+  const searchParams = useSearchParams();
+  const deckIdFromParams = searchParams.get('deckId');
+  const [currentDeck, setCurrentDeck] = useState<Deck | null>(null);
 
   const currentCard = reviewQueue[currentCardIndex];
 
-  const loadSpacedRepetitionQueue = useCallback(() => {
+  useEffect(() => {
+    if (deckIdFromParams && !contextLoading) {
+      const deck = getDeckById(deckIdFromParams);
+      if (deck) {
+        setCurrentDeck(deck);
+      } else {
+        toast({ title: t('error'), description: t('toast.deck.error.load'), variant: 'destructive' });
+        router.push(`/${currentLocale}/decks`);
+      }
+    } else {
+      setCurrentDeck(null);
+    }
+  }, [deckIdFromParams, getDeckById, contextLoading, toast, router, currentLocale, t]);
+  
+  const allCardsForCurrentScope = useMemo(() => {
+    if (!deckIdFromParams) return allFlashcardsFromContext;
+    return allFlashcardsFromContext.filter(card => card.deckId === deckIdFromParams);
+  }, [allFlashcardsFromContext, deckIdFromParams]);
+
+  const dueCardsForCurrentScope = useMemo(() => {
+    const allDueCards = getReviewQueue(); // Gets all due cards globally
+    if (!deckIdFromParams) return allDueCards;
+    return allDueCards.filter(card => card.deckId === deckIdFromParams);
+  }, [getReviewQueue, deckIdFromParams]);
+
+
+  const loadSpacedRepetitionQueueScoped = useCallback(() => {
     if (contextLoading || !user) return;
-    const queue = getReviewQueue();
-    setReviewQueue(queue);
+    const queue = dueCardsForCurrentScope; // Use pre-filtered due cards
+    setReviewQueue(queue); // Already sorted by getReviewQueue implicitly
     setCurrentCardIndex(0);
     setIsFlipped(false);
-  }, [getReviewQueue, contextLoading, user]);
+  }, [dueCardsForCurrentScope, contextLoading, user]);
 
   const handleFlip = () => {
     setIsFlipped(!isFlipped);
@@ -138,7 +171,7 @@ export default function ReviewModeClient() {
     }
   };
   
-  if (authLoading || (contextLoading && user) || (isSeeding && user)) {
+  if (authLoading || (contextLoading && user) || (isSeeding && user) || (deckIdFromParams && !currentDeck && !contextLoading)) {
     return (
       <div className="flex flex-col items-center justify-center min-h-[calc(100vh-10rem)] p-4 text-center">
         <Loader2 className="h-12 w-12 animate-spin text-primary mb-4" />
@@ -159,23 +192,34 @@ export default function ReviewModeClient() {
     );
   }
 
+  const pageTitle = currentDeck 
+    ? t('review.pageTitle.deck', { deckName: currentDeck.name })
+    : t('review.pageTitle.default');
+
 
   if (!isSessionStarted) {
-    const initialSpacedRepetitionQueue = getReviewQueue();
-
-    if (allFlashcardsFromContext.length === 0) {
+    if (allCardsForCurrentScope.length === 0) {
       return (
         <div className="flex flex-col items-center justify-center min-h-[calc(100vh-10rem)] p-4 text-center">
           <ThumbsUp className="w-24 h-24 text-green-500 mb-6" />
-          <h2 className="text-3xl font-semibold mb-4">{t('review.noCards.title')}</h2>
+          <h2 className="text-3xl font-semibold mb-4">
+            {currentDeck ? t('review.noCardsInDeck.title') : t('review.noCards.title')}
+          </h2>
           <p className="text-muted-foreground mb-8 text-lg">
-            {t('review.noCards.description')}
+            {currentDeck ? t('review.noCardsInDeck.description') : t('review.noCards.description')}
           </p>
-          <Link href="/flashcards/new" passHref>
+          <Link href={`/${currentLocale}/flashcards/new`} passHref>
             <Button size="lg" className="text-xl py-8 px-10 shadow-lg">
               <PlusCircle className="mr-3 h-6 w-6" /> {t('review.noCards.button.create')}
             </Button>
           </Link>
+           {currentDeck && (
+             <Link href={`/${currentLocale}/decks`} passHref className="mt-4">
+                <Button variant="outline" size="lg">
+                    <Library className="mr-3 h-6 w-6" /> {t('review.sessionComplete.button.backToDecks')}
+                </Button>
+            </Link>
+           )}
         </div>
       );
     }
@@ -183,50 +227,54 @@ export default function ReviewModeClient() {
     return (
       <div className="flex flex-col items-center justify-center min-h-[calc(100vh-10rem)] p-4 text-center">
         <PlayCircle className="w-24 h-24 text-primary mb-6" />
-        <h2 className="text-3xl font-semibold mb-4">{t('review.ready.title')}</h2>
+        <h2 className="text-3xl font-semibold mb-4">
+          {currentDeck ? t('review.ready.title.deck', {deckName: currentDeck.name}) : t('review.ready.title')}
+        </h2>
 
-        {initialSpacedRepetitionQueue.length > 0 ? (
+        {dueCardsForCurrentScope.length > 0 ? (
           <p className="text-muted-foreground mb-4 text-lg">
-             {t('review.ready.due.text', { count: initialSpacedRepetitionQueue.length })}
+             {currentDeck 
+                ? t('review.ready.due.text.deck', { count: dueCardsForCurrentScope.length })
+                : t('review.ready.due.text', { count: dueCardsForCurrentScope.length })}
           </p>
         ) : (
           <p className="text-muted-foreground mb-4 text-lg">
-            {t('review.ready.due.none')}
+            {currentDeck ? t('review.ready.due.none.deck') : t('review.ready.due.none')}
           </p>
         )}
 
         <Button
           size="lg"
           onClick={() => {
-            loadSpacedRepetitionQueue();
+            loadSpacedRepetitionQueueScoped();
             setIsSessionStarted(true);
           }}
           className="text-xl py-6 px-8 shadow-lg mb-4 w-full max-w-xs sm:max-w-sm md:max-w-md"
-          disabled={initialSpacedRepetitionQueue.length === 0}
+          disabled={dueCardsForCurrentScope.length === 0}
         >
           <PlayCircle className="mr-3 h-6 w-6" />
-          {t('review.button.startSpaced', { count: initialSpacedRepetitionQueue.length })}
+          {t('review.button.startSpaced', { count: dueCardsForCurrentScope.length })}
         </Button>
 
         <Button
           size="lg"
           variant="outline"
           onClick={() => {
-            const shuffledAllCards = [...allFlashcardsFromContext].sort(() => Math.random() - 0.5);
-            setReviewQueue(shuffledAllCards);
+            const shuffledCardsInScope = [...allCardsForCurrentScope].sort(() => Math.random() - 0.5);
+            setReviewQueue(shuffledCardsInScope);
             setCurrentCardIndex(0);
             setIsFlipped(false);
             setIsSessionStarted(true);
           }}
           className="text-xl py-6 px-8 shadow-lg w-full max-w-xs sm:max-w-sm md:max-w-md"
-          disabled={allFlashcardsFromContext.length === 0}
+          disabled={allCardsForCurrentScope.length === 0}
         >
           <Layers className="mr-3 h-6 w-6" />
-          {t('review.button.reviewAll', { count: allFlashcardsFromContext.length })}
+          {t('review.button.reviewAll', { count: allCardsForCurrentScope.length })}
         </Button>
-         {initialSpacedRepetitionQueue.length === 0 && allFlashcardsFromContext.length > 0 && (
+         {dueCardsForCurrentScope.length === 0 && allCardsForCurrentScope.length > 0 && (
              <p className="text-muted-foreground mt-8 text-sm">
-                {t('review.tip.noSpacedRepetition')}
+                {currentDeck ? t('review.tip.noSpacedRepetition.deck') : t('review.tip.noSpacedRepetition')}
             </p>
         )}
       </div>
@@ -234,46 +282,48 @@ export default function ReviewModeClient() {
   }
 
   if (reviewQueue.length === 0 && isSessionStarted) {
-    const srQueueCount = getReviewQueue().length;
-
     return (
       <div className="flex flex-col items-center justify-center min-h-[calc(100vh-10rem)] p-4 text-center">
         <ThumbsUp className="w-24 h-24 text-green-500 mb-6" />
-        <h2 className="text-3xl font-semibold mb-4">{t('review.sessionComplete.title')}</h2>
+        <h2 className="text-3xl font-semibold mb-4">
+            {currentDeck ? t('review.sessionComplete.title.deck') : t('review.sessionComplete.title')}
+        </h2>
         <p className="text-muted-foreground mb-8 text-lg">
-          {t('review.sessionComplete.description')}
+            {currentDeck ? t('review.sessionComplete.description.deck') : t('review.sessionComplete.description')}
         </p>
         <div className="flex flex-col items-center gap-4 w-full max-w-xs sm:max-w-sm md:max-w-md">
           <Button
             size="lg"
             onClick={() => {
-              loadSpacedRepetitionQueue();
+              loadSpacedRepetitionQueueScoped();
             }}
             className="w-full"
-            disabled={srQueueCount === 0}
+            disabled={dueCardsForCurrentScope.length === 0}
           >
             <PlayCircle className="mr-3 h-6 w-6" />
-            {t('review.button.startSpaced', { count: srQueueCount })}
+            {t('review.button.startSpaced', { count: dueCardsForCurrentScope.length })}
           </Button>
           <Button
             size="lg"
             variant="outline"
             onClick={() => {
-              const shuffledAllCards = [...allFlashcardsFromContext].sort(() => Math.random() - 0.5);
-              setReviewQueue(shuffledAllCards);
+              const shuffledCardsInScope = [...allCardsForCurrentScope].sort(() => Math.random() - 0.5);
+              setReviewQueue(shuffledCardsInScope);
               setCurrentCardIndex(0);
               setIsFlipped(false);
             }}
             className="w-full"
-            disabled={allFlashcardsFromContext.length === 0}
+            disabled={allCardsForCurrentScope.length === 0}
           >
             <Layers className="mr-3 h-6 w-6" />
-            {t('review.sessionComplete.button.reviewAllAgain', { count: allFlashcardsFromContext.length })}
+            {currentDeck 
+                ? t('review.sessionComplete.button.reviewDeckAgain', { count: allCardsForCurrentScope.length })
+                : t('review.sessionComplete.button.reviewAllAgain', { count: allCardsForCurrentScope.length })}
           </Button>
-          <Link href="/" passHref className="w-full">
+          <Link href={currentDeck ? `/${currentLocale}/decks` : `/${currentLocale}/flashcards-hub`} passHref className="w-full">
             <Button size="lg" variant="secondary" className="w-full">
                <LayoutDashboard className="mr-3 h-6 w-6" />
-              {t('review.sessionComplete.button.backToDashboard')}
+              {currentDeck ? t('review.sessionComplete.button.backToDecks') : t('review.sessionComplete.button.backToDashboard')}
             </Button>
           </Link>
         </div>
@@ -290,9 +340,10 @@ export default function ReviewModeClient() {
     );
   }
   
-  if (!currentCard && !isSessionStarted) {
+  if (!currentCard && !isSessionStarted) { // Should not be reached if other guards are correct
       return null; 
   }
+
 
   const progressOptions: { labelKey: keyof typeof import('@/lib/i18n/locales/en').default; rating: PerformanceRating; icon: React.ElementType; variant: "default" | "secondary" | "destructive" | "outline" | "ghost" | "link" | null | undefined }[] = [
     { labelKey: 'review.button.progress.tryAgain', rating: 'Try Again', icon: RotateCcw, variant: 'destructive' },
@@ -304,7 +355,8 @@ export default function ReviewModeClient() {
   const currentCardLang = detectLanguage(currentCardText);
 
   return (
-    <div className="flex flex-col items-center p-4 pt-12">
+    <div className="flex flex-col items-center pt-2">
+      <h1 className="text-2xl font-semibold tracking-tight mb-6 text-center">{pageTitle}</h1>
       <p className="text-muted-foreground mb-4">{t('review.cardProgress', { currentIndex: currentCardIndex + 1, totalCards: reviewQueue.length })}</p>
       <Card className="w-full max-w-2xl min-h-[350px] flex flex-col shadow-xl transition-all duration-500 ease-in-out transform hover:scale-[1.01]">
         <CardHeader className="flex-grow flex items-center justify-center p-8">
@@ -321,7 +373,7 @@ export default function ReviewModeClient() {
               size="icon"
               className="ml-4 flex-shrink-0"
               onClick={(e) => {
-                e.stopPropagation(); // Prevent card flip if button is inside clickable area
+                e.stopPropagation(); 
                 handleSpeak(currentCardText, currentCardLang);
               }}
               title={t('review.speakContent' as any, { defaultValue: "Speak content"})}
@@ -358,3 +410,4 @@ export default function ReviewModeClient() {
   );
 }
 
+    

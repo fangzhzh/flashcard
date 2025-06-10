@@ -104,6 +104,7 @@ export default {
   'deck.item.cardsCount': '{count} 张卡片',
   'deck.item.edit': '编辑名称',
   'deck.item.delete': '删除卡组',
+  'deck.item.review': '复习卡组', // New
   'deck.item.delete.confirm.title': '您确定要删除这个卡组吗？',
   'deck.item.delete.confirm.description': '此操作无法撤销。这将永久删除该卡组及其中的所有抽认卡。',
   'deck.item.delete.confirm.cancel': '取消',
@@ -189,20 +190,31 @@ export default {
   'toast.batch.error.save': '保存批量抽认卡失败。',
 
   // Review Page (src/app/[locale]/review/ReviewModeClient.tsx)
+  'review.pageTitle.default': '复习会话', // New
+  'review.pageTitle.deck': '复习卡组: {deckName}', // New
   'review.loading': '加载复习会话中...',
   'review.noCards.title': '还没有抽认卡!',
   'review.noCards.description': '创建一些抽认卡来开始您的学习之旅吧。',
-  'review.noCards.button.create': '创建抽认卡',
+  'review.noCardsInDeck.title': '此卡组中没有卡片', // New
+  'review.noCardsInDeck.description': '此卡组为空。向其中添加一些抽认卡以开始复习。', // New
   'review.ready.title': '准备好复习了吗?',
+  'review.ready.title.deck': '准备好复习卡组 "{deckName}" 了吗?', // New
   'review.ready.due.text': '您有 {count} 张卡片需要进行间隔重复复习。',
+  'review.ready.due.text.deck': '此卡组中有 {count} 张卡片需要进行间隔重复复习。', // New
   'review.ready.due.none': '目前没有卡片需要进行间隔重复复习。',
+  'review.ready.due.none.deck': '此卡组中目前没有卡片需要进行间隔重复复习。', // New
   'review.button.startSpaced': '开始间隔重复 ({count})',
   'review.button.reviewAll': '复习所有卡片 ({count})',
   'review.tip.noSpacedRepetition': '提示：创建更多卡片或等待计划的复习以进行间隔重复模式。',
+  'review.tip.noSpacedRepetition.deck': '提示：向此卡组添加更多卡片或等待计划的复习以进行间隔重复模式。', // New
   'review.sessionComplete.title': '会话完成!',
+  'review.sessionComplete.title.deck': '卡组复习完成!', // New
   'review.sessionComplete.description': '您已复习完本次会话中的所有卡片。接下来做什么？',
+  'review.sessionComplete.description.deck': '您已复习完此卡组中的所有卡片。接下来做什么？', // New
   'review.sessionComplete.button.backToDashboard': '返回抽认卡中心',
+  'review.sessionComplete.button.backToDecks': '返回卡组列表', // New
   'review.sessionComplete.button.reviewAllAgain': '再次复习所有卡片 ({count})',
+  'review.sessionComplete.button.reviewDeckAgain': '再次复习此卡组 ({count})', // New
   'review.loadingCard': '加载卡片中...',
   'review.cardProgress': '卡片 {currentIndex} / {totalCards}',
   'review.button.flip.showQuestion': '显示问题',
@@ -289,3 +301,5 @@ export default {
   'error': '错误',
 
 } as const;
+
+    

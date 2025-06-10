@@ -28,7 +28,7 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
-import { PlusCircle, Edit3, Trash2, Loader2, Info, ShieldAlert, Library, ClipboardCheck, PlayCircle } from 'lucide-react';
+import { PlusCircle, Edit3, Trash2, Loader2, Info, ShieldAlert, Library, PlayCircle } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { useI18n, useCurrentLocale } from '@/lib/i18n/client';
 import type { Deck } from '@/types';
@@ -93,7 +93,7 @@ export default function DecksClient() {
       toast({ title: t('error'), description: t('auth.pleaseSignIn'), variant: "destructive" });
       return;
     }
-    setIsSubmittingDeck(true); 
+    setIsSubmittingDeck(true);
     try {
       await deleteDeck(deckId);
       toast({ title: t('success'), description: t('toast.deck.deleted') });
@@ -160,37 +160,39 @@ export default function DecksClient() {
             <CardContent className="flex-grow">
               {/* Future: Could show some stats or recent cards here */}
             </CardContent>
-            <CardFooter className="flex flex-col sm:flex-row sm:flex-wrap justify-end items-stretch sm:items-center gap-2 pt-4 border-t">
-              <Link href={`/${currentLocale}/review?deckId=${deck.id}`} passHref className="w-full sm:w-auto">
+            <CardFooter className="flex flex-col items-end gap-2 pt-4 border-t">
+              <Link href={`/${currentLocale}/review?deckId=${deck.id}`} passHref className="w-auto">
                 <Button variant="default" size="sm" className="w-full">
                   <PlayCircle className="mr-2 h-4 w-4" /> {t('deck.item.review')}
                 </Button>
               </Link>
-              <Button variant="outline" size="sm" onClick={() => openEditDeckDialog(deck)} className="w-full sm:w-auto">
-                <Edit3 className="mr-2 h-4 w-4" /> {t('deck.item.edit')}
-              </Button>
-              <AlertDialog>
-                <AlertDialogTrigger asChild>
-                  <Button variant="destructive" size="sm" className="w-full sm:w-auto" disabled={isSubmittingDeck}>
-                    <Trash2 className="mr-2 h-4 w-4" /> {t('deck.item.delete')}
-                  </Button>
-                </AlertDialogTrigger>
-                <AlertDialogContent>
-                  <AlertDialogHeader>
-                    <AlertDialogTitle>{t('deck.item.delete.confirm.title')}</AlertDialogTitle>
-                    <AlertDialogDescription>
-                      {t('deck.item.delete.confirm.description')}
-                    </AlertDialogDescription>
-                  </AlertDialogHeader>
-                  <AlertDialogFooter>
-                    <AlertDialogCancel>{t('deck.item.delete.confirm.cancel')}</AlertDialogCancel>
-                    <AlertDialogAction onClick={() => handleDeleteDeck(deck.id)} disabled={isSubmittingDeck}>
-                      {isSubmittingDeck ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
-                      {t('deck.item.delete.confirm.delete')}
-                    </AlertDialogAction>
-                  </AlertDialogFooter>
-                </AlertDialogContent>
-              </AlertDialog>
+              <div className="flex gap-2">
+                <Button variant="outline" size="sm" onClick={() => openEditDeckDialog(deck)} className="w-auto">
+                  <Edit3 className="mr-2 h-4 w-4" /> {t('deck.item.edit')}
+                </Button>
+                <AlertDialog>
+                  <AlertDialogTrigger asChild>
+                    <Button variant="destructive" size="sm" className="w-auto" disabled={isSubmittingDeck}>
+                      <Trash2 className="mr-2 h-4 w-4" /> {t('deck.item.delete')}
+                    </Button>
+                  </AlertDialogTrigger>
+                  <AlertDialogContent>
+                    <AlertDialogHeader>
+                      <AlertDialogTitle>{t('deck.item.delete.confirm.title')}</AlertDialogTitle>
+                      <AlertDialogDescription>
+                        {t('deck.item.delete.confirm.description')}
+                      </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                      <AlertDialogCancel>{t('deck.item.delete.confirm.cancel')}</AlertDialogCancel>
+                      <AlertDialogAction onClick={() => handleDeleteDeck(deck.id)} disabled={isSubmittingDeck}>
+                        {isSubmittingDeck ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
+                        {t('deck.item.delete.confirm.delete')}
+                      </AlertDialogAction>
+                    </AlertDialogFooter>
+                  </AlertDialogContent>
+                </AlertDialog>
+              </div>
             </CardFooter>
           </Card>
         ))}

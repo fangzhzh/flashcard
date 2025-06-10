@@ -1,48 +1,4 @@
 {
   "vocabulary":[
-     {
-        "question":"Tan Tan(talk about)",
-        "answer":"谈谈"
-     },
-     {
-        "question":"Jue 定(decide)",
-        "answer":"决定"
-     },
-     {
-        "question":"Xu 要(have to)",
-        "answer":"需要"
-     },
-     {
-        "question":"想去na,就去na",
-        "answer":"哪"
-     },
-     {
-        "question":"dan心(worry about)",
-        "answer":"担心"
-     },
-     {
-        "question":"shu服(comfortable)",
-        "answer":"舒服"
-     },
-     {
-        "question":"fang间",
-        "answer":"房间"
-     },
-     {
-        "question":"chuang(Bed)",
-        "answer":"床"
-     },
-     {
-        "question":"jiandan(simple)",
-        "answer":"简单"
-     },
-     {
-        "question":"huan xi yi fu (change clothes)",
-        "answer":"换洗衣服"
-     },
-     {
-        "question":"玩ju(toy)",
-        "answer":"玩具"
-     }
   ]
 }

@@ -15,8 +15,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import Link from 'next/link';
 
 const flashcardSchema = z.object({
-  front: z.string().min(1, 'Front content is required').max(500, 'Front content is too long'),
-  back: z.string().min(1, 'Back content is required').max(1000, 'Back content is too long'),
+  front: z.string().min(1, 'Front content is required').max(100000, { message: 'Front content is too long' }),
+  back: z.string().min(1, 'Back content is required').max(200000, { message: 'Back content is too long' }),
   deckId: z.string().nullable().optional(),
 });
 
@@ -77,7 +77,7 @@ export default function FlashcardForm({
                   <FormControl>
                     <Textarea placeholder={t('flashcard.form.placeholder.front')} {...field} className="min-h-[100px] text-base" />
                   </FormControl>
-                  <FormMessage />
+                  <FormMessage>{form.formState.errors.front && t(form.formState.errors.front.message as any, { maxLength: 100000 })}</FormMessage>
                 </FormItem>
               )}
             />
@@ -90,7 +90,7 @@ export default function FlashcardForm({
                   <FormControl>
                     <Textarea placeholder={t('flashcard.form.placeholder.back')} {...field} className="min-h-[150px] text-base" />
                   </FormControl>
-                  <FormMessage />
+                  <FormMessage>{form.formState.errors.back && t(form.formState.errors.back.message as any, { maxLength: 200000 })}</FormMessage>
                 </FormItem>
               )}
             />

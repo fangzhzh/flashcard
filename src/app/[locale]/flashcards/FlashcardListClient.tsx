@@ -15,7 +15,7 @@ import type { Deck } from '@/types';
 
 export default function FlashcardListClient() {
   const { user, loading: authLoading } = useAuth();
-  const { flashcards, deleteFlashcard, isLoading: contextLoading, isSeeding, getDeckById } = useFlashcards();
+  const { flashcards, decks, deleteFlashcard, isLoading: contextLoading, isSeeding, getDeckById } = useFlashcards(); // Added decks
   const { toast } = useToast();
   const t = useI18n();
   const currentLocale = useCurrentLocale();
@@ -25,13 +25,13 @@ export default function FlashcardListClient() {
   const [currentDeck, setCurrentDeck] = useState<Deck | null>(null);
 
   useEffect(() => {
-    if (deckIdFromParams && !contextLoading) { // Also check contextLoading to ensure getDeckById has deck data
+    if (deckIdFromParams && !contextLoading && decks) { // Also check contextLoading and decks to ensure getDeckById has deck data
       const deck = getDeckById(deckIdFromParams);
       setCurrentDeck(deck || null); // Set to null if deck not found
     } else {
       setCurrentDeck(null);
     }
-  }, [deckIdFromParams, getDeckById, contextLoading]);
+  }, [deckIdFromParams, getDeckById, contextLoading, decks]);
 
   const handleDelete = async (id: string) => {
     if (!user) {
@@ -55,7 +55,7 @@ export default function FlashcardListClient() {
     // If specific sort for filtered is needed: .sort((a, b) => (b.createdAt || '').localeCompare(a.createdAt || ''))
   }, [flashcards, deckIdFromParams]);
 
-  if (authLoading || (contextLoading && user) || (isSeeding && user) || (deckIdFromParams && !currentDeck && !contextLoading && decks.length > 0)) {
+  if (authLoading || (contextLoading && user) || (isSeeding && user) || (deckIdFromParams && !currentDeck && !contextLoading && decks && decks.length > 0)) {
     // Added a check for decks.length > 0 to avoid infinite loading if deckId is invalid and decks are loaded
     return (
       <div className="flex justify-center items-center mt-8">
@@ -112,7 +112,7 @@ export default function FlashcardListClient() {
           <AlertTitle className="font-semibold text-primary">{emptyStateTitle}</AlertTitle>
           <AlertDescription>
             {emptyStateDescription}
-            {deckIdFromParams && !currentDeck && !contextLoading && (
+            {deckIdFromParams && !currentDeck && !contextLoading && decks && decks.length > 0 && (
                 <div className="mt-2">
                     <Link href={`/${currentLocale}/decks`} passHref>
                         <Button variant="outline" size="sm">
@@ -133,5 +133,3 @@ export default function FlashcardListClient() {
     </>
   );
 }
-
-    

@@ -1,7 +1,7 @@
 
 "use client";
 import { useEffect, useState } from 'react';
-import { useRouter, useParams } from 'next/navigation'; 
+import { useRouter, useParams, useSearchParams } from 'next/navigation'; 
 import { useFlashcards } from '@/contexts/FlashcardsContext';
 import FlashcardForm from '@/components/FlashcardForm';
 import BatchFlashcardForm from '@/components/BatchFlashcardForm';
@@ -22,6 +22,7 @@ interface FlashcardFormPageProps {
 export default function FlashcardFormPage({ mode }: FlashcardFormPageProps) {
   const router = useRouter();
   const params = useParams(); 
+  const searchParams = useSearchParams();
   const { user, loading: authLoading } = useAuth();
   const { 
     addFlashcard, 
@@ -50,11 +51,15 @@ export default function FlashcardFormPage({ mode }: FlashcardFormPageProps) {
         router.push(`/${params.locale}/flashcards`);
       }
     } else if (mode === 'create' && !cardId) {
-      // For create mode, ensure initialData is reset if form mode changes or decks load
-      // This helps if user switches to batch then back to single, or if decks load after form is shown
-      setInitialData({}); 
+      const deckIdFromQuery = searchParams.get('deckId');
+      if (deckIdFromQuery) {
+        setInitialData({ deckId: deckIdFromQuery }); 
+      } else {
+        setInitialData({}); // Reset to empty or default deck if needed
+      }
     }
-  }, [mode, cardId, getFlashcardById, router, toast, contextLoading, user, params.locale, t]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [mode, cardId, getFlashcardById, router, toast, contextLoading, user, params.locale, searchParams]);
 
 
   const handleSingleSubmit = async (data: { front: string; back: string; deckId?: string | null }) => {
@@ -71,7 +76,13 @@ export default function FlashcardFormPage({ mode }: FlashcardFormPageProps) {
         await updateFlashcard(cardId, data);
         toast({ title: t('success'), description: t('toast.flashcard.updated') });
       }
-      router.push(`/${params.locale}/flashcards`);
+      // Navigate back to the flashcards list, potentially filtered if deckId was in the creation context
+      const deckIdForRedirect = data.deckId || searchParams.get('deckId');
+      if (deckIdForRedirect) {
+        router.push(`/${params.locale}/flashcards?deckId=${deckIdForRedirect}`);
+      } else {
+        router.push(`/${params.locale}/flashcards`);
+      }
     } catch (error) {
       toast({ title: t('error'), description: t('toast.flashcard.error.save'), variant: "destructive" });
       console.error("Failed to save flashcard:", error);
@@ -89,14 +100,17 @@ export default function FlashcardFormPage({ mode }: FlashcardFormPageProps) {
     const lines = rawBatchInput.split('\n').filter(line => line.trim() !== '');
     const cardsToAdd: { front: string; back: string; deckId?: string | null }[] = [];
     const parseErrors: string[] = [];
+    
+    // If creating batch cards within a deck context, use that deckId
+    const deckIdFromQuery = searchParams.get('deckId');
 
     lines.forEach((line, index) => {
       const parts = line.split(/:(.*)/s); 
-      if (parts.length === 2 || parts.length === 3 ) { // Allow optional third part for deck (ignored for now in batch)
+      if (parts.length === 2 || parts.length === 3 ) { 
         const front = parts[0].trim();
         const back = parts[1].trim();
         if (front !== '' && back !== '') {
-          cardsToAdd.push({ front, back, deckId: null }); // Batch cards are unassigned for now
+          cardsToAdd.push({ front, back, deckId: deckIdFromQuery || null }); 
         } else {
           parseErrors.push(`Line ${index + 1}: Question or answer is empty - "${line.substring(0, 50)}${line.length > 50 ? '...' : ''}"`);
         }
@@ -147,7 +161,11 @@ export default function FlashcardFormPage({ mode }: FlashcardFormPageProps) {
         toast({ title: t('success'), description: t('toast.batch.success', { count: createdCount} ) });
       }
       if (createdCount > 0 || parseErrors.length === 0) {
-         router.push(`/${params.locale}/flashcards`);
+         if (deckIdFromQuery) {
+            router.push(`/${params.locale}/flashcards?deckId=${deckIdFromQuery}`);
+         } else {
+            router.push(`/${params.locale}/flashcards`);
+         }
       }
     } catch (error) {
       toast({ title: t('error'), description: t('toast.batch.error.save'), variant: "destructive" });
@@ -241,3 +259,5 @@ export default function FlashcardFormPage({ mode }: FlashcardFormPageProps) {
     </PageContainer>
   );
 }
+
+    

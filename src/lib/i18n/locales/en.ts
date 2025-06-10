@@ -102,12 +102,9 @@ export default {
   'decks.list.empty.title': 'No Decks Yet!',
   'decks.list.empty.description': 'You haven\'t created any decks. Click the "Create New Deck" button to get started.',
   'deck.item.cardsCount': '{count} cards',
-  'deck.item.edit': 'Edit Name', // Kept for form title, etc.
-  'deck.item.editNameHint': 'Edit deck name', // New
-  'deck.item.delete': 'Delete Deck', // Kept for dialog title, etc.
-  'deck.item.review': 'Review Deck', // Kept for page title if needed
-  'deck.item.review.short': 'Review', // New
-  'deck.item.delete.short': 'Delete', // New
+  'deck.item.editNameHint': 'Edit deck name',
+  'deck.item.review.short': 'Review', 
+  'deck.item.delete.short': 'Delete', 
   'deck.item.delete.confirm.title': 'Are you sure you want to delete this deck?',
   'deck.item.delete.confirm.description': 'This action cannot be undone. This will permanently delete the deck and all flashcards within it.',
   'deck.item.delete.confirm.cancel': 'Cancel',
@@ -128,12 +125,20 @@ export default {
   'toast.deck.error.nameRequired': 'Deck name cannot be empty.',
 
 
-  // Flashcards Page (src/app/[locale]/flashcards/page.tsx) 
-  'flashcards.title': 'Your Flashcards',
+  // Flashcards Page (src/app/[locale]/flashcards/page.tsx & FlashcardListClient.tsx) 
+  'flashcards.title': 'Your Flashcards', // Fallback title, client uses more specific ones
+  'flashcards.list.title.all': 'Your Flashcards',
+  'flashcards.list.title.deck': 'Cards in "{deckName}"',
   'flashcards.button.create': 'Create New Card',
   'flashcards.list.loading': 'Loading your flashcards...',
   'flashcards.list.empty.title': 'No Flashcards Yet!',
   'flashcards.list.empty.description': 'You haven\'t created any flashcards. Click the "Create New Card" button to get started.',
+  'flashcards.list.empty.deck.title': 'No Cards in "{deckName}" Yet!',
+  'flashcards.list.empty.deck.description': 'This deck is empty. Click the "Create New Card" button to add some flashcards to this deck.',
+  'flashcards.list.empty.deck.notFound.title': 'Deck Not Found',
+  'flashcards.list.empty.deck.notFound.description': 'The selected deck could not be found or does not exist.',
+  'flashcards.list.backToDecks': 'Back to Decks List',
+
 
   // Flashcard Item (src/components/FlashcardItem.tsx)
   'flashcard.item.deckLabel': 'Deck',
@@ -305,3 +310,5 @@ export default {
   'error': 'Error',
 
 } as const;
+
+    

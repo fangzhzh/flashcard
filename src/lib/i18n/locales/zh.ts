@@ -102,12 +102,9 @@ export default {
   'decks.list.empty.title': '还没有卡组!',
   'decks.list.empty.description': '您还没有创建任何卡组。点击“创建新卡组”按钮开始吧。',
   'deck.item.cardsCount': '{count} 张卡片',
-  'deck.item.edit': '编辑名称', // Kept for form title, etc.
-  'deck.item.editNameHint': '编辑卡组名称', // New
-  'deck.item.delete': '删除卡组', // Kept for dialog title, etc.
-  'deck.item.review': '复习卡组', // Kept for page title if needed
-  'deck.item.review.short': '复习', // New
-  'deck.item.delete.short': '删除', // New
+  'deck.item.editNameHint': '编辑卡组名称',
+  'deck.item.review.short': '复习', 
+  'deck.item.delete.short': '删除', 
   'deck.item.delete.confirm.title': '您确定要删除这个卡组吗？',
   'deck.item.delete.confirm.description': '此操作无法撤销。这将永久删除该卡组及其中的所有抽认卡。',
   'deck.item.delete.confirm.cancel': '取消',
@@ -127,12 +124,20 @@ export default {
   'toast.deck.error.delete': '删除卡组失败。',
   'toast.deck.error.nameRequired': '卡组名称不能为空。',
 
-  // Flashcards Page (src/app/[locale]/flashcards/page.tsx)
-  'flashcards.title': '你的抽认卡',
+  // Flashcards Page (src/app/[locale]/flashcards/page.tsx & FlashcardListClient.tsx)
+  'flashcards.title': '你的抽认卡', // Fallback title
+  'flashcards.list.title.all': '你的抽认卡',
+  'flashcards.list.title.deck': '卡组 "{deckName}" 中的卡片',
   'flashcards.button.create': '创建新卡片',
   'flashcards.list.loading': '正在加载您的抽认卡...',
   'flashcards.list.empty.title': '还没有抽认卡!',
   'flashcards.list.empty.description': '您还没有创建任何抽认卡。点击“创建新卡片”按钮开始吧。',
+  'flashcards.list.empty.deck.title': '卡组 "{deckName}" 中还没有卡片!',
+  'flashcards.list.empty.deck.description': '这个卡组是空的。点击“创建新卡片”按钮向这个卡组添加一些抽认卡吧。',
+  'flashcards.list.empty.deck.notFound.title': '未找到卡组',
+  'flashcards.list.empty.deck.notFound.description': '无法找到所选卡组或该卡组不存在。',
+  'flashcards.list.backToDecks': '返回卡组列表',
+
 
   // Flashcard Item (src/components/FlashcardItem.tsx)
   'flashcard.item.deckLabel': '卡组',
@@ -304,3 +309,5 @@ export default {
   'error': '错误',
 
 } as const;
+
+    

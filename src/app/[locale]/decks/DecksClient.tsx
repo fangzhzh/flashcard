@@ -1,6 +1,6 @@
 
 "use client";
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { useFlashcards } from '@/contexts/FlashcardsContext';
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
@@ -10,10 +10,9 @@ import { Label } from '@/components/ui/label';
 import {
   Dialog,
   DialogContent,
-  DialogDescription,
-  DialogFooter,
   DialogHeader,
   DialogTitle,
+  DialogFooter,
   DialogTrigger,
   DialogClose,
 } from "@/components/ui/dialog";
@@ -38,7 +37,7 @@ import { cn } from '@/lib/utils';
 
 export default function DecksClient() {
   const { user, loading: authLoading } = useAuth();
-  const { decks, flashcards, addDeck, updateDeck, deleteDeck, isLoadingDecks, isSeeding, getDeckById } = useFlashcards();
+  const { decks, flashcards, addDeck, updateDeck, deleteDeck, isLoadingDecks, isSeeding } = useFlashcards();
   const { toast } = useToast();
   const t = useI18n();
   const currentLocale = useCurrentLocale();
@@ -131,7 +130,8 @@ export default function DecksClient() {
 
   return (
     <>
-      <div className="flex justify-end mb-6">
+      <div className="flex justify-between items-center mb-8 gap-4">
+        <h1 className="text-3xl font-bold tracking-tight">{t('decks.title')}</h1>
         <Button onClick={openNewDeckDialog} className="text-base py-3">
           <PlusCircle className="mr-2 h-5 w-5" /> {t('decks.button.create')}
         </Button>
@@ -152,7 +152,7 @@ export default function DecksClient() {
           <Card key={deck.id} className="flex flex-col h-full shadow-lg hover:shadow-xl transition-shadow duration-300">
             <CardHeader>
               <div className="flex justify-between items-start">
-                <CardTitle className="truncate text-xl flex items-center flex-grow mr-2">
+                <CardTitle className="text-xl flex items-center flex-grow mr-2">
                   <Library className="mr-2 h-5 w-5 text-primary/80 flex-shrink-0"/>
                   <span className="truncate" title={deck.name}>{deck.name}</span>
                 </CardTitle>
@@ -166,39 +166,45 @@ export default function DecksClient() {
                   <Edit3 className="h-4 w-4" />
                 </Button>
               </div>
-              <CardDescription>{t('deck.item.cardsCount', { count: getCardCountForDeck(deck.id) })}</CardDescription>
+              <Link href={`/${currentLocale}/flashcards?deckId=${deck.id}`} passHref>
+                <CardDescription className="hover:underline cursor-pointer text-primary/90">
+                  {t('deck.item.cardsCount', { count: getCardCountForDeck(deck.id) })}
+                </CardDescription>
+              </Link>
             </CardHeader>
             <CardContent className="flex-grow">
               {/* Future: Could show some stats or recent cards here */}
             </CardContent>
-            <CardFooter className="flex justify-end items-center gap-2 pt-4 border-t">
-              <Link href={`/${currentLocale}/review?deckId=${deck.id}`} passHref className="w-auto">
-                <Button variant="default" size="sm" className="w-auto">
-                  <PlayCircle className="mr-2 h-4 w-4" /> {t('deck.item.review.short')}
-                </Button>
-              </Link>
-              <AlertDialog>
-                <AlertDialogTrigger asChild>
-                  <Button variant="destructive" size="sm" className="w-auto" disabled={isSubmittingDeck}>
-                    <Trash2 className="mr-2 h-4 w-4" /> {t('deck.item.delete.short')}
+            <CardFooter className="flex flex-col items-end gap-2 pt-4 border-t">
+                <Link href={`/${currentLocale}/review?deckId=${deck.id}`} passHref className="w-full">
+                  <Button variant="default" size="sm" className="w-full">
+                    <PlayCircle className="mr-2 h-4 w-4" /> {t('deck.item.review.short')}
                   </Button>
-                </AlertDialogTrigger>
-                <AlertDialogContent>
-                  <AlertDialogHeader>
-                    <AlertDialogTitle>{t('deck.item.delete.confirm.title')}</AlertDialogTitle>
-                    <AlertDialogDescription>
-                      {t('deck.item.delete.confirm.description')}
-                    </AlertDialogDescription>
-                  </AlertDialogHeader>
-                  <AlertDialogFooter>
-                    <AlertDialogCancel>{t('deck.item.delete.confirm.cancel')}</AlertDialogCancel>
-                    <AlertDialogAction onClick={() => handleDeleteDeck(deck.id)} disabled={isSubmittingDeck}>
-                      {isSubmittingDeck ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
-                      {t('deck.item.delete.confirm.delete')}
-                    </AlertDialogAction>
-                  </AlertDialogFooter>
-                </AlertDialogContent>
-              </AlertDialog>
+                </Link>
+              <div className="flex gap-2 w-full">
+                <AlertDialog>
+                  <AlertDialogTrigger asChild>
+                    <Button variant="destructive" size="sm" className="flex-1" disabled={isSubmittingDeck}>
+                      <Trash2 className="mr-2 h-4 w-4" /> {t('deck.item.delete.short')}
+                    </Button>
+                  </AlertDialogTrigger>
+                  <AlertDialogContent>
+                    <AlertDialogHeader>
+                      <AlertDialogTitle>{t('deck.item.delete.confirm.title')}</AlertDialogTitle>
+                      <AlertDialogDescription>
+                        {t('deck.item.delete.confirm.description')}
+                      </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                      <AlertDialogCancel>{t('deck.item.delete.confirm.cancel')}</AlertDialogCancel>
+                      <AlertDialogAction onClick={() => handleDeleteDeck(deck.id)} disabled={isSubmittingDeck}>
+                        {isSubmittingDeck ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
+                        {t('deck.item.delete.confirm.delete')}
+                      </AlertDialogAction>
+                    </AlertDialogFooter>
+                  </AlertDialogContent>
+                </AlertDialog>
+              </div>
             </CardFooter>
           </Card>
         ))}
@@ -242,3 +248,5 @@ export default function DecksClient() {
     </>
   );
 }
+
+    

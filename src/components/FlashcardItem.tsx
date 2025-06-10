@@ -135,7 +135,7 @@ export default function FlashcardItem({ flashcard, onDelete }: FlashcardItemProp
           {showBack ? <EyeOff className="mr-2 h-4 w-4" /> : <Eye className="mr-2 h-4 w-4" />}
           {showBack ? t('flashcard.item.hideAnswer') : t('flashcard.item.showAnswer')}
         </Button>
-        <div className="flex gap-2 w-full sm:w-auto">
+        <div className="flex flex-wrap justify-end gap-2 w-full sm:w-auto"> {/* Added flex-wrap and justify-end here */}
           <Link href={`/flashcards/${flashcard.id}/edit`} passHref legacyBehavior>
             <Button variant="outline" size="sm" className="flex-1 sm:flex-none">
               <FilePenLine className="mr-2 h-4 w-4" /> {t('flashcard.item.edit')}

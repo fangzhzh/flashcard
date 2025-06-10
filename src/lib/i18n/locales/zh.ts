@@ -102,9 +102,12 @@ export default {
   'decks.list.empty.title': '还没有卡组!',
   'decks.list.empty.description': '您还没有创建任何卡组。点击“创建新卡组”按钮开始吧。',
   'deck.item.cardsCount': '{count} 张卡片',
-  'deck.item.edit': '编辑名称',
-  'deck.item.delete': '删除卡组',
-  'deck.item.review': '复习卡组', // New
+  'deck.item.edit': '编辑名称', // Kept for form title, etc.
+  'deck.item.editNameHint': '编辑卡组名称', // New
+  'deck.item.delete': '删除卡组', // Kept for dialog title, etc.
+  'deck.item.review': '复习卡组', // Kept for page title if needed
+  'deck.item.review.short': '复习', // New
+  'deck.item.delete.short': '删除', // New
   'deck.item.delete.confirm.title': '您确定要删除这个卡组吗？',
   'deck.item.delete.confirm.description': '此操作无法撤销。这将永久删除该卡组及其中的所有抽认卡。',
   'deck.item.delete.confirm.cancel': '取消',
@@ -190,31 +193,32 @@ export default {
   'toast.batch.error.save': '保存批量抽认卡失败。',
 
   // Review Page (src/app/[locale]/review/ReviewModeClient.tsx)
-  'review.pageTitle.default': '复习会话', // New
-  'review.pageTitle.deck': '复习卡组: {deckName}', // New
+  'review.pageTitle.default': '复习会话', 
+  'review.pageTitle.deck': '复习卡组: {deckName}', 
   'review.loading': '加载复习会话中...',
   'review.noCards.title': '还没有抽认卡!',
   'review.noCards.description': '创建一些抽认卡来开始您的学习之旅吧。',
-  'review.noCardsInDeck.title': '此卡组中没有卡片', // New
-  'review.noCardsInDeck.description': '此卡组为空。向其中添加一些抽认卡以开始复习。', // New
+  'review.noCards.button.create': '创建抽认卡',
+  'review.noCardsInDeck.title': '此卡组中没有卡片', 
+  'review.noCardsInDeck.description': '此卡组为空。向其中添加一些抽认卡以开始复习。', 
   'review.ready.title': '准备好复习了吗?',
-  'review.ready.title.deck': '准备好复习卡组 "{deckName}" 了吗?', // New
+  'review.ready.title.deck': '准备好复习卡组 "{deckName}" 了吗?', 
   'review.ready.due.text': '您有 {count} 张卡片需要进行间隔重复复习。',
-  'review.ready.due.text.deck': '此卡组中有 {count} 张卡片需要进行间隔重复复习。', // New
+  'review.ready.due.text.deck': '此卡组中有 {count} 张卡片需要进行间隔重复复习。', 
   'review.ready.due.none': '目前没有卡片需要进行间隔重复复习。',
-  'review.ready.due.none.deck': '此卡组中目前没有卡片需要进行间隔重复复习。', // New
+  'review.ready.due.none.deck': '此卡组中目前没有卡片需要进行间隔重复复习。', 
   'review.button.startSpaced': '开始间隔重复 ({count})',
   'review.button.reviewAll': '复习所有卡片 ({count})',
   'review.tip.noSpacedRepetition': '提示：创建更多卡片或等待计划的复习以进行间隔重复模式。',
-  'review.tip.noSpacedRepetition.deck': '提示：向此卡组添加更多卡片或等待计划的复习以进行间隔重复模式。', // New
+  'review.tip.noSpacedRepetition.deck': '提示：向此卡组添加更多卡片或等待计划的复习以进行间隔重复模式。', 
   'review.sessionComplete.title': '会话完成!',
-  'review.sessionComplete.title.deck': '卡组复习完成!', // New
+  'review.sessionComplete.title.deck': '卡组复习完成!', 
   'review.sessionComplete.description': '您已复习完本次会话中的所有卡片。接下来做什么？',
-  'review.sessionComplete.description.deck': '您已复习完此卡组中的所有卡片。接下来做什么？', // New
+  'review.sessionComplete.description.deck': '您已复习完此卡组中的所有卡片。接下来做什么？', 
   'review.sessionComplete.button.backToDashboard': '返回抽认卡中心',
-  'review.sessionComplete.button.backToDecks': '返回卡组列表', // New
+  'review.sessionComplete.button.backToDecks': '返回卡组列表', 
   'review.sessionComplete.button.reviewAllAgain': '再次复习所有卡片 ({count})',
-  'review.sessionComplete.button.reviewDeckAgain': '再次复习此卡组 ({count})', // New
+  'review.sessionComplete.button.reviewDeckAgain': '再次复习此卡组 ({count})', 
   'review.loadingCard': '加载卡片中...',
   'review.cardProgress': '卡片 {currentIndex} / {totalCards}',
   'review.button.flip.showQuestion': '显示问题',
@@ -260,32 +264,31 @@ export default {
   'pomodoro.break.dialog.button.startRest': '开始 {duration} 分钟休息',
 
   'pomodoro.break.option.stretch': '伸懒腰',
-  'pomodoro.break.option.deepBreath': '深呼吸',
-  'pomodoro.break.option.mindfulDrink': '正念饮水',
-  'pomodoro.break.option.chat': '闲聊片刻',
-  'pomodoro.break.option.drawObject': '脑中绘制预定物',
-  'pomodoro.break.option.lookOutside': '看窗外',
-  'pomodoro.break.option.walk': '散步',
-  'pomodoro.break.option.meditate': '冥想',
-  'pomodoro.break.option.listenMusic': '听音乐',
-  'pomodoro.break.option.microExercise': '微型运动',
-  'pomodoro.break.option.lightAdjust': '光照调节',
-  'pomodoro.break.option.workflowWrapUp': '工作流收尾语',
-  'pomodoro.break.option.ritualRest': '进入式休息',
-
   'pomodoro.break.benefit.stretch': '促进血液循环，增加氧气供应，活动筋骨，防止脊柱弯曲。',
+  'pomodoro.break.option.deepBreath': '深呼吸',
   'pomodoro.break.benefit.deepBreath': '排出肺内残气，吸入更多氧气，激活心肺功能，降低压力。',
+  'pomodoro.break.option.mindfulDrink': '正念饮水',
   'pomodoro.break.benefit.mindfulDrink': '结合正念技术和补水，同时获得水分补充和注意力重置的双重好处。',
+  'pomodoro.break.option.chat': '闲聊片刻',
   'pomodoro.break.benefit.chat': '社交互动可减轻压力，但可能导致注意力分散。',
+  'pomodoro.break.option.drawObject': '脑中绘制预定物',
   'pomodoro.break.benefit.drawObject': '激活默认模式网络(DMN)，促进创造性思维。',
+  'pomodoro.break.option.lookOutside': '看窗外',
   'pomodoro.break.benefit.lookOutside': '远距离视觉休息，减轻眼部疲劳，激活默认模式网络。',
+  'pomodoro.break.option.walk': '散步',
   'pomodoro.break.benefit.walk': '促进血液循环，增强心肺功能，放松心情，提升生活质量。',
+  'pomodoro.break.option.meditate': '冥想',
   'pomodoro.break.benefit.meditate': '提高注意力，改善认知功能，降低压力，增强免疫系统。',
+  'pomodoro.break.option.listenMusic': '听音乐',
   'pomodoro.break.benefit.listenMusic': '促进放松，改善情绪，提高专注力。',
+  'pomodoro.break.option.microExercise': '微型运动',
   'pomodoro.break.benefit.microExercise': '短时间的肢体活动可促进血液循环，增加大脑供氧，补充神经递质。',
+  'pomodoro.break.option.lightAdjust': '光照调节',
   'pomodoro.break.benefit.lightAdjust': '适当接触自然光可调节褪黑素和血清素水平，改善情绪和认知功能。',
-  'pomodoro.break.benefit.workflowWrapUp': '在休息前写下当前进度和下一步计划，让大脑“缓存落地”，使休息更有效。',
-  'pomodoro.break.benefit.ritualRest': '通过白噪音或深呼吸冥想2分钟，用“仪式感”切断大脑回路。',
+  'pomodoro.break.option.workflowWrapUp': '工作流收尾语',
+  'pomodoro.break.benefit.workflowWrapUp': '在休息前写下当前进度和下一步计划，让大脑"缓存落地"，使休息更有效。',
+  'pomodoro.break.option.ritualRest': '进入式休息',
+  'pomodoro.break.benefit.ritualRest': '通过白噪音或深呼吸冥想2分钟，用"仪式感"切断大脑回路。',
 
 
   // Notifications (General)
@@ -301,5 +304,3 @@ export default {
   'error': '错误',
 
 } as const;
-
-    

@@ -102,9 +102,12 @@ export default {
   'decks.list.empty.title': 'No Decks Yet!',
   'decks.list.empty.description': 'You haven\'t created any decks. Click the "Create New Deck" button to get started.',
   'deck.item.cardsCount': '{count} cards',
-  'deck.item.edit': 'Edit Name',
-  'deck.item.delete': 'Delete Deck',
-  'deck.item.review': 'Review Deck', // New
+  'deck.item.edit': 'Edit Name', // Kept for form title, etc.
+  'deck.item.editNameHint': 'Edit deck name', // New
+  'deck.item.delete': 'Delete Deck', // Kept for dialog title, etc.
+  'deck.item.review': 'Review Deck', // Kept for page title if needed
+  'deck.item.review.short': 'Review', // New
+  'deck.item.delete.short': 'Delete', // New
   'deck.item.delete.confirm.title': 'Are you sure you want to delete this deck?',
   'deck.item.delete.confirm.description': 'This action cannot be undone. This will permanently delete the deck and all flashcards within it.',
   'deck.item.delete.confirm.cancel': 'Cancel',
@@ -191,32 +194,32 @@ export default {
   'toast.batch.error.save': 'Failed to save batch flashcards.',
 
   // Review Page (src/app/[locale]/review/ReviewModeClient.tsx)
-  'review.pageTitle.default': 'Review Session', // New
-  'review.pageTitle.deck': 'Reviewing: {deckName}', // New
+  'review.pageTitle.default': 'Review Session', 
+  'review.pageTitle.deck': 'Reviewing: {deckName}', 
   'review.loading': 'Loading review session...',
   'review.noCards.title': 'No Flashcards Yet!',
   'review.noCards.description': 'Create some flashcards to start your learning journey.',
   'review.noCards.button.create': 'Create Flashcards',
-  'review.noCardsInDeck.title': 'No Cards in this Deck', // New
-  'review.noCardsInDeck.description': 'This deck is empty. Add some flashcards to it to start reviewing.', // New
+  'review.noCardsInDeck.title': 'No Cards in this Deck', 
+  'review.noCardsInDeck.description': 'This deck is empty. Add some flashcards to it to start reviewing.', 
   'review.ready.title': 'Ready to Review?',
-  'review.ready.title.deck': 'Ready to Review "{deckName}"?', // New
+  'review.ready.title.deck': 'Ready to Review "{deckName}"?', 
   'review.ready.due.text': 'You have {count} card(s) due for spaced repetition.',
-  'review.ready.due.text.deck': 'You have {count} card(s) due for spaced repetition in this deck.', // New
+  'review.ready.due.text.deck': 'You have {count} card(s) due for spaced repetition in this deck.', 
   'review.ready.due.none': 'No cards are currently due for spaced repetition.',
-  'review.ready.due.none.deck': 'No cards are currently due for spaced repetition in this deck.', // New
+  'review.ready.due.none.deck': 'No cards are currently due for spaced repetition in this deck.', 
   'review.button.startSpaced': 'Start Spaced Repetition ({count})',
   'review.button.reviewAll': 'Review All Cards ({count})',
   'review.tip.noSpacedRepetition': 'Tip: Create more cards or wait for scheduled reviews for the spaced repetition mode.',
-  'review.tip.noSpacedRepetition.deck': 'Tip: Add more cards to this deck or wait for scheduled reviews for the spaced repetition mode.', // New
+  'review.tip.noSpacedRepetition.deck': 'Tip: Add more cards to this deck or wait for scheduled reviews for the spaced repetition mode.', 
   'review.sessionComplete.title': 'Session Complete!',
-  'review.sessionComplete.title.deck': 'Deck Review Complete!', // New
+  'review.sessionComplete.title.deck': 'Deck Review Complete!', 
   'review.sessionComplete.description': "You've reviewed all cards in this session. What's next?",
-  'review.sessionComplete.description.deck': "You've reviewed all cards in this deck. What's next?", // New
+  'review.sessionComplete.description.deck': "You've reviewed all cards in this deck. What's next?", 
   'review.sessionComplete.button.backToDashboard': 'Back to Flashcards Hub',
-  'review.sessionComplete.button.backToDecks': 'Back to Decks', // New
+  'review.sessionComplete.button.backToDecks': 'Back to Decks', 
   'review.sessionComplete.button.reviewAllAgain': 'Review All Cards Again ({count})',
-  'review.sessionComplete.button.reviewDeckAgain': 'Review This Deck Again ({count})', // New
+  'review.sessionComplete.button.reviewDeckAgain': 'Review This Deck Again ({count})', 
   'review.loadingCard': 'Loading card...',
   'review.cardProgress': 'Card {currentIndex} of {totalCards}',
   'review.button.flip.showQuestion': 'Show Question',
@@ -262,31 +265,30 @@ export default {
   'pomodoro.break.dialog.button.startRest': 'Start {duration} min Rest',
 
   'pomodoro.break.option.stretch': 'Stretch',
-  'pomodoro.break.option.deepBreath': 'Deep Breath',
-  'pomodoro.break.option.mindfulDrink': 'Mindful Drink',
-  'pomodoro.break.option.chat': 'Quick Chat',
-  'pomodoro.break.option.drawObject': 'Quick Doodle',
-  'pomodoro.break.option.lookOutside': 'Look Outside',
-  'pomodoro.break.option.walk': 'Short Walk',
-  'pomodoro.break.option.meditate': 'Meditate',
-  'pomodoro.break.option.listenMusic': 'Listen to Music',
-  'pomodoro.break.option.microExercise': 'Micro-Exercise',
-  'pomodoro.break.option.lightAdjust': 'Light Adjustment',
-  'pomodoro.break.option.workflowWrapUp': 'Workflow Wrap-up Note',
-  'pomodoro.break.option.ritualRest': 'Ritual Rest',
-
   'pomodoro.break.benefit.stretch': 'Promotes blood circulation, increases oxygen supply, exercises muscles and bones, prevents spinal curvature.',
+  'pomodoro.break.option.deepBreath': 'Deep Breath',
   'pomodoro.break.benefit.deepBreath': 'Expels residual air from lungs, inhales more oxygen, activates cardiopulmonary function, reduces stress.',
+  'pomodoro.break.option.mindfulDrink': 'Mindful Drink',
   'pomodoro.break.benefit.mindfulDrink': 'Combines mindfulness techniques with hydration for both physical replenishment and mental reset.',
+  'pomodoro.break.option.chat': 'Quick Chat',
   'pomodoro.break.benefit.chat': 'Social interaction can reduce stress but may lead to distraction.',
+  'pomodoro.break.option.drawObject': 'Quick Doodle',
   'pomodoro.break.benefit.drawObject': 'Activates the Default Mode Network (DMN), promoting creative thinking.',
+  'pomodoro.break.option.lookOutside': 'Look Outside',
   'pomodoro.break.benefit.lookOutside': 'Rests the eyes with distant vision, alleviates eye fatigue, activates DMN.',
+  'pomodoro.break.option.walk': 'Short Walk',
   'pomodoro.break.benefit.walk': 'Promotes blood circulation, enhances cardiopulmonary function, relaxes the mind, improves quality of life.',
+  'pomodoro.break.option.meditate': 'Meditate',
   'pomodoro.break.benefit.meditate': 'Improves attention, enhances cognitive function, reduces stress, boosts immune system.',
+  'pomodoro.break.option.listenMusic': 'Listen to Music',
   'pomodoro.break.benefit.listenMusic': 'Promotes relaxation, improves mood, enhances focus.',
+  'pomodoro.break.option.microExercise': 'Micro-Exercise',
   'pomodoro.break.benefit.microExercise': 'Short bursts of physical activity promote blood circulation, increase brain oxygen supply, replenish neurotransmitters.',
+  'pomodoro.break.option.lightAdjust': 'Light Adjustment',
   'pomodoro.break.benefit.lightAdjust': 'Appropriate exposure to natural light can regulate melatonin and serotonin levels, improving mood and cognitive function.',
+  'pomodoro.break.option.workflowWrapUp': 'Workflow Wrap-up Note',
   'pomodoro.break.benefit.workflowWrapUp': 'Before resting, write down current progress and next steps to "offload the cache," making rest more effective.',
+  'pomodoro.break.option.ritualRest': 'Ritual Rest',
   'pomodoro.break.benefit.ritualRest': 'Interrupt brain circuits with a "ritual" like 2 minutes of white noise or deep breathing meditation.',
 
 
@@ -303,5 +305,3 @@ export default {
   'error': 'Error',
 
 } as const;
-
-    

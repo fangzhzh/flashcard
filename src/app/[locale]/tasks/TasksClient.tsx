@@ -12,7 +12,7 @@ import type { Task, TimeInfo } from '@/types';
 import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
 import TaskForm from '@/components/TaskForm';
 import { usePomodoro } from '@/contexts/PomodoroContext';
-import { usePomodoroLocal } from '@/contexts/PomodoroLocalContext';
+// Removed: import { usePomodoroLocal } from '@/contexts/PomodoroLocalContext';
 import { format, parseISO, differenceInCalendarDays, isToday, isTomorrow, isValid } from 'date-fns';
 import { cn } from '@/lib/utils';
 
@@ -25,10 +25,7 @@ export default function TasksClient() {
   const router = useRouter(); // Initialize useRouter
 
   const pomodoroContext = usePomodoro();
-  // Conditional hook usage is not allowed, but access will be guarded by auth check.
-  // This hook will only be relevant if we were to allow local pomodoro for unauthed users with local tasks.
-  // Since tasks are Firestore-based, this part of the logic (using local context) will effectively not run.
-  const pomodoroLocalContext = usePomodoroLocal();
+  // Removed: const pomodoroLocalContext = usePomodoroLocal();
 
   const [isSubmittingForm, setIsSubmittingForm] = useState(false);
   const [selectedTaskId, setSelectedTaskId] = useState<string | null>(null);
@@ -58,15 +55,15 @@ export default function TasksClient() {
 
   const formatTimeLabel = useCallback((timeInfo: TimeInfo): string => {
     if (!timeInfo || timeInfo.type === 'no_time' || !timeInfo.startDate || !isValid(parseISO(timeInfo.startDate))) {
-      return '';
+      return t('task.display.noTime');
     }
 
     const startDate = parseISO(timeInfo.startDate);
 
     if (timeInfo.type === 'datetime') {
-      if (isToday(startDate) && timeInfo.time) return timeInfo.time;
+      if (isToday(startDate) && timeInfo.time) return `${t('task.display.today')} ${t('task.display.at')} ${timeInfo.time}`;
       if (isToday(startDate)) return t('task.display.today');
-      if (isTomorrow(startDate)) return t('task.display.tomorrow');
+      if (isTomorrow(startDate)) return `${t('task.display.tomorrow')}${timeInfo.time ? ` ${t('task.display.at')} ${timeInfo.time}`: ''}`;
       return timeInfo.time ? `${format(startDate, 'MMM d')} ${t('task.display.at')} ${timeInfo.time}` : format(startDate, 'MMM d');
     }
 
@@ -78,7 +75,7 @@ export default function TasksClient() {
 
     if (timeInfo.type === 'date_range') {
       const daysUntilStart = differenceInCalendarDays(startDate, new Date());
-      if (daysUntilStart < 0) { // Started in the past
+      if (daysUntilStart < 0) { 
           if (timeInfo.endDate && isValid(parseISO(timeInfo.endDate))) {
               const endDate = parseISO(timeInfo.endDate);
               if (isToday(endDate)) return `${t('task.display.ends')} ${t('task.display.today').toLowerCase()}`;
@@ -92,11 +89,11 @@ export default function TasksClient() {
       if (daysUntilStart === 0) return t('task.display.startsToday');
       return `${format(startDate, 'MMM d')} (${t('task.display.inXDays', { count: daysUntilStart })})`;
     }
-    return '';
+    return t('task.display.noTime');
   }, [t]);
 
   const handleStartPomodoroForTask = (taskTitle: string) => {
-    if (!user) { // Should ideally not be reached if UI gated by auth
+    if (!user) { 
         toast({ title: t('error'), description: t('auth.pleaseSignIn'), variant: "destructive" });
         return;
     }
@@ -112,7 +109,7 @@ export default function TasksClient() {
 
   const effectiveLoading = authLoading || isLoadingTasks || (contextOverallLoading && user) || (isSeeding && user);
 
-  if (authLoading) { // Only show primary loader during auth check
+  if (authLoading) { 
     return (
       <div className="flex justify-center items-center mt-8 h-[calc(100vh-var(--header-height,8rem)-4rem)]">
         <Loader2 className="h-8 w-8 animate-spin text-primary" />
@@ -120,7 +117,7 @@ export default function TasksClient() {
     );
   }
 
-  if (!user) { // After auth check, if no user, show auth required message
+  if (!user) { 
     return (
        <Alert variant="destructive" className="mt-8 max-w-md mx-auto">
           <ShieldAlert className="h-5 w-5" />
@@ -130,7 +127,6 @@ export default function TasksClient() {
     );
   }
   
-  // If user is present, but other data is loading
   if (effectiveLoading && user) {
      return (
       <div className="flex justify-center items-center mt-8 h-[calc(100vh-var(--header-height,8rem)-4rem)]">
@@ -146,7 +142,7 @@ export default function TasksClient() {
 
 
   return (
-    <div className="flex h-[calc(100vh-var(--header-height,4rem)-4rem)]"> {/* Adjust header height var if needed and remove page padding */}
+    <div className="flex h-[calc(100vh-var(--header-height,4rem)-4rem)]"> 
       <div className={cn("transition-all duration-300 ease-in-out overflow-y-auto py-4", showEditPanel ? "w-1/2 pr-2" : "w-full pr-4")}>
         <div className="flex justify-between items-center mb-6 px-2">
           <h1 className="text-2xl font-semibold tracking-tight">{t('tasks.title')}</h1>
@@ -175,9 +171,7 @@ export default function TasksClient() {
             >
               <div className="flex-grow min-w-0 cursor-pointer" onClick={() => handleEditTask(task.id)}>
                 <p className="text-base font-medium whitespace-normal break-words" title={task.title}>{task.title}</p>
-                {task.timeInfo && task.timeInfo.type !== 'no_time' && task.timeInfo.startDate && (
-                  <span className="text-xs text-muted-foreground">{formatTimeLabel(task.timeInfo)}</span>
-                )}
+                <span className="text-xs text-muted-foreground">{formatTimeLabel(task.timeInfo)}</span>
               </div>
               <Button
                 variant="ghost"

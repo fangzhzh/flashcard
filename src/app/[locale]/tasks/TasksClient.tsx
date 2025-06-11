@@ -18,7 +18,16 @@ import { cn } from '@/lib/utils';
 
 export default function TasksClient() {
   const { user, loading: authLoading } = useAuth();
-  const { tasks, isLoadingTasks, isLoading: contextOverallLoading, isSeeding, getTaskById, updateTask: updateTaskInContext, addTask: addTaskInContext } = useFlashcards();
+  const { 
+    tasks, 
+    isLoadingTasks, 
+    isLoading: contextOverallLoading, 
+    isSeeding, 
+    getTaskById, 
+    updateTask: updateTaskInContext, 
+    addTask: addTaskInContext,
+    deleteTask: deleteTaskInContext // Added deleteTask from context
+  } = useFlashcards();
   const { toast } = useToast();
   const t = useI18n();
   const currentLocale = useCurrentLocale();
@@ -94,49 +103,45 @@ export default function TasksClient() {
       try {
         parsedEndDate = startOfDay(parseISO(timeInfo.endDate));
         if (!isValid(parsedEndDate) || parsedEndDate < parsedStartDate) {
-          // Fallback to single day logic if end date is invalid or before start date
-          // This case should ideally be prevented by form validation
+           // Fallback or error display
         } else {
           const daysToEnd = differenceInCalendarDays(parsedEndDate, todayForComparison);
+          const duration = differenceInCalendarDays(parsedEndDate, parsedStartDate) + 1;
 
           if (daysToStart === 0) { // Starts Today
-            const duration = differenceInCalendarDays(parsedEndDate, parsedStartDate);
-            return `${t('task.display.today')} (${t('task.display.durationDays', { count: duration + 1 })})`;
+            return `${t('task.display.today')} (${t('task.display.durationDays', { count: duration })})`;
           } else if (daysToStart > 0) { // Starts in Future
             return `${formatDateDisplay(parsedStartDate)} (${t('task.display.inXDays', { count: daysToStart })})`;
           } else { // daysToStart < 0 (Started in Past)
             if (daysToEnd >= 0) { // Still ongoing or ends today
-              return `${formatDateDisplay(parsedStartDate)} (${t('task.display.endsInXDays', { count: daysToEnd + 1 })})`;
+              return `${formatDateDisplay(parsedStartDate)} (${t('task.display.endsInXDays', { count: daysToEnd +1 })})`;
             } else { // Entire range is in the past
               return `${formatDateDisplay(parsedStartDate)} (${t('task.display.ended')})`;
             }
           }
         }
-      } catch (e) { /* Fall through to treat as single day if endDate parsing fails */ }
+      } catch (e) { /* Fall through or specific error */ }
     }
 
-    // Handle single date tasks (datetime, all_day) or fallback from invalid/incomplete range
+    // Handle single date tasks or fallback from range
     if (timeInfo.type === 'datetime' || timeInfo.type === 'all_day' || (timeInfo.type === 'date_range' && !timeInfo.endDate)) {
       if (daysToStart === 0) {
         return t('task.display.today');
       } else if (daysToStart > 0) {
         return `${formatDateDisplay(parsedStartDate)} (${t('task.display.inXDays', { count: daysToStart })})`;
-      } else { // daysToStart < 0 (Past)
+      } else { 
         return `${formatDateDisplay(parsedStartDate)} (${t('task.display.overdue')})`;
       }
     }
     
-    // Fallback for 'no_time' if somehow startDate was present, or genuinely unhandled cases
     if (timeInfo.type === 'no_time' && timeInfo.startDate) {
-        // If it's 'no_time' but has a start date, display it simply or with relative terms if needed.
-        // For simplicity, just showing the date might be okay, or treat as overdue/future based on daysToStart
-        if (daysToStart === 0) return `${formatDateDisplay(parsedStartDate)} (${t('task.display.today')})`; // Or just Today
+        if (daysToStart === 0) return `${formatDateDisplay(parsedStartDate)} (${t('task.display.today')})`;
         if (daysToStart > 0) return `${formatDateDisplay(parsedStartDate)} (${t('task.display.inXDays', { count: daysToStart })})`;
         if (daysToStart < 0) return `${formatDateDisplay(parsedStartDate)} (${t('task.display.overdue')})`;
         return formatDateDisplay(parsedStartDate);
     }
     
-    return t('task.display.noTime'); // Default fallback
+    return t('task.display.noTime'); 
 
   }, [t]);
 
@@ -236,6 +241,18 @@ export default function TasksClient() {
     return false;
   };
 
+  const handleDeleteTask = async () => {
+    if (!selectedTask || !selectedTask.id) return;
+    try {
+        await deleteTaskInContext(selectedTask.id);
+        toast({ title: t('success'), description: t('toast.task.deleted') });
+        setSelectedTaskId(null);
+        setIsCreatingNewTask(false);
+    } catch (error) {
+        toast({ title: t('error'), description: t('toast.task.error.delete'), variant: "destructive" });
+    }
+  };
+
 
   return (
     <div className="flex h-[calc(100vh-var(--header-height,4rem)-4rem)]"> 
@@ -322,6 +339,7 @@ export default function TasksClient() {
             isLoading={isSubmittingForm}
             onCancel={handleCancelEdit}
             onIntermediateSave={handleIntermediateFormSave}
+            onDelete={selectedTask ? handleDeleteTask : undefined} // Pass delete handler
           />
         </div>
       )}

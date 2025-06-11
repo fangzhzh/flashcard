@@ -21,6 +21,17 @@ import { useFlashcards } from '@/contexts/FlashcardsContext';
 import FlashcardForm from '@/components/FlashcardForm';
 import { useToast } from '@/hooks/use-toast';
 import { ScrollArea } from '@/components/ui/scroll-area';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 
 
 const artifactLinkSchema = z.object({
@@ -75,6 +86,7 @@ interface TaskFormProps {
   mode: 'create' | 'edit';
   onCancel?: () => void;
   onIntermediateSave?: (updates: Partial<TaskFormData>) => Promise<boolean>;
+  onDelete?: () => Promise<void>; // New prop for delete action
 }
 
 export default function TaskForm({
@@ -83,7 +95,8 @@ export default function TaskForm({
   isLoading = false,
   mode,
   onCancel,
-  onIntermediateSave
+  onIntermediateSave,
+  onDelete
 }: TaskFormProps) {
   const t = useI18n();
   const { toast } = useToast();
@@ -120,6 +133,7 @@ export default function TaskForm({
   const [isSubmittingEditedFlashcard, setIsSubmittingEditedFlashcard] = React.useState(false);
 
   const [isSelectFlashcardDialogOpen, setIsSelectFlashcardDialogOpen] = React.useState(false);
+  const [isDeleting, setIsDeleting] = React.useState(false); // For delete button loader
 
   React.useEffect(() => {
     const fetchCard = async () => {
@@ -161,7 +175,7 @@ export default function TaskForm({
     setTempEndDate(currentTI.endDate && isValid(parseISO(currentTI.endDate)) ? parseISO(currentTI.endDate) : undefined);
     
     const shouldOpenTimeSection = currentTI.type !== 'no_time' && !!currentTI.startDate;
-    if (isTimeSectionOpen !== shouldOpenTimeSection) { // Only update if necessary to avoid extra re-renders
+    if (isTimeSectionOpen !== shouldOpenTimeSection) { 
         setIsTimeSectionOpen(shouldOpenTimeSection);
     }
   
@@ -257,13 +271,12 @@ export default function TaskForm({
         if (mode === 'edit' && initialData?.id && onIntermediateSave) {
             const success = await onIntermediateSave({ artifactLink: newArtifactLink });
             if (success) {
-                form.setValue('artifactLink', newArtifactLink); // This updates the form state
+                form.setValue('artifactLink', newArtifactLink);
                 toast({ title: t('success'), description: t('toast.task.flashcardLinkedAndTaskUpdated') });
             } else {
-                // If intermediate save fails, don't update form state with new link to avoid inconsistency
                 toast({ title: t('error'), description: t('toast.task.error.intermediateSaveFailed'), variant: 'destructive' });
             }
-        } else { // Create mode or no onIntermediateSave
+        } else { 
             form.setValue('artifactLink', newArtifactLink);
             toast({ title: t('success'), description: t('toast.task.flashcardLinked') });
         }
@@ -285,7 +298,6 @@ export default function TaskForm({
     try {
       await updateFlashcard(editingFlashcardData.id, data);
       toast({ title: t('success'), description: t('toast.flashcard.updated') });
-      // Re-fetch the linked flashcard data in case its title (front) changed
       if (watchedArtifactLink?.flashcardId) {
         const updatedCard = getFlashcardById(watchedArtifactLink.flashcardId);
         setLinkedFlashcard(updatedCard || null);
@@ -315,6 +327,20 @@ export default function TaskForm({
         toast({ title: t('success'), description: t('toast.task.flashcardSelected') });
     }
     setIsSelectFlashcardDialogOpen(false);
+  };
+
+  const handleDeleteConfirmed = async () => {
+    if (mode === 'edit' && onDelete) {
+        setIsDeleting(true);
+        try {
+            await onDelete();
+            // Toast for successful deletion will be handled in TasksClient
+        } catch (error) {
+            toast({ title: t('error'), description: t('toast.task.error.delete'), variant: "destructive" });
+        } finally {
+            setIsDeleting(false);
+        }
+    }
   };
 
 
@@ -550,16 +576,45 @@ export default function TaskForm({
             />
         </div>
 
-        <div className="flex justify-end gap-2 pt-4 border-t mt-auto">
-          {onCancel && (
-            <Button type="button" variant="ghost" onClick={onCancel} disabled={isLoading || isSubmittingNewFlashcard || isSubmittingEditedFlashcard || isFetchingFlashcard} size="sm">
-               <X className="mr-2 h-4 w-4" /> {t('deck.item.delete.confirm.cancel')}
-            </Button>
-          )}
-          <Button type="submit" disabled={isLoading || isFetchingFlashcard || isSubmittingNewFlashcard || isSubmittingEditedFlashcard} className="min-w-[100px]" size="sm">
-            <Save className="mr-2 h-4 w-4" />
-            {isLoading ? t('task.form.button.saving') : (mode === 'edit' ? t('task.form.button.update') : t('task.form.button.create'))}
-          </Button>
+        <div className="flex justify-between items-center pt-4 border-t mt-auto">
+            <div>
+                {mode === 'edit' && onDelete && (
+                     <AlertDialog>
+                        <AlertDialogTrigger asChild>
+                            <Button type="button" variant="destructive" size="sm" disabled={isLoading || isDeleting}>
+                                {isDeleting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Trash2 className="mr-2 h-4 w-4" />}
+                                {isDeleting ? t('task.form.button.deleting') : t('task.form.button.delete')}
+                            </Button>
+                        </AlertDialogTrigger>
+                        <AlertDialogContent>
+                            <AlertDialogHeader>
+                                <AlertDialogTitle>{t('task.form.delete.confirm.title')}</AlertDialogTitle>
+                                <AlertDialogDescription>
+                                    {t('task.form.delete.confirm.description')}
+                                </AlertDialogDescription>
+                            </AlertDialogHeader>
+                            <AlertDialogFooter>
+                                <AlertDialogCancel disabled={isDeleting}>{t('deck.item.delete.confirm.cancel')}</AlertDialogCancel>
+                                <AlertDialogAction onClick={handleDeleteConfirmed} disabled={isDeleting}>
+                                    {isDeleting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
+                                    {t('deck.item.delete.confirm.delete')}
+                                </AlertDialogAction>
+                            </AlertDialogFooter>
+                        </AlertDialogContent>
+                    </AlertDialog>
+                )}
+            </div>
+            <div className="flex gap-2">
+                {onCancel && (
+                    <Button type="button" variant="ghost" onClick={onCancel} disabled={isLoading || isSubmittingNewFlashcard || isSubmittingEditedFlashcard || isFetchingFlashcard || isDeleting} size="sm">
+                       <X className="mr-2 h-4 w-4" /> {t('deck.item.delete.confirm.cancel')}
+                    </Button>
+                )}
+                <Button type="submit" disabled={isLoading || isFetchingFlashcard || isSubmittingNewFlashcard || isSubmittingEditedFlashcard || isDeleting} className="min-w-[100px]" size="sm">
+                    {isLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}
+                    {isLoading ? t('task.form.button.saving') : (mode === 'edit' ? t('task.form.button.update') : t('task.form.button.create'))}
+                </Button>
+            </div>
         </div>
       </form>
 

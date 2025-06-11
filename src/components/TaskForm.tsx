@@ -23,6 +23,10 @@ import { useToast } from '@/hooks/use-toast';
 import { ScrollArea } from '@/components/ui/scroll-area';
 
 
+const artifactLinkSchema = z.object({
+  flashcardId: z.string().nullable().optional(),
+});
+
 const timeInfoSchema = z.object({
   type: z.enum(['no_time', 'datetime', 'all_day', 'date_range']).default('no_time'),
   startDate: z.string().nullable().optional(),
@@ -47,10 +51,6 @@ const timeInfoSchema = z.object({
         return { message: 'task.form.error.timeInfo.dateRangeFieldsRequired', path: ["startDate"] };
     }
     return { message: 'Invalid time configuration' };
-});
-
-const artifactLinkSchema = z.object({
-  flashcardId: z.string().nullable().optional(),
 });
 
 const reminderInfoSchema = z.object({
@@ -288,7 +288,7 @@ export default function TaskForm({
       toast({ title: t('success'), description: t('toast.flashcard.updated') });
       const updatedCard = getFlashcardById(editingFlashcardData.id);
       if (updatedCard) {
-        setLinkedFlashcard(updatedCard);
+        setLinkedFlashcard(updatedCard); // Refresh the displayed title in TaskForm
       }
       setIsEditFlashcardDialogOpen(false);
       setEditingFlashcardData(null);
@@ -668,8 +668,8 @@ function SelectFlashcardDialog({
                     }}
                   >
                     <div className="flex flex-col min-w-0 overflow-hidden">
-                      <span className="font-medium truncate" title={card.front}>{card.front}</span>
-                      <span className="text-xs text-muted-foreground truncate" title={card.back}>{card.back}</span>
+                      <span className="block font-medium truncate" title={card.front}>{card.front}</span>
+                      <span className="block text-xs text-muted-foreground truncate" title={card.back}>{card.back}</span>
                     </div>
                   </Button>
                 ))}

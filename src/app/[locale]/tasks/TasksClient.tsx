@@ -9,9 +9,9 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { PlusCircle, Loader2, Info, ShieldAlert, PlayCircle } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { useI18n, useCurrentLocale } from '@/lib/i18n/client';
-import type { Task, TimeInfo, TaskStatus, TaskFormData } from '@/types';
+import type { Task, TimeInfo, TaskStatus, RepeatFrequency, ReminderType } from '@/types';
 import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
-import TaskForm from '@/components/TaskForm';
+import TaskForm, { type TaskFormData } from '@/components/TaskForm';
 import { usePomodoro } from '@/contexts/PomodoroContext';
 import { format, parseISO, differenceInCalendarDays, isToday, isTomorrow, isValid, isSameYear } from 'date-fns';
 import { cn } from '@/lib/utils';
@@ -29,6 +29,16 @@ export default function TasksClient() {
   const [isSubmittingForm, setIsSubmittingForm] = useState(false);
   const [selectedTaskId, setSelectedTaskId] = useState<string | null>(null);
   const [isCreatingNewTask, setIsCreatingNewTask] = useState(false);
+
+  const defaultNewTaskData = useMemo(() => ({
+    title: '',
+    description: '',
+    repeat: 'none' as RepeatFrequency,
+    timeInfo: { type: 'no_time' as 'no_time', startDate: null, endDate: null, time: null },
+    artifactLink: { flashcardId: null as string | null },
+    reminderInfo: { type: 'none' as ReminderType },
+  }), []);
+
 
   const handleEditTask = (taskId: string) => {
     setIsCreatingNewTask(false);
@@ -166,11 +176,9 @@ export default function TasksClient() {
     if (selectedTask?.id) {
         try {
             await updateTaskInContext(selectedTask.id, updates);
-            // Toast is handled by TaskForm for specific actions like linking
             return true;
         } catch (error) {
             console.error("Intermediate save failed:", error);
-            // Toast handled by TaskForm
             return false;
         }
     }
@@ -258,7 +266,7 @@ export default function TasksClient() {
            <TaskForm
             key={selectedTaskId || 'new-task'}
             mode={isCreatingNewTask ? 'create' : 'edit'}
-            initialData={isCreatingNewTask ? { title: '', repeat: 'none', timeInfo: {type: 'no_time'}, artifactLink: { flashcardId: null, urlValue: null }, reminderInfo: {type: 'none'}} : selectedTask}
+            initialData={isCreatingNewTask ? defaultNewTaskData : selectedTask}
             onSubmit={handleMainFormSubmit}
             isLoading={isSubmittingForm}
             onCancel={handleCancelEdit}
@@ -269,3 +277,4 @@ export default function TasksClient() {
     </div>
   );
 }
+    

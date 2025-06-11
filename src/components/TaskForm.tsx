@@ -13,7 +13,7 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { Calendar } from "@/components/ui/calendar";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter, DialogTrigger, DialogClose } from "@/components/ui/dialog";
 import type { Task, RepeatFrequency, TimeInfo, ArtifactLink, ReminderInfo, ReminderType, Flashcard as FlashcardType, Deck } from '@/types';
-import { Save, CalendarIcon, Link2, RotateCcw, Clock, Bell, Trash2, X, Loader2, FilePlus, Pencil, Replace, ListChecks, Search } from 'lucide-react';
+import { Save, CalendarIcon, Link2, RotateCcw, Clock, Bell, Trash2, X, Loader2, FilePlus, ListChecks, Search } from 'lucide-react';
 import { useI18n, useCurrentLocale } from '@/lib/i18n/client';
 import { cn } from '@/lib/utils';
 import { format, parseISO, isValid } from 'date-fns';
@@ -105,13 +105,9 @@ export default function TaskForm({
   const watchedArtifactLink = useWatch({ control: form.control, name: "artifactLink" });
   const [isTimeSectionOpen, setIsTimeSectionOpen] = React.useState(false);
 
-  const [tempStartDate, setTempStartDate] = React.useState<Date | undefined>(
-    initialData?.timeInfo?.startDate && isValid(parseISO(initialData.timeInfo.startDate)) ? parseISO(initialData.timeInfo.startDate) : undefined
-  );
-  const [tempTime, setTempTime] = React.useState<string>(initialData?.timeInfo?.time || '');
-  const [tempEndDate, setTempEndDate] = React.useState<Date | undefined>(
-    initialData?.timeInfo?.endDate && isValid(parseISO(initialData.timeInfo.endDate)) ? parseISO(initialData.timeInfo.endDate) : undefined
-  );
+  const [tempStartDate, setTempStartDate] = React.useState<Date | undefined>(undefined);
+  const [tempTime, setTempTime] = React.useState<string>('');
+  const [tempEndDate, setTempEndDate] = React.useState<Date | undefined>(undefined);
 
   const [linkedFlashcard, setLinkedFlashcard] = React.useState<FlashcardType | null | undefined>(undefined);
   const [isFetchingFlashcard, setIsFetchingFlashcard] = React.useState(false);
@@ -141,32 +137,34 @@ export default function TaskForm({
 
 
   React.useEffect(() => {
-    if (initialData) {
-      const defaultTimeInfo = initialData.timeInfo || { type: 'no_time', startDate: null, endDate: null, time: null };
-      form.reset({
-        title: initialData.title || '',
-        description: initialData.description || '',
-        repeat: initialData.repeat || 'none',
-        timeInfo: defaultTimeInfo,
-        artifactLink: initialData.artifactLink || { flashcardId: null },
-        reminderInfo: initialData.reminderInfo || { type: 'none' },
-      });
-      setTempStartDate(defaultTimeInfo.startDate && isValid(parseISO(defaultTimeInfo.startDate)) ? parseISO(defaultTimeInfo.startDate) : undefined);
-      setTempTime(defaultTimeInfo.time || '');
-      setTempEndDate(defaultTimeInfo.endDate && isValid(parseISO(defaultTimeInfo.endDate)) ? parseISO(defaultTimeInfo.endDate) : undefined);
-
-      if (defaultTimeInfo.type !== 'no_time') {
-        setIsTimeSectionOpen(true);
-      } else {
-        setIsTimeSectionOpen(false);
-      }
-    } else {
-        setTempStartDate(undefined);
-        setTempTime('');
-        setTempEndDate(undefined);
-        setIsTimeSectionOpen(false);
+    const dataForReset = initialData || {
+      title: '',
+      description: '',
+      repeat: 'none' as RepeatFrequency,
+      timeInfo: { type: 'no_time' as 'no_time', startDate: null, endDate: null, time: null },
+      artifactLink: { flashcardId: null as string | null },
+      reminderInfo: { type: 'none' as ReminderType },
+    };
+  
+    form.reset({
+      title: dataForReset.title || '',
+      description: dataForReset.description || '',
+      repeat: dataForReset.repeat || 'none',
+      timeInfo: dataForReset.timeInfo || { type: 'no_time', startDate: null, endDate: null, time: null },
+      artifactLink: dataForReset.artifactLink || { flashcardId: null },
+      reminderInfo: dataForReset.reminderInfo || { type: 'none' },
+    });
+  
+    const currentTI = dataForReset.timeInfo || { type: 'no_time' };
+    setTempStartDate(currentTI.startDate && isValid(parseISO(currentTI.startDate)) ? parseISO(currentTI.startDate) : undefined);
+    setTempTime(currentTI.time || '');
+    setTempEndDate(currentTI.endDate && isValid(parseISO(currentTI.endDate)) ? parseISO(currentTI.endDate) : undefined);
+    
+    const shouldOpenTimeSection = currentTI.type !== 'no_time' && !!currentTI.startDate;
+    if (isTimeSectionOpen !== shouldOpenTimeSection) { // Only update if necessary to avoid extra re-renders
+        setIsTimeSectionOpen(shouldOpenTimeSection);
     }
-  // biome-ignore lint/correctness/useExhaustiveDependencies: <explanation>
+  
   }, [initialData, form.reset]);
 
 
@@ -259,12 +257,13 @@ export default function TaskForm({
         if (mode === 'edit' && initialData?.id && onIntermediateSave) {
             const success = await onIntermediateSave({ artifactLink: newArtifactLink });
             if (success) {
-                form.setValue('artifactLink', newArtifactLink);
+                form.setValue('artifactLink', newArtifactLink); // This updates the form state
                 toast({ title: t('success'), description: t('toast.task.flashcardLinkedAndTaskUpdated') });
             } else {
+                // If intermediate save fails, don't update form state with new link to avoid inconsistency
                 toast({ title: t('error'), description: t('toast.task.error.intermediateSaveFailed'), variant: 'destructive' });
             }
-        } else {
+        } else { // Create mode or no onIntermediateSave
             form.setValue('artifactLink', newArtifactLink);
             toast({ title: t('success'), description: t('toast.task.flashcardLinked') });
         }
@@ -286,9 +285,10 @@ export default function TaskForm({
     try {
       await updateFlashcard(editingFlashcardData.id, data);
       toast({ title: t('success'), description: t('toast.flashcard.updated') });
-      const updatedCard = getFlashcardById(editingFlashcardData.id);
-      if (updatedCard) {
-        setLinkedFlashcard(updatedCard); // Refresh the displayed title in TaskForm
+      // Re-fetch the linked flashcard data in case its title (front) changed
+      if (watchedArtifactLink?.flashcardId) {
+        const updatedCard = getFlashcardById(watchedArtifactLink.flashcardId);
+        setLinkedFlashcard(updatedCard || null);
       }
       setIsEditFlashcardDialogOpen(false);
       setEditingFlashcardData(null);
@@ -468,19 +468,19 @@ export default function TaskForm({
                     )}
                     {!isFetchingFlashcard && watchedArtifactLink?.flashcardId && linkedFlashcard && (
                          <div className="flex items-center justify-between text-sm">
-                           <span className="font-medium mr-1 text-foreground">{t('task.form.artifactLink.flashcardPrefix')}</span>
+                            <span className="font-medium mr-1 text-foreground whitespace-nowrap">{t('task.form.artifactLink.flashcardPrefix')}</span>
                             <Button
                                 variant="link"
                                 type="button"
                                 onClick={() => { setEditingFlashcardData(linkedFlashcard); setIsEditFlashcardDialogOpen(true); }}
-                                className="text-primary hover:underline truncate p-0 h-auto leading-tight flex-grow justify-start"
+                                className="text-primary hover:underline truncate p-0 h-auto leading-tight flex-grow justify-start text-left"
                                 title={linkedFlashcard.front}
                             >
-                                {linkedFlashcard.front.substring(0, 30)}{linkedFlashcard.front.length > 30 ? "..." : ""}
+                                {linkedFlashcard.front}
                             </Button>
                             <div className="flex gap-1 flex-shrink-0 ml-2">
                                 <Button type="button" variant="ghost" size="xsIcon" onClick={() => setIsSelectFlashcardDialogOpen(true)} title={t('task.form.artifactLink.button.change')}>
-                                    <Replace className="h-4 w-4" />
+                                    <ListChecks className="h-4 w-4" />
                                 </Button>
                                 <Button type="button" variant="ghost" size="xsIcon" onClick={handleRemoveLink} title={t('task.form.artifactLink.button.remove')}>
                                     <Trash2 className="h-4 w-4 text-destructive" />
@@ -493,7 +493,7 @@ export default function TaskForm({
                            <p className="text-destructive">{t('task.form.artifactLink.flashcardNotFound')}</p>
                            <div className="flex gap-2">
                                 <Button type="button" variant="outline" size="xs" onClick={() => setIsSelectFlashcardDialogOpen(true)}>
-                                    <Replace className="mr-1 h-3 w-3" /> {t('task.form.artifactLink.button.change')}
+                                    <ListChecks className="mr-1 h-3 w-3" /> {t('task.form.artifactLink.button.change')}
                                 </Button>
                                 <Button type="button" variant="ghost" size="xsIcon" onClick={handleRemoveLink} title={t('task.form.artifactLink.button.remove')}>
                                     <Trash2 className="h-4 w-4 text-destructive" />
@@ -503,7 +503,7 @@ export default function TaskForm({
                     )}
                     
                     {!watchedArtifactLink?.flashcardId && (
-                        <div className="flex flex-wrap gap-2 pt-2">
+                        <div className="flex flex-wrap gap-2 pt-1">
                              <Dialog open={isNewFlashcardDialogOpen} onOpenChange={setIsNewFlashcardDialogOpen}>
                                 <DialogTrigger asChild>
                                     <Button type="button" variant="outline" size="xs" onClick={() => setIsNewFlashcardDialogOpen(true)}>
@@ -647,7 +647,7 @@ function SelectFlashcardDialog({
             />
           </div>
           <ScrollArea className="h-[300px] w-full">
-            {isLoadingDecks && searchTerm === '' ? ( 
+            {isLoadingDecks && searchTerm === '' && allFlashcards.length === 0 ? ( 
               <div className="flex justify-center items-center h-full">
                 <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
               </div>
@@ -669,7 +669,6 @@ function SelectFlashcardDialog({
                   >
                     <div className="flex flex-col min-w-0 overflow-hidden">
                       <span className="block font-medium truncate" title={card.front}>{card.front}</span>
-                      {/* Removed card.back display */}
                     </div>
                   </Button>
                 ))}
@@ -686,3 +685,4 @@ function SelectFlashcardDialog({
     </Dialog>
   );
 }
+    

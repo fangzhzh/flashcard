@@ -77,71 +77,62 @@ export default function TasksClient() {
     }
 
     const todayForComparison = startOfDay(new Date());
-
     let parsedStartDate: Date;
     try {
-      // Ensure time part is ignored for day-level comparisons by using startOfDay
       parsedStartDate = startOfDay(parseISO(timeInfo.startDate));
       if (!isValid(parsedStartDate)) return '';
-    } catch (e) {
-      return ''; // Invalid date string
-    }
+    } catch (e) { return ''; }
 
     let parsedEndDate: Date | null = null;
     if (timeInfo.endDate) {
       try {
         parsedEndDate = startOfDay(parseISO(timeInfo.endDate));
         if (!isValid(parsedEndDate)) parsedEndDate = null;
-      } catch (e) {
-        parsedEndDate = null;
-      }
+      } catch (e) { parsedEndDate = null; }
     }
 
     const formatDateDisplay = (date: Date): string => {
-      if (isSameYear(date, todayForComparison)) {
-        return format(date, 'MM/dd');
-      }
-      return format(date, 'yyyy/MM/dd');
+      return isSameYear(date, todayForComparison) ? format(date, 'MM/dd') : format(date, 'yyyy/MM/dd');
     };
 
-    // Part 1: Determine the primary label for the start date
-    let primaryStartLabel = '';
-    if (isToday(parsedStartDate)) {
-      primaryStartLabel = t('task.display.today');
-    } else if (isTomorrow(parsedStartDate)) {
-      primaryStartLabel = t('task.display.tomorrowShort');
-    } else if (parsedStartDate < todayForComparison) {
-      primaryStartLabel = formatDateDisplay(parsedStartDate);
-    } else { // Start date is in the future (and not tomorrow)
-      const daysToStart = differenceInCalendarDays(parsedStartDate, todayForComparison);
-      primaryStartLabel = `${formatDateDisplay(parsedStartDate)} (${t('task.display.inXDays', { count: daysToStart })})`;
+    const daysToStart = differenceInCalendarDays(parsedStartDate, todayForComparison);
+
+    // Handle date_range first
+    if (timeInfo.type === 'date_range' && parsedEndDate && parsedEndDate >= parsedStartDate) {
+      if (daysToStart === 0) { // Starts Today
+        const duration = differenceInCalendarDays(parsedEndDate, parsedStartDate);
+        return `${t('task.display.today')}(${t('task.display.inXDays', { count: duration })})`;
+      } else if (daysToStart > 0) { // Starts in Future (tomorrow or later)
+        return `${formatDateDisplay(parsedStartDate)} (${t('task.display.inXDays', { count: daysToStart })})`;
+      } else { // Starts in Past
+        return formatDateDisplay(parsedStartDate); // Overdue status added by caller if needed
+      }
     }
 
-    // Part 2: Handle date ranges and single dates
-    if (timeInfo.type === 'date_range' && parsedEndDate && parsedEndDate >= parsedStartDate) {
-      if (isToday(parsedStartDate)) {
-        const durationDays = differenceInCalendarDays(parsedEndDate, parsedStartDate);
-        return `${primaryStartLabel}(${t('task.display.inXDays', { count: durationDays })})`;
-      } else {
-        // If start date is not today (future or past), the label focuses only on the start date's relation to today.
-        return primaryStartLabel;
+    // Handle single date tasks (datetime, all_day)
+    if (timeInfo.type === 'datetime' || timeInfo.type === 'all_day') {
+      let label = '';
+      if (daysToStart === 0) { // Today
+        label = t('task.display.today');
+      } else if (daysToStart > 0) { // Tomorrow or later in future
+        label = `${formatDateDisplay(parsedStartDate)} (${t('task.display.inXDays', { count: daysToStart })})`;
+      } else { // Past (daysToStart < 0)
+        label = formatDateDisplay(parsedStartDate);
       }
-    } else if (timeInfo.type === 'datetime' || timeInfo.type === 'all_day') {
-      // Single date task
-      if (parsedStartDate < todayForComparison && (!parsedEndDate || parsedEndDate < todayForComparison)) { // Check if overdue
-        return `${primaryStartLabel} (${t('task.display.overdue')})`;
+
+      if (daysToStart < 0) { // Add overdue only for past single day tasks
+        return `${label} (${t('task.display.overdue')})`;
       }
-      // If start date is today, tomorrow, or future (not overdue), primaryStartLabel is already correct.
-      return primaryStartLabel;
+      return label;
     }
     
-    // Fallback if type is not explicitly handled after 'date_range', 'datetime', 'all_day'
-    // or if it's a date_range with invalid/missing endDate.
-    // This primarily covers cases where only startDate is relevant or where range is invalid.
-    if (parsedStartDate < todayForComparison) {
-       return `${primaryStartLabel} (${t('task.display.overdue')})`;
-    }
-    return primaryStartLabel;
+    // Fallback for misconfigured types or only startDate present without specific type handling
+    // This attempts to provide a meaningful label based on startDate if other conditions weren't met.
+    if (daysToStart === 0) return t('task.display.today');
+    if (daysToStart > 0) return `${formatDateDisplay(parsedStartDate)} (${t('task.display.inXDays', { count: daysToStart })})`;
+    if (daysToStart < 0) return `${formatDateDisplay(parsedStartDate)} (${t('task.display.overdue')})`;
+    
+    return formatDateDisplay(parsedStartDate); // Absolute fallback
 
   }, [t]);
 
@@ -333,4 +324,6 @@ export default function TasksClient() {
     </div>
   );
 }
+    
+
     

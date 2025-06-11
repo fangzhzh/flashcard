@@ -25,6 +25,9 @@ export default function TasksClient() {
   const router = useRouter(); // Initialize useRouter
 
   const pomodoroContext = usePomodoro();
+  // Conditional hook usage is not allowed, but access will be guarded by auth check.
+  // This hook will only be relevant if we were to allow local pomodoro for unauthed users with local tasks.
+  // Since tasks are Firestore-based, this part of the logic (using local context) will effectively not run.
   const pomodoroLocalContext = usePomodoroLocal();
 
   const [isSubmittingForm, setIsSubmittingForm] = useState(false);
@@ -93,8 +96,12 @@ export default function TasksClient() {
   }, [t]);
 
   const handleStartPomodoroForTask = (taskTitle: string) => {
-    const pomodoroState = user ? pomodoroContext.sessionState : pomodoroLocalContext.sessionState;
-    const startFn = user ? pomodoroContext.startPomodoro : pomodoroLocalContext.startPomodoro;
+    if (!user) { // Should ideally not be reached if UI gated by auth
+        toast({ title: t('error'), description: t('auth.pleaseSignIn'), variant: "destructive" });
+        return;
+    }
+    const pomodoroState = pomodoroContext.sessionState;
+    const startFn = pomodoroContext.startPomodoro;
     
     const duration = pomodoroState?.userPreferredDurationMinutes || 25;
 
@@ -105,16 +112,15 @@ export default function TasksClient() {
 
   const effectiveLoading = authLoading || isLoadingTasks || (contextOverallLoading && user) || (isSeeding && user);
 
-  if (effectiveLoading) {
+  if (authLoading) { // Only show primary loader during auth check
     return (
       <div className="flex justify-center items-center mt-8 h-[calc(100vh-var(--header-height,8rem)-4rem)]">
         <Loader2 className="h-8 w-8 animate-spin text-primary" />
-        <p className="ml-2 text-muted-foreground">{t('tasks.list.loading')}</p>
       </div>
     );
   }
 
-  if (!user && !authLoading) {
+  if (!user) { // After auth check, if no user, show auth required message
     return (
        <Alert variant="destructive" className="mt-8 max-w-md mx-auto">
           <ShieldAlert className="h-5 w-5" />
@@ -123,6 +129,17 @@ export default function TasksClient() {
         </Alert>
     );
   }
+  
+  // If user is present, but other data is loading
+  if (effectiveLoading && user) {
+     return (
+      <div className="flex justify-center items-center mt-8 h-[calc(100vh-var(--header-height,8rem)-4rem)]">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+        <p className="ml-2 text-muted-foreground">{t('tasks.list.loading')}</p>
+      </div>
+    );
+  }
+
 
   const showEditPanel = selectedTaskId !== null || isCreatingNewTask;
   const sortedTasks = [...tasks].sort((a, b) => (b.createdAt || '').localeCompare(a.createdAt || ''));
@@ -208,3 +225,4 @@ export default function TasksClient() {
     </div>
   );
 }
+

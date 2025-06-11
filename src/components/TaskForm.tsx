@@ -231,7 +231,7 @@ export default function TaskForm({
   };
 
   const handleRemoveLink = async () => {
-    const clearedArtifactLink = { flashcardId: null };
+    const clearedArtifactLink: ArtifactLink = { flashcardId: null };
     if (mode === 'edit' && initialData?.id && onIntermediateSave) {
         const success = await onIntermediateSave({ artifactLink: clearedArtifactLink });
         if (success) {
@@ -255,7 +255,7 @@ export default function TaskForm({
     try {
       const newCard = await addFlashcard(data);
       if (newCard && newCard.id) {
-        const newArtifactLink = { flashcardId: newCard.id };
+        const newArtifactLink: ArtifactLink = { flashcardId: newCard.id };
         if (mode === 'edit' && initialData?.id && onIntermediateSave) {
             const success = await onIntermediateSave({ artifactLink: newArtifactLink });
             if (success) {
@@ -301,7 +301,7 @@ export default function TaskForm({
   };
 
   const handleSelectFlashcardFromDialog = async (flashcardId: string) => {
-    const newArtifactLink = { flashcardId: flashcardId };
+    const newArtifactLink: ArtifactLink = { flashcardId: flashcardId };
      if (mode === 'edit' && initialData?.id && onIntermediateSave) {
         const success = await onIntermediateSave({ artifactLink: newArtifactLink });
         if (success) {
@@ -467,7 +467,7 @@ export default function TaskForm({
                         </div>
                     )}
                     {!isFetchingFlashcard && watchedArtifactLink?.flashcardId && linkedFlashcard && (
-                        <div className="flex items-center justify-between text-sm">
+                         <div className="flex items-center justify-between text-sm">
                            <span className="font-medium mr-1 text-foreground">{t('task.form.artifactLink.flashcardPrefix')}</span>
                             <Button
                                 variant="link"
@@ -669,7 +669,7 @@ function SelectFlashcardDialog({
                   >
                     <div className="flex flex-col min-w-0 overflow-hidden">
                       <span className="block font-medium truncate" title={card.front}>{card.front}</span>
-                      <span className="block text-xs text-muted-foreground truncate" title={card.back}>{card.back}</span>
+                      {/* Removed card.back display */}
                     </div>
                   </Button>
                 ))}

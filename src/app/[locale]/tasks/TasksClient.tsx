@@ -5,11 +5,11 @@ import { useRouter } from 'next/navigation';
 import { useFlashcards } from '@/contexts/FlashcardsContext';
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
-import { Checkbox } from '@/components/ui/checkbox'; // Import Checkbox
+import { Checkbox } from '@/components/ui/checkbox';
 import { PlusCircle, Loader2, Info, ShieldAlert, PlayCircle } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { useI18n, useCurrentLocale } from '@/lib/i18n/client';
-import type { Task, TimeInfo, TaskStatus } from '@/types';
+import type { Task, TimeInfo, TaskStatus, TaskFormData } from '@/types';
 import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
 import TaskForm from '@/components/TaskForm';
 import { usePomodoro } from '@/contexts/PomodoroContext';
@@ -56,16 +56,14 @@ export default function TasksClient() {
     const newStatus: TaskStatus = task.status === 'completed' ? 'pending' : 'completed';
     try {
       await updateTaskInContext(task.id, { status: newStatus });
-      // Optionally, show a toast message
-      // toast({ title: t('success'), description: newStatus === 'completed' ? t('toast.task.markedComplete') : t('toast.task.markedPending') });
     } catch (error) {
       toast({ title: t('error'), description: t('toast.task.error.save'), variant: "destructive" });
     }
   };
 
-  const formatTimeLabel = useCallback((timeInfo: TimeInfo): string => {
+  const formatTimeLabel = useCallback((timeInfo?: TimeInfo): string => {
     if (!timeInfo || timeInfo.type === 'no_time' || !timeInfo.startDate || !isValid(parseISO(timeInfo.startDate))) {
-      return ''; // Return empty for no date or invalid date
+      return '';
     }
 
     const startDate = parseISO(timeInfo.startDate);
@@ -131,26 +129,59 @@ export default function TasksClient() {
     if (a.status === 'completed' && b.status !== 'completed') return 1;
     if (a.status !== 'completed' && b.status === 'completed') return -1;
     
-    const aDate = a.timeInfo?.startDate ? parseISO(a.timeInfo.startDate) : null;
-    const bDate = b.timeInfo?.startDate ? parseISO(b.timeInfo.startDate) : null;
+    const aDate = a.timeInfo?.startDate && isValid(parseISO(a.timeInfo.startDate)) ? parseISO(a.timeInfo.startDate) : null;
+    const bDate = b.timeInfo?.startDate && isValid(parseISO(b.timeInfo.startDate)) ? parseISO(b.timeInfo.startDate) : null;
 
     if (aDate && bDate) {
         if (aDate < bDate) return -1;
         if (aDate > bDate) return 1;
-    } else if (aDate) { // a has date, b does not
+    } else if (aDate) { 
         return -1; 
-    } else if (bDate) { // b has date, a does not
+    } else if (bDate) { 
         return 1;
     }
-    // Fallback to createdAt if dates are same or not present
     return (b.createdAt && a.createdAt) ? (new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()) : 0;
   });
+
+  const handleMainFormSubmit = async (data: TaskFormData) => {
+    setIsSubmittingForm(true);
+    try {
+      if (isCreatingNewTask) {
+        await addTaskInContext(data); 
+        toast({ title: t('success'), description: t('toast.task.created') });
+        setIsCreatingNewTask(false); 
+      } else if (selectedTask) {
+        await updateTaskInContext(selectedTask.id, data);
+        toast({ title: t('success'), description: t('toast.task.updated') });
+      }
+      setSelectedTaskId(null); 
+    } catch (error) {
+      toast({ title: t('error'), description: t('toast.task.error.save'), variant: "destructive" });
+    } finally {
+      setIsSubmittingForm(false);
+    }
+  };
+
+  const handleIntermediateFormSave = async (updates: Partial<TaskFormData>): Promise<boolean> => {
+    if (selectedTask?.id) {
+        try {
+            await updateTaskInContext(selectedTask.id, updates);
+            // Toast is handled by TaskForm for specific actions like linking
+            return true;
+        } catch (error) {
+            console.error("Intermediate save failed:", error);
+            // Toast handled by TaskForm
+            return false;
+        }
+    }
+    return false;
+  };
 
 
   return (
     <div className="flex h-[calc(100vh-var(--header-height,4rem)-4rem)]"> 
-      <div className={cn("transition-all duration-300 ease-in-out overflow-y-auto py-4 flex flex-col", showEditPanel ? "w-1/2 pr-2" : "w-full pr-0")}>
-        <div className="flex justify-between items-center mb-6 px-4">
+      <div className={cn("transition-all duration-300 ease-in-out overflow-y-auto flex flex-col", showEditPanel ? "w-1/2 pr-2" : "w-full pr-0")}>
+        <div className={cn("flex justify-between items-center mb-6", showEditPanel ? "px-2" : "px-4")}>
           <h1 className="text-2xl font-semibold tracking-tight">{t('tasks.title')}</h1>
           <Button onClick={handleCreateNewTask} size="sm">
             <PlusCircle className="mr-2 h-4 w-4" /> {t('tasks.button.create')}
@@ -158,7 +189,7 @@ export default function TasksClient() {
         </div>
 
         {sortedTasks.length === 0 && !effectiveLoading && (
-          <Alert className="mt-8 mx-4 border-primary/50 text-primary bg-primary/5">
+          <Alert className={cn("mt-8 border-primary/50 text-primary bg-primary/5", showEditPanel ? "mx-2" : "mx-4")}>
             <Info className="h-5 w-5 text-primary" />
             <AlertTitle className="font-semibold text-primary">{t('tasks.list.empty.title')}</AlertTitle>
             <AlertDescription>
@@ -167,28 +198,26 @@ export default function TasksClient() {
           </Alert>
         )}
 
-        <ul className="space-y-1 px-4 flex-grow">
+        <ul className={cn("space-y-1 flex-grow", showEditPanel ? "px-2" : "px-4")}>
           {sortedTasks.map((task) => (
             <li key={task.id}
                 className={cn(
-                    "group flex items-center justify-between p-3 rounded-md hover:bg-muted cursor-pointer",
+                    "group flex items-center justify-between p-3 rounded-md hover:bg-muted",
                     selectedTaskId === task.id && "bg-muted shadow-md"
                 )}
-                 onClick={() => handleEditTask(task.id)}
             >
               <div className="flex items-center flex-grow min-w-0 mr-4">
                  <Checkbox
                     id={`task-${task.id}`}
                     checked={task.status === 'completed'}
                     onCheckedChange={(checked) => {
-                        // Prevent panel opening when checkbox is clicked directly
                         event?.stopPropagation(); 
                         handleToggleTaskCompletion(task);
                     }}
                     className="mr-3 flex-shrink-0"
                     aria-label={t('task.item.toggleCompletionAria', {title: task.title})}
                   />
-                <div className="min-w-0">
+                <div className="min-w-0 cursor-pointer flex-grow" onClick={() => handleEditTask(task.id)}>
                   <p className={cn(
                       "text-base font-medium truncate",
                       task.status === 'completed' && "line-through text-muted-foreground"
@@ -206,7 +235,9 @@ export default function TasksClient() {
                 </div>
               </div>
               <div className="flex items-center flex-shrink-0 ml-auto">
-                <span className="text-xs text-muted-foreground mr-2">{formatTimeLabel(task.timeInfo)}</span>
+                <span className="text-xs text-muted-foreground mr-2 cursor-pointer" onClick={() => handleEditTask(task.id)}>
+                    {formatTimeLabel(task.timeInfo)}
+                </span>
                 <Button
                   variant="ghost"
                   size="icon"
@@ -227,27 +258,11 @@ export default function TasksClient() {
            <TaskForm
             key={selectedTaskId || 'new-task'}
             mode={isCreatingNewTask ? 'create' : 'edit'}
-            initialData={isCreatingNewTask ? { title: '', status: 'pending', repeat: 'none', timeInfo: {type: 'no_time'}, artifactLink: {type: 'none'}, reminderInfo: {type: 'none'}} : selectedTask}
-            onSubmit={async (data) => {
-              setIsSubmittingForm(true);
-              try {
-                if (isCreatingNewTask) {
-                  await addTaskInContext(data); 
-                  toast({ title: t('success'), description: t('toast.task.created') });
-                  setIsCreatingNewTask(false); 
-                } else if (selectedTask) {
-                  await updateTaskInContext(selectedTask.id, data);
-                  toast({ title: t('success'), description: t('toast.task.updated') });
-                }
-                setSelectedTaskId(null); 
-              } catch (error) {
-                toast({ title: t('error'), description: t('toast.task.error.save'), variant: "destructive" });
-              } finally {
-                setIsSubmittingForm(false);
-              }
-            }}
+            initialData={isCreatingNewTask ? { title: '', repeat: 'none', timeInfo: {type: 'no_time'}, artifactLink: { flashcardId: null, urlValue: null }, reminderInfo: {type: 'none'}} : selectedTask}
+            onSubmit={handleMainFormSubmit}
             isLoading={isSubmittingForm}
             onCancel={handleCancelEdit}
+            onIntermediateSave={handleIntermediateFormSave}
           />
         </div>
       )}

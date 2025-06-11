@@ -313,7 +313,6 @@ export default {
   'task.form.placeholder.title': 'Enter task title...',
   'task.form.label.description': 'Description (Optional)',
   'task.form.placeholder.description': 'Enter task description...',
-  // 'task.form.label.status': 'Status', // Removed
   'task.form.label.repeat': 'Repeat',
   'task.form.repeat.none': 'None',
   'task.form.repeat.daily': 'Daily',
@@ -342,8 +341,7 @@ export default {
   'task.form.timeInfo.selectTimeButton': 'Select Time...',
   'task.form.timeInfo.setTimeButton': 'Set Time',
   'task.form.timeInfo.removeTimeButton': 'Remove Time',
-  'task.form.label.artifactLink': 'Artifact Link',
-  'task.form.artifactLink.type': 'Link Type',
+  'task.form.label.artifactLink.sectionTitle': 'Artifact Link',
   'task.form.artifactLink.type.none': 'None',
   'task.form.artifactLink.type.flashcard': 'Link to Flashcard',
   'task.form.artifactLink.type.url': 'Link to URL',
@@ -356,6 +354,16 @@ export default {
   'task.form.error.artifactLink.invalidUrl': 'Invalid URL format.',
   'task.form.label.linkTitle': 'Link Title (Optional)',
   'task.form.placeholder.linkTitle': 'e.g., Review notes or Flashcard topic',
+  'task.form.artifactLink.loadingFlashcard': 'Loading flashcard...',
+  'task.form.artifactLink.flashcardNotFound': 'Flashcard not found.',
+  'task.form.artifactLink.flashcardPrefix': 'Flashcard:',
+  'task.form.artifactLink.urlPrefix': 'URL:',
+  'task.form.artifactLink.button.newFlashcard': 'New Flashcard',
+  'task.form.artifactLink.button.selectFlashcard': 'Select Flashcard',
+  'task.form.artifactLink.button.addUrl': 'Add URL',
+  'task.form.artifactLink.button.editUrl': 'Edit URL',
+  'task.form.artifactLink.button.changeFlashcard': 'Change',
+  'task.form.artifactLink.button.removeLink': 'Remove',
   'task.form.label.reminder': 'Reminder',
   'task.form.reminder.type.none': 'None',
   'task.form.reminder.type.at_event_time': 'At time of event',
@@ -412,4 +420,3 @@ export default {
   'error': 'Error',
 
 } as const;
-

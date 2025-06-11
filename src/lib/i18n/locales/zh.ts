@@ -313,7 +313,6 @@ export default {
   'task.form.placeholder.title': '输入任务标题...',
   'task.form.label.description': '描述 (可选)',
   'task.form.placeholder.description': '输入任务描述...',
-  // 'task.form.label.status': '状态', // Removed
   'task.form.label.repeat': '重复',
   'task.form.repeat.none': '无',
   'task.form.repeat.daily': '每日',
@@ -342,8 +341,7 @@ export default {
   'task.form.timeInfo.selectTimeButton': '选择时间...',
   'task.form.timeInfo.setTimeButton': '设置时间',
   'task.form.timeInfo.removeTimeButton': '移除时间',
-  'task.form.label.artifactLink': '工件链接',
-  'task.form.artifactLink.type': '链接类型',
+  'task.form.label.artifactLink.sectionTitle': '工件链接',
   'task.form.artifactLink.type.none': '无',
   'task.form.artifactLink.type.flashcard': '链接到抽认卡',
   'task.form.artifactLink.type.url': '链接到 URL',
@@ -356,6 +354,16 @@ export default {
   'task.form.error.artifactLink.invalidUrl': 'URL 格式无效。',
   'task.form.label.linkTitle': '链接标题 (可选)',
   'task.form.placeholder.linkTitle': '例如, 复习笔记或抽认卡主题',
+  'task.form.artifactLink.loadingFlashcard': '加载抽认卡中...',
+  'task.form.artifactLink.flashcardNotFound': '未找到抽认卡。',
+  'task.form.artifactLink.flashcardPrefix': '抽认卡:',
+  'task.form.artifactLink.urlPrefix': '网址:',
+  'task.form.artifactLink.button.newFlashcard': '新建抽认卡',
+  'task.form.artifactLink.button.selectFlashcard': '选择抽认卡',
+  'task.form.artifactLink.button.addUrl': '添加网址',
+  'task.form.artifactLink.button.editUrl': '编辑网址',
+  'task.form.artifactLink.button.changeFlashcard': '更改',
+  'task.form.artifactLink.button.removeLink': '移除',
   'task.form.label.reminder': '提醒',
   'task.form.reminder.type.none': '无',
   'task.form.reminder.type.at_event_time': '事件发生时',
@@ -398,6 +406,7 @@ export default {
   'task.pomodoroStartedFor': '任务番茄钟已启动: {title}',
   'task.currentTaskLabel': '当前任务:',
 
+
   // Notifications (General)
   'notifications.enabled.title': '通知已启用',
   'notifications.enabled.description': '您现在将收到番茄钟会话的通知。',
@@ -411,4 +420,3 @@ export default {
   'error': '错误',
 
 } as const;
-

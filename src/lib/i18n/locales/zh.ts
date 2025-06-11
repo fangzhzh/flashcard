@@ -4,6 +4,7 @@ export default {
   // Header
   'header.title': '闪流',
   'nav.pomodoro': '番茄钟', 
+  'nav.tasks': '任务', // Added Tasks
   'nav.flashcards': '抽认卡', 
   'nav.decks': '卡组', 
   'nav.manage': '管理卡片', 
@@ -70,7 +71,6 @@ export default {
   'auth/requires-recent-login': '此操作较为敏感，需要近期进行身份验证。请重新登录。',
   'auth/unauthorized-continue-uri': '无法处理登录链接。请确保该域名已在 Firebase 项目设置中列入白名单。',
 
-
   // Metadata
   'metadata.title': '闪流',
   'metadata.description': '通过 AI 驱动的抽认卡和番茄工作法掌握您的学习。',
@@ -86,7 +86,6 @@ export default {
   'flashcards.dashboard.howTo.step2': '定期复习你的卡片。该应用程序使用智能算法来安排复习。',
   'flashcards.dashboard.howTo.step3': '在仪表板上跟踪你的进度，看看你掌握了多少张卡片！',
   'flashcards.dashboard.howTo.step4': '将您的卡片整理到卡组中以便集中学习。',
-
 
   // Progress Dashboard Component (src/components/ProgressDashboard.tsx)
   'progress.total': '总卡片数',
@@ -125,7 +124,7 @@ export default {
   'toast.deck.error.nameRequired': '卡组名称不能为空。',
 
   // Flashcards Page (src/app/[locale]/flashcards/page.tsx & FlashcardListClient.tsx)
-  'flashcards.title': '你的抽认卡', // Fallback title
+  'flashcards.title': '你的抽认卡', 
   'flashcards.list.title.all': '你的抽认卡',
   'flashcards.list.title.deck': '卡组 "{deckName}" 中的卡片',
   'flashcards.button.create': '创建新卡片',
@@ -137,7 +136,6 @@ export default {
   'flashcards.list.empty.deck.notFound.title': '未找到卡组',
   'flashcards.list.empty.deck.notFound.description': '无法找到所选卡组或该卡组不存在。',
   'flashcards.list.backToDecks': '返回卡组列表',
-
 
   // Flashcard Item (src/components/FlashcardItem.tsx)
   'flashcard.item.deckLabel': '卡组',
@@ -152,7 +150,6 @@ export default {
   'flashcard.item.delete.confirm.delete': '删除',
   'flashcard.item.speakFront': '朗读正面内容',
   'flashcard.item.speakBack': '朗读背面内容',
-
 
   // Flashcard Form Page (src/components/FlashcardFormPage.tsx)
   'flashcard.form.page.button.back': '返回',
@@ -267,7 +264,6 @@ export default {
   'pomodoro.break.dialog.description': '选择您希望如何度过5分钟的休息时间。',
   'pomodoro.break.dialog.button.skip': '跳过休息',
   'pomodoro.break.dialog.button.startRest': '开始 {duration} 分钟休息',
-
   'pomodoro.break.option.stretch': '伸懒腰',
   'pomodoro.break.benefit.stretch': '促进血液循环，增加氧气供应，活动筋骨，防止脊柱弯曲。',
   'pomodoro.break.option.deepBreath': '深呼吸',
@@ -295,6 +291,39 @@ export default {
   'pomodoro.break.option.ritualRest': '进入式休息',
   'pomodoro.break.benefit.ritualRest': '通过白噪音或深呼吸冥想2分钟，用"仪式感"切断大脑回路。',
 
+  // Task Management
+  'tasks.title': '你的任务',
+  'tasks.button.create': '创建新任务',
+  'tasks.list.loading': '加载任务中...',
+  'tasks.list.empty.title': '还没有任务!',
+  'tasks.list.empty.description': '您还没有创建任何任务。点击“创建新任务”添加一个吧。',
+  'task.item.edit': '编辑任务',
+  'task.item.delete': '删除任务',
+  'task.item.delete.confirm.title': '删除任务？',
+  'task.item.delete.confirm.description': '此操作无法撤销。这将永久删除此任务。',
+  'task.item.status.pending': '待处理',
+  'task.item.status.in_progress': '进行中',
+  'task.item.status.completed': '已完成',
+  'task.form.page.title.create': '创建新任务',
+  'task.form.page.title.edit': '编辑任务',
+  'task.form.title.create': '创建新任务',
+  'task.form.title.edit': '编辑任务',
+  'task.form.label.title': '标题',
+  'task.form.placeholder.title': '输入任务标题...',
+  'task.form.label.description': '描述 (可选)',
+  'task.form.placeholder.description': '输入任务描述...',
+  'task.form.label.status': '状态',
+  'task.form.button.create': '创建任务',
+  'task.form.button.update': '更新任务',
+  'task.form.button.saving': '保存中...',
+  'toast.task.created': '任务创建成功。',
+  'toast.task.updated': '任务更新成功。',
+  'toast.task.deleted': '任务删除成功。',
+  'toast.task.error.load': '加载任务失败。',
+  'toast.task.error.save': '保存任务失败。',
+  'toast.task.error.delete': '删除任务失败。',
+  'toast.task.error.titleRequired': '任务标题不能为空。',
+  'toast.task.notFound': '未找到任务。',
 
   // Notifications (General)
   'notifications.enabled.title': '通知已启用',
@@ -309,5 +338,3 @@ export default {
   'error': '错误',
 
 } as const;
-
-    

@@ -25,24 +25,52 @@ export interface Flashcard {
 
 export type PerformanceRating = 'Mastered' | 'Later' | 'Try Again';
 
-// This interface represents the structure of items in flashcard.json
 export interface FlashcardSourceDataItem {
   question: string;
   answer: string;
   [key: string]: any;
 }
 
-// Simplified user type for AuthContext
 export type AppUser = Pick<FirebaseUser, 'uid' | 'displayName' | 'email' | 'photoURL'> | null;
 
-// State for the Pomodoro timer, to be stored in Firestore
 export interface PomodoroSessionState {
   userId: string;
   status: 'running' | 'paused' | 'idle';
-  targetEndTime: number | null; // Unix timestamp (ms) or null if idle
-  pausedTimeLeftSeconds: number | null; // Seconds remaining when paused
-  currentSessionInitialDurationMinutes: number; // Duration set when the current/last session started
-  userPreferredDurationMinutes: number; // User's default duration for new sessions
+  targetEndTime: number | null; 
+  pausedTimeLeftSeconds: number | null; 
+  currentSessionInitialDurationMinutes: number; 
+  userPreferredDurationMinutes: number; 
   notes: string;
-  updatedAt: any; // Firestore serverTimestamp for the last update to this state
+  updatedAt: any; 
+}
+
+// Task Management Types
+export type TaskStatus = 'pending' | 'in_progress' | 'completed';
+export type RepeatFrequency = 'none' | 'daily' | 'weekly' | 'monthly' | 'annually';
+
+export interface TimeInfo {
+  type: 'no_time' | 'datetime' | 'all_day' | 'date_range';
+  startDate?: string | null; // ISO Date string: YYYY-MM-DD
+  endDate?: string | null;   // ISO Date string: YYYY-MM-DD, for date_range
+  time?: string | null;      // HH:mm format, for datetime
+}
+
+export interface ArtifactLink {
+  type: 'none' | 'flashcard' | 'url';
+  flashcardId?: string | null;
+  linkTitle?: string | null; 
+  urlValue?: string | null;
+}
+
+export interface Task {
+  id: string;
+  userId: string;
+  title: string;
+  description?: string | null;
+  status: TaskStatus;
+  repeat: RepeatFrequency;
+  timeInfo: TimeInfo;
+  artifactLink: ArtifactLink;
+  createdAt: string; 
+  updatedAt: string; 
 }

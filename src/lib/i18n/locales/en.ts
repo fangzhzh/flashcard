@@ -4,6 +4,7 @@ export default {
   // Header
   'header.title': 'FlashFlow',
   'nav.pomodoro': 'Pomodoro', 
+  'nav.tasks': 'Tasks', // Added Tasks
   'nav.flashcards': 'Flashcards', 
   'nav.decks': 'Decks', 
   'nav.manage': 'Manage Cards', 
@@ -70,7 +71,6 @@ export default {
   'auth/requires-recent-login': 'This operation is sensitive and requires recent authentication. Please sign in again.',
   'auth/unauthorized-continue-uri': 'Sign-in link cannot be processed. Ensure the domain is whitelisted in Firebase project settings.',
 
-
   // Metadata
   'metadata.title': 'FlashFlow',
   'metadata.description': 'Master your studies with AI-powered flashcards and Pomodoro timer.',
@@ -86,7 +86,6 @@ export default {
   'flashcards.dashboard.howTo.step2': 'Review your cards regularly. The app uses a smart algorithm to schedule reviews.',
   'flashcards.dashboard.howTo.step3': "Track your progress on the dashboard and see how many cards you've mastered!",
   'flashcards.dashboard.howTo.step4': 'Organize your cards into Decks for focused study.',
-
 
   // Progress Dashboard Component (src/components/ProgressDashboard.tsx)
   'progress.total': 'Total Cards',
@@ -124,9 +123,8 @@ export default {
   'toast.deck.error.delete': 'Failed to delete deck.',
   'toast.deck.error.nameRequired': 'Deck name cannot be empty.',
 
-
   // Flashcards Page (src/app/[locale]/flashcards/page.tsx & FlashcardListClient.tsx) 
-  'flashcards.title': 'Your Flashcards', // Fallback title, client uses more specific ones
+  'flashcards.title': 'Your Flashcards', 
   'flashcards.list.title.all': 'Your Flashcards',
   'flashcards.list.title.deck': 'Cards in "{deckName}"',
   'flashcards.button.create': 'Create New Card',
@@ -138,7 +136,6 @@ export default {
   'flashcards.list.empty.deck.notFound.title': 'Deck Not Found',
   'flashcards.list.empty.deck.notFound.description': 'The selected deck could not be found or does not exist.',
   'flashcards.list.backToDecks': 'Back to Decks List',
-
 
   // Flashcard Item (src/components/FlashcardItem.tsx)
   'flashcard.item.deckLabel': 'Deck',
@@ -153,7 +150,6 @@ export default {
   'flashcard.item.delete.confirm.delete': 'Delete',
   'flashcard.item.speakFront': 'Speak front content',
   'flashcard.item.speakBack': 'Speak back content',
-
 
   // Flashcard Form Page (src/components/FlashcardFormPage.tsx)
   'flashcard.form.page.button.back': 'Back',
@@ -268,7 +264,6 @@ export default {
   'pomodoro.break.dialog.description': 'Select how you\'d like to spend your 5-minute break.',
   'pomodoro.break.dialog.button.skip': 'Skip Break',
   'pomodoro.break.dialog.button.startRest': 'Start {duration} min Rest',
-
   'pomodoro.break.option.stretch': 'Stretch',
   'pomodoro.break.benefit.stretch': 'Promotes blood circulation, increases oxygen supply, exercises muscles and bones, prevents spinal curvature.',
   'pomodoro.break.option.deepBreath': 'Deep Breath',
@@ -296,6 +291,39 @@ export default {
   'pomodoro.break.option.ritualRest': 'Ritual Rest',
   'pomodoro.break.benefit.ritualRest': 'Interrupt brain circuits with a "ritual" like 2 minutes of white noise or deep breathing meditation.',
 
+  // Task Management
+  'tasks.title': 'Your Tasks',
+  'tasks.button.create': 'Create New Task',
+  'tasks.list.loading': 'Loading your tasks...',
+  'tasks.list.empty.title': 'No Tasks Yet!',
+  'tasks.list.empty.description': 'You haven\'t created any tasks. Click "Create New Task" to add one.',
+  'task.item.edit': 'Edit Task',
+  'task.item.delete': 'Delete Task',
+  'task.item.delete.confirm.title': 'Delete Task?',
+  'task.item.delete.confirm.description': 'This action cannot be undone. This will permanently delete this task.',
+  'task.item.status.pending': 'Pending',
+  'task.item.status.in_progress': 'In Progress',
+  'task.item.status.completed': 'Completed',
+  'task.form.page.title.create': 'Create New Task',
+  'task.form.page.title.edit': 'Edit Task',
+  'task.form.title.create': 'Create New Task',
+  'task.form.title.edit': 'Edit Task',
+  'task.form.label.title': 'Title',
+  'task.form.placeholder.title': 'Enter task title...',
+  'task.form.label.description': 'Description (Optional)',
+  'task.form.placeholder.description': 'Enter task description...',
+  'task.form.label.status': 'Status',
+  'task.form.button.create': 'Create Task',
+  'task.form.button.update': 'Update Task',
+  'task.form.button.saving': 'Saving...',
+  'toast.task.created': 'Task created successfully.',
+  'toast.task.updated': 'Task updated successfully.',
+  'toast.task.deleted': 'Task deleted successfully.',
+  'toast.task.error.load': 'Failed to load tasks.',
+  'toast.task.error.save': 'Failed to save task.',
+  'toast.task.error.delete': 'Failed to delete task.',
+  'toast.task.error.titleRequired': 'Task title cannot be empty.',
+  'toast.task.notFound': 'Task not found.',
 
   // Notifications (General)
   'notifications.enabled.title': 'Notifications Enabled',
@@ -310,5 +338,3 @@ export default {
   'error': 'Error',
 
 } as const;
-
-    

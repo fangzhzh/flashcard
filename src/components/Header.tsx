@@ -1,7 +1,7 @@
 
 "use client";
 import Link from 'next/link';
-import { BookOpenText, LayoutDashboard, Timer, Languages, LogIn, LogOut, UserCircle, KeyRound } from 'lucide-react';
+import { BookOpenText, LayoutDashboard, Timer, Languages, LogIn, LogOut, UserCircle, KeyRound, ListChecks } from 'lucide-react'; // Added ListChecks
 import { ThemeToggle } from '@/components/ThemeToggle';
 import { usePathname } from 'next/navigation';
 import { cn } from '@/lib/utils';
@@ -28,6 +28,7 @@ export default function Header() {
 
   const navItems = [
     { href: '/', labelKey: 'nav.pomodoro', icon: Timer },
+    { href: '/tasks', labelKey: 'nav.tasks', icon: ListChecks }, // Added Tasks
     { href: '/flashcards-hub', labelKey: 'nav.flashcards', icon: LayoutDashboard },
   ];
 

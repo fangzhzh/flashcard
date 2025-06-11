@@ -55,7 +55,7 @@ const artifactLinkSchema = z.object({
   urlValue: z.string().url('task.form.error.artifactLink.invalidUrl').nullable().optional(),
 }).refine(data => !(data.flashcardId && data.urlValue), {
   message: "task.form.error.artifactLink.multipleLinks",
-  path: ["flashcardId"], // Or path: ["urlValue"] or a general path
+  path: ["flashcardId"], 
 });
 
 const reminderInfoSchema = z.object({
@@ -129,14 +129,13 @@ export default function TaskForm({
   const [isSubmittingEditedFlashcard, setIsSubmittingEditedFlashcard] = React.useState(false);
 
   const [isSelectFlashcardDialogOpen, setIsSelectFlashcardDialogOpen] = React.useState(false);
-  // flashcardSearchTerm is now managed inside SelectFlashcardDialog
 
   React.useEffect(() => {
     const fetchCard = async () => {
         if (watchedArtifactLink?.flashcardId) {
             setIsFetchingFlashcard(true);
             const card = getFlashcardById(watchedArtifactLink.flashcardId);
-            setLinkedFlashcard(card || null); // Set to null if card not found
+            setLinkedFlashcard(card || null); 
             setIsFetchingFlashcard(false);
         } else {
             setLinkedFlashcard(null);
@@ -243,7 +242,7 @@ export default function TaskForm({
         if (success) {
             form.setValue('artifactLink', clearedArtifactLink);
             setLinkedFlashcard(null);
-            setEditingFlashcardData(null); // Clear editing data if any
+            setEditingFlashcardData(null); 
             toast({ title: t('success'), description: t('toast.task.linkRemovedAndTaskUpdated') });
         } else {
             toast({ title: t('error'), description: t('toast.task.error.intermediateSaveFailed'), variant: 'destructive' });
@@ -292,7 +291,6 @@ export default function TaskForm({
     try {
       await updateFlashcard(editingFlashcardData.id, data);
       toast({ title: t('success'), description: t('toast.flashcard.updated') });
-      // Re-fetch or update local linkedFlashcard state if title might have changed
       const updatedCard = getFlashcardById(editingFlashcardData.id);
       if (updatedCard) {
         setLinkedFlashcard(updatedCard);
@@ -629,7 +627,6 @@ export default function TaskForm({
         </div>
       </form>
 
-      {/* Edit Linked Flashcard Dialog */}
       {editingFlashcardData && (
         <Dialog open={isEditFlashcardDialogOpen} onOpenChange={(open) => {
           setIsEditFlashcardDialogOpen(open);
@@ -652,7 +649,6 @@ export default function TaskForm({
         </Dialog>
       )}
 
-      {/* Select Flashcard Dialog */}
       <SelectFlashcardDialog
         isOpen={isSelectFlashcardDialogOpen}
         onOpenChange={setIsSelectFlashcardDialogOpen}
@@ -688,13 +684,13 @@ function SelectFlashcardDialog({
     if (!searchTerm.trim()) {
       return [...allFlashcards]
         .sort((a, b) => (new Date(b.createdAt || 0).getTime()) - (new Date(a.createdAt || 0).getTime()))
-        .slice(0, 10); // Show latest 10 if no search term
+        .slice(0, 10); 
     }
     return allFlashcards.filter(
       (card) =>
         card.front.toLowerCase().includes(searchTerm.toLowerCase()) ||
         card.back.toLowerCase().includes(searchTerm.toLowerCase())
-    ).slice(0, 20); // Limit search results
+    ).slice(0, 20); 
   }, [allFlashcards, searchTerm]);
 
   return (
@@ -715,7 +711,7 @@ function SelectFlashcardDialog({
             />
           </div>
           <ScrollArea className="h-[300px] w-full">
-            {isLoadingDecks && searchTerm === '' ? ( // Show loader only on initial load without search
+            {isLoadingDecks && searchTerm === '' ? ( 
               <div className="flex justify-center items-center h-full">
                 <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
               </div>
@@ -732,10 +728,10 @@ function SelectFlashcardDialog({
                     className="w-full justify-start text-left h-auto py-2"
                     onClick={() => {
                       onSelect(card.id);
-                      onOpenChange(false); // Close dialog on selection
+                      onOpenChange(false); 
                     }}
                   >
-                    <div className="flex flex-col overflow-hidden">
+                    <div className="flex flex-col min-w-0 overflow-hidden">
                       <span className="font-medium truncate" title={card.front}>{card.front}</span>
                       <span className="text-xs text-muted-foreground truncate" title={card.back}>{card.back}</span>
                     </div>
@@ -754,3 +750,4 @@ function SelectFlashcardDialog({
     </Dialog>
   );
 }
+

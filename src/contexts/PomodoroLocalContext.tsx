@@ -1,6 +1,6 @@
 
 "use client";
-import type { PomodoroSessionState as PomodoroStateStructure } from '@/types'; // Renaming to avoid conflict if used locally
+import type { PomodoroSessionState as PomodoroStateStructure } from '@/types';
 import React, { createContext, useContext, useState, useEffect, ReactNode, useCallback, useRef } from 'react';
 import { useToast } from '@/hooks/use-toast';
 import { useI18n } from '@/lib/i18n/client';
@@ -16,13 +16,12 @@ interface LocalPomodoroSessionState extends Omit<PomodoroStateStructure, 'userId
 interface PomodoroLocalContextType {
   sessionState: LocalPomodoroSessionState;
   timeLeftSeconds: number;
-  startPomodoro: (durationMinutes: number, taskTitle?: string) => Promise<void>; // Added taskTitle
+  startPomodoro: (durationMinutes: number, taskTitle?: string) => Promise<void>;
   pausePomodoro: () => Promise<void>;
   continuePomodoro: () => Promise<void>;
   giveUpPomodoro: () => Promise<void>;
   updateUserPreferredDuration: (minutes: number) => Promise<void>;
   updateNotes: (text: string) => Promise<void>;
-
   isBreakDialogOpen: boolean;
   setIsBreakDialogOpen: React.Dispatch<React.SetStateAction<boolean>>;
   handleStartRestPeriod: (selectedOptionId: string) => void;
@@ -50,7 +49,6 @@ export const PomodoroLocalProvider = ({ children }: { children: ReactNode }) => 
 
   const [sessionState, setSessionState] = useState<LocalPomodoroSessionState>(initialSessionState);
   const [timeLeftSeconds, setTimeLeftSeconds] = useState(DEFAULT_POMODORO_MINUTES * 60);
-
   const pomodoroIntervalRef = useRef<NodeJS.Timeout | null>(null);
 
   const [originalTitle, setOriginalTitle] = useState('');
@@ -396,3 +394,5 @@ export const usePomodoroLocal = () => {
   }
   return context;
 };
+
+    

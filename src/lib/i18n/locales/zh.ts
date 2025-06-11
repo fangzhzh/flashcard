@@ -299,6 +299,7 @@ export default {
   'tasks.list.empty.description': '您还没有创建任何任务。点击“创建新任务”添加一个吧。',
   'task.item.edit': '编辑任务',
   'task.item.delete': '删除任务',
+  'task.item.startPomodoro': '为此任务启动番茄钟',
   'task.item.delete.confirm.title': '删除任务？',
   'task.item.delete.confirm.description': '此操作无法撤销。这将永久删除此任务。',
   'task.item.status.pending': '待处理',
@@ -319,7 +320,7 @@ export default {
   'task.form.repeat.weekly': '每周',
   'task.form.repeat.monthly': '每月',
   'task.form.repeat.annually': '每年',
-  'task.form.label.timeInfo': '时间信息',
+  'task.form.label.timeInfo': '时间',
   'task.form.timeInfo.type': '类型',
   'task.form.timeInfo.type.no_time': '无特定时间',
   'task.form.timeInfo.type.datetime': '特定日期和时间',
@@ -336,6 +337,9 @@ export default {
   'task.form.error.timeInfo.endDateRequired': '日期范围需要结束日期。',
   'task.form.error.timeInfo.timeRequired': '特定日期和时间需要时间。',
   'task.form.error.timeInfo.invalidTime': '无效的时间格式。请使用 HH:MM。',
+  'task.form.timeInfo.selectTimeButton': '选择时间...',
+  'task.form.timeInfo.setTimeButton': '设置时间',
+  'task.form.timeInfo.removeTimeButton': '移除时间',
   'task.form.label.artifactLink': '工件链接',
   'task.form.artifactLink.type': '链接类型',
   'task.form.artifactLink.type.none': '无',
@@ -370,6 +374,15 @@ export default {
   'toast.task.error.delete': '删除任务失败。',
   'toast.task.error.titleRequired': '任务标题不能为空。',
   'toast.task.notFound': '未找到任务。',
+  'task.display.today': '今天',
+  'task.display.tomorrow': '明天',
+  'task.display.at': '于',
+  'task.display.ends': '结束于',
+  'task.display.overdue': '已过期',
+  'task.display.started': '已开始',
+  'task.display.startsToday': '今日开始',
+  'task.display.inXDays': '{count}天内',
+  'task.display.endsInXDays': '{count}天后结束',
   'task.display.due': '截止于',
   'task.display.allDay': '全天',
   'task.display.on': '于',
@@ -378,6 +391,8 @@ export default {
   'task.display.artifact.flashcard': '抽认卡: {title}',
   'task.display.artifact.url': '链接: {title}',
   'task.display.noTime': '无特定时间',
+  'task.pomodoroStartedFor': '任务番茄钟已启动: {title}',
+  'task.currentTaskLabel': '当前任务:',
 
 
   // Notifications (General)
@@ -393,3 +408,4 @@ export default {
   'error': '错误',
 
 } as const;
+

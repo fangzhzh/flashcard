@@ -7,56 +7,58 @@ import * as z from 'zod';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
-import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage, FormDescription } from '@/components/ui/form';
+import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form'; // Removed FormDescription
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Calendar } from "@/components/ui/calendar";
 import type { Task, TaskStatus, RepeatFrequency, TimeInfo, ArtifactLink, ReminderInfo, ReminderType } from '@/types';
-import { Card, CardContent, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
-import { Save, CalendarIcon, Link2, Tags, RotateCcw, Clock, Bell, Trash2 } from 'lucide-react';
+import { Save, CalendarIcon, Link2, RotateCcw, Clock, Bell, Trash2, X } from 'lucide-react'; // Added X for cancel button
 import { useI18n } from '@/lib/i18n/client';
 import { cn } from '@/lib/utils';
-import { format, parseISO, isValid, differenceInCalendarDays, isToday, isTomorrow } from 'date-fns';
+import { format, parseISO, isValid } from 'date-fns';
 
-const timeInfoSchema = z.discriminatedUnion("type", [
-  z.object({ type: z.literal("no_time") }),
-  z.object({
-    type: z.literal("datetime"),
-    startDate: z.string().min(1, 'task.form.error.timeInfo.startDateRequired'),
-    time: z.string().regex(/^([01]\d|2[0-3]):([0-5]\d)$/, 'task.form.error.timeInfo.invalidTime').min(1, 'task.form.error.timeInfo.timeRequired'),
-  }),
-  z.object({
-    type: z.literal("all_day"),
-    startDate: z.string().min(1, 'task.form.error.timeInfo.startDateRequired'),
-  }),
-  z.object({
-    type: z.literal("date_range"),
-    startDate: z.string().min(1, 'task.form.error.timeInfo.startDateRequired'),
-    endDate: z.string().min(1, 'task.form.error.timeInfo.endDateRequired'),
-  }),
-]).refine(data => {
+// Adjusted Zod schema for timeInfo and artifactLink to better match the simplified form logic
+const timeInfoSchema = z.object({
+  type: z.enum(['no_time', 'datetime', 'all_day', 'date_range']).default('no_time'),
+  startDate: z.string().nullable().optional(),
+  endDate: z.string().nullable().optional(),
+  time: z.string().regex(/^([01]\d|2[0-3]):([0-5]\d)$/, 'task.form.error.timeInfo.invalidTime').nullable().optional(),
+}).refine(data => {
   if (data.type === 'date_range' && data.startDate && data.endDate) {
     return new Date(data.endDate) >= new Date(data.startDate);
   }
+  if (data.type === 'datetime' && !data.startDate) return false; // Start date required for datetime
+  if (data.type === 'all_day' && !data.startDate) return false; // Start date required for all_day
+  if (data.type === 'date_range' && (!data.startDate || !data.endDate)) return false; // Both required for date_range
   return true;
-}, {
-  message: 'task.form.error.timeInfo.endDateAfterStartDate',
-  path: ["endDate"],
+}, (data) => {
+    if (data.type === 'date_range' && data.startDate && data.endDate && new Date(data.endDate) < new Date(data.startDate)) {
+        return { message: 'task.form.error.timeInfo.endDateAfterStartDate', path: ["endDate"] };
+    }
+    if ((data.type === 'datetime' || data.type === 'all_day') && !data.startDate) {
+        return { message: 'task.form.error.timeInfo.startDateRequired', path: ["startDate"] };
+    }
+    if (data.type === 'date_range' && (!data.startDate || !data.endDate)) {
+        return { message: 'task.form.error.timeInfo.dateRangeFieldsRequired', path: ["startDate"] }; // Or a more general path
+    }
+    return { message: 'Invalid time configuration' }; // Fallback, should be caught by specific checks
 });
+
 
 const artifactLinkSchema = z.discriminatedUnion("type", [
   z.object({ type: z.literal("none") }),
   z.object({
     type: z.literal("flashcard"),
-    flashcardId: z.string().min(1, 'task.form.error.artifactLink.flashcardIdRequired'),
-    linkTitle: z.string().optional().nullable(),
+    flashcardId: z.string().min(1, 'task.form.error.artifactLink.flashcardIdRequired').nullable().optional(),
+    linkTitle: z.string().nullable().optional(),
   }),
   z.object({
     type: z.literal("url"),
-    urlValue: z.string().url('task.form.error.artifactLink.invalidUrl').min(1, 'task.form.error.artifactLink.urlRequired'),
-    linkTitle: z.string().optional().nullable(),
+    urlValue: z.string().url('task.form.error.artifactLink.invalidUrl').min(1, 'task.form.error.artifactLink.urlRequired').nullable().optional(),
+    linkTitle: z.string().nullable().optional(),
   }),
-]);
+]).default({ type: 'none' });
+
 
 const reminderInfoSchema = z.object({
   type: z.enum(['none', 'at_event_time', '5_minutes_before', '10_minutes_before', '15_minutes_before', '30_minutes_before', '1_hour_before', '1_day_before']).default('none'),
@@ -65,10 +67,10 @@ const reminderInfoSchema = z.object({
 const taskSchema = z.object({
   title: z.string().min(1, 'toast.task.error.titleRequired'),
   description: z.string().optional().nullable(),
-  status: z.enum(['pending', 'in_progress', 'completed']),
+  status: z.enum(['pending', 'in_progress', 'completed']).default('pending'),
   repeat: z.enum(['none', 'daily', 'weekly', 'monthly', 'annually']).default('none'),
-  timeInfo: timeInfoSchema.default({ type: 'no_time' }),
-  artifactLink: artifactLinkSchema.default({ type: 'none' }),
+  timeInfo: timeInfoSchema,
+  artifactLink: artifactLinkSchema,
   reminderInfo: reminderInfoSchema.default({ type: 'none' }),
 });
 
@@ -97,35 +99,54 @@ export default function TaskForm({
       description: initialData?.description || '',
       status: initialData?.status || 'pending',
       repeat: initialData?.repeat || 'none',
-      timeInfo: initialData?.timeInfo || { type: 'no_time' },
+      timeInfo: initialData?.timeInfo || { type: 'no_time', startDate: null, endDate: null, time: null },
       artifactLink: initialData?.artifactLink || { type: 'none' },
       reminderInfo: initialData?.reminderInfo || { type: 'none' },
     },
   });
 
-  const watchedTimeInfoType = useWatch({ control: form.control, name: "timeInfo.type" });
   const watchedArtifactLinkType = useWatch({ control: form.control, name: "artifactLink.type" });
   const [isTimeSectionOpen, setIsTimeSectionOpen] = React.useState(false);
+  
+  const [tempStartDate, setTempStartDate] = React.useState<Date | undefined>(
+    initialData?.timeInfo?.startDate ? parseISO(initialData.timeInfo.startDate) : undefined
+  );
+  const [tempTime, setTempTime] = React.useState<string>(initialData?.timeInfo?.time || '');
+  const [tempEndDate, setTempEndDate] = React.useState<Date | undefined>(
+    initialData?.timeInfo?.endDate ? parseISO(initialData.timeInfo.endDate) : undefined
+  );
+
 
   React.useEffect(() => {
     if (initialData) {
+      const defaultTimeInfo = initialData.timeInfo || { type: 'no_time', startDate: null, endDate: null, time: null };
       form.reset({
         title: initialData.title || '',
         description: initialData.description || '',
         status: initialData.status || 'pending',
         repeat: initialData.repeat || 'none',
-        timeInfo: initialData.timeInfo || { type: 'no_time' },
+        timeInfo: defaultTimeInfo,
         artifactLink: initialData.artifactLink || { type: 'none' },
         reminderInfo: initialData.reminderInfo || { type: 'none' },
       });
-      // Open time section if initial data has specific time info
-      if (initialData.timeInfo && initialData.timeInfo.type !== 'no_time') {
+      setTempStartDate(defaultTimeInfo.startDate ? parseISO(defaultTimeInfo.startDate) : undefined);
+      setTempTime(defaultTimeInfo.time || '');
+      setTempEndDate(defaultTimeInfo.endDate ? parseISO(defaultTimeInfo.endDate) : undefined);
+      
+      if (defaultTimeInfo.type !== 'no_time') {
         setIsTimeSectionOpen(true);
       } else {
         setIsTimeSectionOpen(false);
       }
+    } else {
+        // For create mode, ensure temp states are also reset
+        setTempStartDate(undefined);
+        setTempTime('');
+        setTempEndDate(undefined);
+        setIsTimeSectionOpen(false);
     }
   }, [initialData, form.reset]);
+
 
   const taskStatusOptions: { value: TaskStatus; labelKey: string }[] = [
     { value: 'pending', labelKey: 'task.item.status.pending' },
@@ -158,324 +179,319 @@ export default function TaskForm({
     { value: 'url', labelKey: 'task.form.artifactLink.type.url'},
   ];
 
-  const handleSetTimeInfo = (startDate: string | null, startTime: string | null, endDate: string | null) => {
-    if (!startDate) {
-      form.setValue('timeInfo', { type: 'no_time' });
-    } else if (startDate && !startTime && !endDate) {
-      form.setValue('timeInfo', { type: 'all_day', startDate });
-    } else if (startDate && startTime && !endDate) {
-      form.setValue('timeInfo', { type: 'datetime', startDate, time: startTime });
-    } else if (startDate && endDate) { // startTime can be null for date_range
-      form.setValue('timeInfo', { type: 'date_range', startDate, endDate });
-    }
-    setIsTimeSectionOpen(false); // Close after setting
-  };
+  const handleSetTimeInfo = () => {
+    const startDateStr = tempStartDate ? format(tempStartDate, "yyyy-MM-dd") : null;
+    const endDateStr = tempEndDate ? format(tempEndDate, "yyyy-MM-dd") : null;
+    const timeStr = tempTime || null;
 
+    if (startDateStr && timeStr && !endDateStr) { // Datetime
+      form.setValue('timeInfo', { type: 'datetime', startDate: startDateStr, time: timeStr, endDate: null });
+    } else if (startDateStr && !timeStr && !endDateStr) { // All day
+      form.setValue('timeInfo', { type: 'all_day', startDate: startDateStr, time: null, endDate: null });
+    } else if (startDateStr && endDateStr) { // Date range
+       form.setValue('timeInfo', { type: 'date_range', startDate: startDateStr, endDate: endDateStr, time: timeStr }); // Store time if provided, could be used for start time of range
+    } else {
+      form.setValue('timeInfo', { type: 'no_time', startDate: null, endDate: null, time: null });
+    }
+    setIsTimeSectionOpen(false);
+  };
+  
   const removeTimeInfo = () => {
-    form.setValue('timeInfo', { type: 'no_time' });
-    form.setValue('timeInfo.startDate', null);
-    form.setValue('timeInfo.endDate', null);
-    form.setValue('timeInfo.time', null);
+    setTempStartDate(undefined);
+    setTempTime('');
+    setTempEndDate(undefined);
+    form.setValue('timeInfo', { type: 'no_time', startDate: null, endDate: null, time: null });
     setIsTimeSectionOpen(false);
   };
 
+  const getTimeDisplayValue = () => {
+    const currentTi = form.getValues("timeInfo");
+    if (!currentTi || currentTi.type === 'no_time' || !currentTi.startDate || !isValid(parseISO(currentTi.startDate))) {
+        return t('task.form.timeInfo.selectTimeButton');
+    }
+    const startDate = parseISO(currentTi.startDate);
+    if (currentTi.type === 'all_day') return `${t('task.form.timeInfo.type.all_day')} - ${format(startDate, 'PPP')}`;
+    if (currentTi.type === 'datetime' && currentTi.time) return `${format(startDate, 'PPP')} ${t('task.display.at')} ${currentTi.time}`;
+    if (currentTi.type === 'datetime') return `${format(startDate, 'PPP')} (${t('task.form.timeInfo.missingTime')})`;
+    if (currentTi.type === 'date_range' && currentTi.endDate && isValid(parseISO(currentTi.endDate))) {
+        const endDate = parseISO(currentTi.endDate);
+        return `${format(startDate, 'PP')} - ${format(endDate, 'PP')}`;
+    }
+    return t('task.form.timeInfo.selectTimeButton');
+  };
+
+
   return (
     <Form {...form}>
-      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6 p-1">
-        <FormField
-          control={form.control}
-          name="title"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel className="text-lg sr-only">{t('task.form.label.title')}</FormLabel>
-              <FormControl>
-                <Input placeholder={t('task.form.placeholder.title')} {...field} className="text-xl font-semibold border-0 shadow-none focus-visible:ring-0 focus-visible:ring-offset-0 px-0" />
-              </FormControl>
-              <FormMessage>{form.formState.errors.title && t(form.formState.errors.title.message as any)}</FormMessage>
-            </FormItem>
-          )}
-        />
+      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4 p-1 h-full flex flex-col">
+        <div className="flex-grow space-y-4 overflow-y-auto pr-2">
+            <FormField
+              control={form.control}
+              name="title"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel className="text-lg sr-only">{t('task.form.label.title')}</FormLabel>
+                  <FormControl>
+                    <Input placeholder={t('task.form.placeholder.title')} {...field} className="text-xl font-semibold border-0 shadow-none focus-visible:ring-0 focus-visible:ring-offset-0 px-0 h-auto py-1" />
+                  </FormControl>
+                  <FormMessage>{form.formState.errors.title && t(form.formState.errors.title.message as any)}</FormMessage>
+                </FormItem>
+              )}
+            />
 
-        {/* Time Section */}
-        <FormItem>
-          <FormLabel className="text-base flex items-center">
-            <Clock className="mr-2 h-5 w-5 text-muted-foreground" />
-            {t('task.form.label.timeInfo')}
-          </FormLabel>
-          {!isTimeSectionOpen && (
-            <Button variant="outline" onClick={() => setIsTimeSectionOpen(true)} className="w-full justify-start font-normal">
-              {form.getValues("timeInfo.type") === 'no_time' ? t('task.form.timeInfo.selectTimeButton') :
-               form.getValues("timeInfo.type") === 'all_day' ? `${t('task.form.timeInfo.type.all_day')} - ${format(parseISO(form.getValues("timeInfo.startDate")!), 'PPP')}` :
-               form.getValues("timeInfo.type") === 'datetime' ? `${format(parseISO(form.getValues("timeInfo.startDate")!), 'PPP')} ${t('task.display.on')} ${form.getValues("timeInfo.time")}` :
-               form.getValues("timeInfo.type") === 'date_range' ? `${format(parseISO(form.getValues("timeInfo.startDate")!), 'PP')} - ${format(parseISO(form.getValues("timeInfo.endDate")!), 'PP')}` :
-               t('task.form.timeInfo.selectTimeButton')
-              }
-            </Button>
-          )}
-          {isTimeSectionOpen && (
-            <Card className="p-4 space-y-3">
-              <FormField
-                control={form.control}
-                name="timeInfo.startDate"
-                render={({ field }) => (
-                  <FormItem className="flex flex-col">
+            <FormItem>
+              <FormLabel className="text-base flex items-center text-muted-foreground">
+                <Clock className="mr-2 h-4 w-4" />
+                {t('task.form.label.timeInfo')}
+              </FormLabel>
+              {!isTimeSectionOpen && (
+                <Button variant="outline" onClick={() => setIsTimeSectionOpen(true)} className="w-full justify-start font-normal text-sm h-9">
+                  {getTimeDisplayValue()}
+                </Button>
+              )}
+              {isTimeSectionOpen && (
+                <div className="p-3 border rounded-md space-y-3 text-sm">
+                  <FormItem>
                     <FormLabel>{t('task.form.label.startDate')}</FormLabel>
-                    <Popover>
+                     <Popover>
                       <PopoverTrigger asChild>
-                        <FormControl>
-                          <Button
-                            variant={"outline"}
-                            className={cn("w-full pl-3 text-left font-normal", !field.value && "text-muted-foreground")}
-                          >
-                            {field.value ? format(parseISO(field.value), "PPP") : <span>{t('task.form.placeholder.startDate')}</span>}
-                            <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
-                          </Button>
-                        </FormControl>
+                        <Button
+                          variant={"outline"}
+                          className={cn("w-full justify-start text-left font-normal h-9", !tempStartDate && "text-muted-foreground")}
+                        >
+                          <CalendarIcon className="mr-2 h-4 w-4" />
+                          {tempStartDate ? format(tempStartDate, "PPP") : <span>{t('task.form.placeholder.startDate')}</span>}
+                        </Button>
                       </PopoverTrigger>
-                      <PopoverContent className="w-auto p-0" align="start">
-                        <Calendar
-                          mode="single"
-                          selected={field.value ? parseISO(field.value) : undefined}
-                          onSelect={(date) => field.onChange(date ? format(date, "yyyy-MM-dd") : null)}
-                          initialFocus
-                        />
+                      <PopoverContent className="w-auto p-0">
+                        <Calendar mode="single" selected={tempStartDate} onSelect={setTempStartDate} initialFocus />
                       </PopoverContent>
                     </Popover>
-                    <FormMessage>{form.formState.errors.timeInfo?.startDate && t(form.formState.errors.timeInfo.startDate.message as any)}</FormMessage>
                   </FormItem>
-                )}
-              />
-              <FormField
-                control={form.control}
-                name="timeInfo.time"
-                render={({ field }) => (
                   <FormItem>
                     <FormLabel>{t('task.form.label.time')}</FormLabel>
-                    <FormControl>
-                      <Input type="time" {...field} value={field.value ?? ""} />
-                    </FormControl>
-                    <FormMessage>{form.formState.errors.timeInfo?.time && t(form.formState.errors.timeInfo.time.message as any)}</FormMessage>
+                    <Input type="time" value={tempTime} onChange={(e) => setTempTime(e.target.value)} className="h-9 text-sm" />
                   </FormItem>
-                )}
-              />
-              <FormField
-                control={form.control}
-                name="timeInfo.endDate"
-                render={({ field }) => (
-                  <FormItem className="flex flex-col">
+                  <FormItem>
                     <FormLabel>{t('task.form.label.endDate')}</FormLabel>
-                    <Popover>
+                     <Popover>
                       <PopoverTrigger asChild>
-                        <FormControl>
-                          <Button
-                            variant={"outline"}
-                            className={cn("w-full pl-3 text-left font-normal", !field.value && "text-muted-foreground")}
-                          >
-                            {field.value ? format(parseISO(field.value), "PPP") : <span>{t('task.form.placeholder.endDate')}</span>}
-                            <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
-                          </Button>
-                        </FormControl>
+                        <Button
+                          variant={"outline"}
+                          className={cn("w-full justify-start text-left font-normal h-9", !tempEndDate && "text-muted-foreground")}
+                        >
+                           <CalendarIcon className="mr-2 h-4 w-4" />
+                          {tempEndDate ? format(tempEndDate, "PPP") : <span>{t('task.form.placeholder.endDate')}</span>}
+                        </Button>
                       </PopoverTrigger>
-                      <PopoverContent className="w-auto p-0" align="start">
+                      <PopoverContent className="w-auto p-0">
                         <Calendar
-                          mode="single"
-                          selected={field.value ? parseISO(field.value) : undefined}
-                          onSelect={(date) => field.onChange(date ? format(date, "yyyy-MM-dd") : null)}
-                          disabled={(date) => {
-                              const startDate = form.getValues("timeInfo.startDate");
-                              return startDate ? date < parseISO(startDate) : false;
-                          }}
-                          initialFocus
+                            mode="single"
+                            selected={tempEndDate}
+                            onSelect={setTempEndDate}
+                            disabled={(date) => tempStartDate ? date < tempStartDate : false}
+                            initialFocus
                         />
                       </PopoverContent>
                     </Popover>
-                    <FormMessage>{form.formState.errors.timeInfo?.endDate && t(form.formState.errors.timeInfo.endDate.message as any)}</FormMessage>
                   </FormItem>
-                )}
-              />
-              <div className="flex justify-end gap-2">
-                <Button type="button" variant="ghost" onClick={removeTimeInfo} size="sm">
-                  <Trash2 className="mr-1 h-3 w-3"/> {t('task.form.timeInfo.removeTimeButton')}
-                </Button>
-                <Button type="button" onClick={() => {
-                    const { startDate, time, endDate } = form.getValues("timeInfo");
-                    if (startDate && !time && !endDate) handleSetTimeInfo(startDate, null, null); // All day
-                    else if (startDate && time && !endDate) handleSetTimeInfo(startDate, time, null); // Datetime
-                    else if (startDate && endDate) handleSetTimeInfo(startDate, time, endDate); // Date range (time might be used or ignored depending on strictness)
-                    else if (startDate) handleSetTimeInfo(startDate, null, null); // Fallback to all day if only start date
-                    else handleSetTimeInfo(null, null, null); // No time
-                  }}
-                  size="sm"
-                >
-                  {t('task.form.timeInfo.setTimeButton')}
-                </Button>
-              </div>
-            </Card>
-          )}
-          <FormMessage>{form.formState.errors.timeInfo?.root?.message && t(form.formState.errors.timeInfo.root.message as any)}</FormMessage>
-        </FormItem>
-
-        <FormField
-          control={form.control}
-          name="repeat"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel className="text-base flex items-center"><RotateCcw className="mr-2 h-5 w-5 text-muted-foreground" />{t('task.form.label.repeat')}</FormLabel>
-              <Select onValueChange={field.onChange} defaultValue={field.value}>
-                <FormControl>
-                  <SelectTrigger>
-                    <SelectValue placeholder={t('task.form.label.repeat')} />
-                  </SelectTrigger>
-                </FormControl>
-                <SelectContent>
-                  {repeatOptions.map(option => (
-                    <SelectItem key={option.value} value={option.value}>
-                      {t(option.labelKey as any)}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
-
-        <FormField
-          control={form.control}
-          name="reminderInfo.type"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel className="text-base flex items-center"><Bell className="mr-2 h-5 w-5 text-muted-foreground" />{t('task.form.label.reminder')}</FormLabel>
-              <Select onValueChange={field.onChange} defaultValue={field.value}>
-                <FormControl>
-                  <SelectTrigger>
-                    <SelectValue placeholder={t('task.form.label.reminder')} />
-                  </SelectTrigger>
-                </FormControl>
-                <SelectContent>
-                  {reminderOptions.map(option => (
-                    <SelectItem key={option.value} value={option.value}>
-                      {t(option.labelKey as any)}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
-
-        <FormField
-          control={form.control}
-          name="description"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel className="text-base">{t('task.form.label.description')}</FormLabel>
-              <FormControl>
-                <Textarea placeholder={t('task.form.placeholder.description')} {...field} value={field.value ?? ''} className="min-h-[100px]" />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
-
-        {/* Artifact Link Section - Kept compact */}
-        <details className="group">
-            <summary className="text-base flex items-center cursor-pointer text-muted-foreground hover:text-foreground py-2">
-                <Link2 className="mr-2 h-5 w-5" />
-                {t('task.form.label.artifactLink')}
-                <span className="ml-1 text-xs transform transition-transform duration-200 group-open:rotate-90">{'>'}</span>
-            </summary>
-            <div className="space-y-4 p-3 border rounded-md mt-1">
-              <FormField
-                control={form.control}
-                name="artifactLink.type"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>{t('task.form.artifactLink.type')}</FormLabel>
-                    <Select
-                        onValueChange={(value) => {
-                            field.onChange(value)
-                            form.setValue('artifactLink.flashcardId', null);
-                            form.setValue('artifactLink.urlValue', null);
-                            form.setValue('artifactLink.linkTitle', null);
-                        }}
-                        defaultValue={field.value}
-                    >
-                      <FormControl>
-                        <SelectTrigger><SelectValue placeholder={t('task.form.artifactLink.type')} /></SelectTrigger>
-                      </FormControl>
-                      <SelectContent>
-                        {artifactLinkTypeOptions.map(opt => <SelectItem key={opt.value} value={opt.value}>{t(opt.labelKey as any)}</SelectItem>)}
-                      </SelectContent>
-                    </Select>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              {watchedArtifactLinkType === 'flashcard' && (
-                <>
-                  <FormField
-                    control={form.control}
-                    name="artifactLink.flashcardId"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>{t('task.form.label.flashcardId')}</FormLabel>
-                        <FormControl><Input placeholder={t('task.form.placeholder.flashcardId')} {...field} value={field.value ?? ""} /></FormControl>
-                        <FormMessage>{form.formState.errors.artifactLink?.flashcardId && t(form.formState.errors.artifactLink.flashcardId.message as any)}</FormMessage>
-                      </FormItem>
-                    )}
-                  />
-                   <FormField
-                    control={form.control}
-                    name="artifactLink.linkTitle"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>{t('task.form.label.linkTitle')}</FormLabel>
-                        <FormControl><Input placeholder={t('task.form.placeholder.linkTitle')} {...field} value={field.value ?? ""} /></FormControl>
-                        <FormMessage/>
-                      </FormItem>
-                    )}
-                  />
-                </>
+                  <div className="flex justify-end gap-2 pt-2">
+                    <Button type="button" variant="ghost" onClick={removeTimeInfo} size="sm">
+                      <Trash2 className="mr-1 h-3 w-3"/> {t('task.form.timeInfo.removeTimeButton')}
+                    </Button>
+                    <Button type="button" onClick={handleSetTimeInfo} size="sm">
+                      {t('task.form.timeInfo.setTimeButton')}
+                    </Button>
+                  </div>
+                </div>
               )}
-              {watchedArtifactLinkType === 'url' && (
-                <>
-                  <FormField
-                    control={form.control}
-                    name="artifactLink.urlValue"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>{t('task.form.label.urlValue')}</FormLabel>
-                        <FormControl><Input type="url" placeholder={t('task.form.placeholder.urlValue')} {...field} value={field.value ?? ""} /></FormControl>
-                        <FormMessage>{form.formState.errors.artifactLink?.urlValue && t(form.formState.errors.artifactLink.urlValue.message as any)}</FormMessage>
-                      </FormItem>
-                    )}
-                  />
-                  <FormField
-                    control={form.control}
-                    name="artifactLink.linkTitle"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>{t('task.form.label.linkTitle')}</FormLabel>
-                        <FormControl><Input placeholder={t('task.form.placeholder.linkTitle')} {...field} value={field.value ?? ""} /></FormControl>
-                        <FormMessage/>
-                      </FormItem>
-                    )}
-                  />
-                </>
-              )}
-            </div>
-        </details>
+              <FormMessage>{form.formState.errors.timeInfo?.root?.message && t(form.formState.errors.timeInfo.root.message as any)}</FormMessage>
+              <FormMessage>{form.formState.errors.timeInfo?.startDate?.message && t(form.formState.errors.timeInfo.startDate.message as any)}</FormMessage>
+              <FormMessage>{form.formState.errors.timeInfo?.endDate?.message && t(form.formState.errors.timeInfo.endDate.message as any)}</FormMessage>
+              <FormMessage>{form.formState.errors.timeInfo?.time?.message && t(form.formState.errors.timeInfo.time.message as any)}</FormMessage>
+            </FormItem>
 
-        <div className="flex justify-end gap-2 pt-4">
+            <FormField
+              control={form.control}
+              name="repeat"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel className="text-base flex items-center text-muted-foreground"><RotateCcw className="mr-2 h-4 w-4" />{t('task.form.label.repeat')}</FormLabel>
+                  <Select onValueChange={field.onChange} defaultValue={field.value || 'none'}>
+                    <FormControl>
+                      <SelectTrigger className="h-9 text-sm"><SelectValue placeholder={t('task.form.label.repeat')} /></SelectTrigger>
+                    </FormControl>
+                    <SelectContent>
+                      {repeatOptions.map(option => (
+                        <SelectItem key={option.value} value={option.value}>
+                          {t(option.labelKey as any)}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            <FormField
+              control={form.control}
+              name="reminderInfo.type"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel className="text-base flex items-center text-muted-foreground"><Bell className="mr-2 h-4 w-4" />{t('task.form.label.reminder')}</FormLabel>
+                  <Select onValueChange={field.onChange} defaultValue={field.value || 'none'}>
+                    <FormControl>
+                      <SelectTrigger className="h-9 text-sm"><SelectValue placeholder={t('task.form.label.reminder')} /></SelectTrigger>
+                    </FormControl>
+                    <SelectContent>
+                      {reminderOptions.map(option => (
+                        <SelectItem key={option.value} value={option.value}>
+                          {t(option.labelKey as any)}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            <FormField
+              control={form.control}
+              name="description"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel className="text-base text-muted-foreground">{t('task.form.label.description')}</FormLabel>
+                  <FormControl>
+                    <Textarea placeholder={t('task.form.placeholder.description')} {...field} value={field.value ?? ''} className="min-h-[80px] text-sm" />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            
+            <FormField
+              control={form.control}
+              name="status"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel className="text-base flex items-center text-muted-foreground">{t('task.form.label.status')}</FormLabel>
+                   <Select onValueChange={field.onChange} defaultValue={field.value || 'pending'}>
+                    <FormControl>
+                      <SelectTrigger className="h-9 text-sm"><SelectValue placeholder={t('task.form.label.status')} /></SelectTrigger>
+                    </FormControl>
+                    <SelectContent>
+                      {taskStatusOptions.map(option => (
+                        <SelectItem key={option.value} value={option.value}>
+                          {t(option.labelKey as any)}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+
+            <details className="group">
+                <summary className="text-base flex items-center cursor-pointer text-muted-foreground hover:text-foreground py-2 text-sm">
+                    <Link2 className="mr-2 h-4 w-4" />
+                    {t('task.form.label.artifactLink')}
+                    <span className="ml-1 text-xs transform transition-transform duration-200 group-open:rotate-90">{'>'}</span>
+                </summary>
+                <div className="space-y-3 p-3 border rounded-md mt-1 text-sm">
+                  <FormField
+                    control={form.control}
+                    name="artifactLink.type"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>{t('task.form.artifactLink.type')}</FormLabel>
+                        <Select
+                            onValueChange={(value) => {
+                                field.onChange(value as ArtifactLink['type']);
+                                form.setValue('artifactLink.flashcardId', null);
+                                form.setValue('artifactLink.urlValue', null);
+                                form.setValue('artifactLink.linkTitle', null);
+                            }}
+                            defaultValue={field.value || 'none'}
+                        >
+                          <FormControl>
+                            <SelectTrigger className="h-9 text-sm"><SelectValue placeholder={t('task.form.artifactLink.type')} /></SelectTrigger>
+                          </FormControl>
+                          <SelectContent>
+                            {artifactLinkTypeOptions.map(opt => <SelectItem key={opt.value} value={opt.value}>{t(opt.labelKey as any)}</SelectItem>)}
+                          </SelectContent>
+                        </Select>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  {watchedArtifactLinkType === 'flashcard' && (
+                    <>
+                      <FormField
+                        control={form.control}
+                        name="artifactLink.flashcardId"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>{t('task.form.label.flashcardId')}</FormLabel>
+                            <FormControl><Input placeholder={t('task.form.placeholder.flashcardId')} {...field} value={field.value ?? ""} className="h-9 text-sm" /></FormControl>
+                            <FormMessage>{form.formState.errors.artifactLink?.flashcardId && t(form.formState.errors.artifactLink.flashcardId.message as any)}</FormMessage>
+                          </FormItem>
+                        )}
+                      />
+                       <FormField
+                        control={form.control}
+                        name="artifactLink.linkTitle"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>{t('task.form.label.linkTitle')}</FormLabel>
+                            <FormControl><Input placeholder={t('task.form.placeholder.linkTitle')} {...field} value={field.value ?? ""} className="h-9 text-sm" /></FormControl>
+                            <FormMessage/>
+                          </FormItem>
+                        )}
+                      />
+                    </>
+                  )}
+                  {watchedArtifactLinkType === 'url' && (
+                    <>
+                      <FormField
+                        control={form.control}
+                        name="artifactLink.urlValue"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>{t('task.form.label.urlValue')}</FormLabel>
+                            <FormControl><Input type="url" placeholder={t('task.form.placeholder.urlValue')} {...field} value={field.value ?? ""} className="h-9 text-sm" /></FormControl>
+                            <FormMessage>{form.formState.errors.artifactLink?.urlValue && t(form.formState.errors.artifactLink.urlValue.message as any)}</FormMessage>
+                          </FormItem>
+                        )}
+                      />
+                      <FormField
+                        control={form.control}
+                        name="artifactLink.linkTitle"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>{t('task.form.label.linkTitle')}</FormLabel>
+                            <FormControl><Input placeholder={t('task.form.placeholder.linkTitle')} {...field} value={field.value ?? ""} className="h-9 text-sm" /></FormControl>
+                            <FormMessage/>
+                          </FormItem>
+                        )}
+                      />
+                    </>
+                  )}
+                </div>
+            </details>
+        </div>
+
+        <div className="flex justify-end gap-2 pt-4 border-t mt-auto">
           {onCancel && (
-            <Button type="button" variant="outline" onClick={onCancel} disabled={isLoading}>
-              {t('deck.item.delete.confirm.cancel')}
+            <Button type="button" variant="ghost" onClick={onCancel} disabled={isLoading} size="sm">
+               <X className="mr-2 h-4 w-4" /> {t('deck.item.delete.confirm.cancel')}
             </Button>
           )}
-          <Button type="submit" disabled={isLoading} className="min-w-[120px]">
-            <Save className="mr-2 h-5 w-5" />
+          <Button type="submit" disabled={isLoading} className="min-w-[100px]" size="sm">
+            <Save className="mr-2 h-4 w-4" />
             {isLoading ? t('task.form.button.saving') : (mode === 'edit' ? t('task.form.button.update') : t('task.form.button.create'))}
           </Button>
         </div>

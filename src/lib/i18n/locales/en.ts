@@ -299,6 +299,7 @@ export default {
   'tasks.list.empty.description': 'You haven\'t created any tasks. Click "Create New Task" to add one.',
   'task.item.edit': 'Edit Task',
   'task.item.delete': 'Delete Task',
+  'task.item.startPomodoro': 'Start Pomodoro for this task',
   'task.item.delete.confirm.title': 'Delete Task?',
   'task.item.delete.confirm.description': 'This action cannot be undone. This will permanently delete this task.',
   'task.item.status.pending': 'Pending',
@@ -319,7 +320,7 @@ export default {
   'task.form.repeat.weekly': 'Weekly',
   'task.form.repeat.monthly': 'Monthly',
   'task.form.repeat.annually': 'Annually',
-  'task.form.label.timeInfo': 'Time Information',
+  'task.form.label.timeInfo': 'Time',
   'task.form.timeInfo.type': 'Type',
   'task.form.timeInfo.type.no_time': 'No Specific Time',
   'task.form.timeInfo.type.datetime': 'Specific Date & Time',
@@ -336,6 +337,9 @@ export default {
   'task.form.error.timeInfo.endDateRequired': 'End date is required for date range.',
   'task.form.error.timeInfo.timeRequired': 'Time is required for specific date & time.',
   'task.form.error.timeInfo.invalidTime': 'Invalid time format. Use HH:MM.',
+  'task.form.timeInfo.selectTimeButton': 'Select Time...',
+  'task.form.timeInfo.setTimeButton': 'Set Time',
+  'task.form.timeInfo.removeTimeButton': 'Remove Time',
   'task.form.label.artifactLink': 'Artifact Link',
   'task.form.artifactLink.type': 'Link Type',
   'task.form.artifactLink.type.none': 'None',
@@ -370,6 +374,15 @@ export default {
   'toast.task.error.delete': 'Failed to delete task.',
   'toast.task.error.titleRequired': 'Task title cannot be empty.',
   'toast.task.notFound': 'Task not found.',
+  'task.display.today': 'Today',
+  'task.display.tomorrow': 'Tomorrow',
+  'task.display.at': 'at',
+  'task.display.ends': 'Ends',
+  'task.display.overdue': 'Overdue',
+  'task.display.started': 'Started',
+  'task.display.startsToday': 'Starts Today',
+  'task.display.inXDays': 'in {count} days',
+  'task.display.endsInXDays': 'ends in {count} days',
   'task.display.due': 'Due',
   'task.display.allDay': 'All day',
   'task.display.on': 'on',
@@ -378,6 +391,8 @@ export default {
   'task.display.artifact.flashcard': 'Flashcard: {title}',
   'task.display.artifact.url': 'Link: {title}',
   'task.display.noTime': 'No specific time',
+  'task.pomodoroStartedFor': 'Pomodoro started for task: {title}',
+  'task.currentTaskLabel': 'Current Task:',
 
 
   // Notifications (General)
@@ -393,3 +408,4 @@ export default {
   'error': 'Error',
 
 } as const;
+

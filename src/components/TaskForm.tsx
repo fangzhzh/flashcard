@@ -12,13 +12,13 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Calendar } from "@/components/ui/calendar";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter, DialogTrigger, DialogClose } from "@/components/ui/dialog";
-import type { Task, TaskStatus, RepeatFrequency, TimeInfo, ArtifactLink, ReminderInfo, Flashcard as FlashcardType, Deck } from '@/types';
+import type { Task, RepeatFrequency, TimeInfo, ArtifactLink, ReminderInfo, ReminderType, Flashcard as FlashcardType, Deck } from '@/types';
 import { Save, CalendarIcon, Link2, RotateCcw, Clock, Bell, Trash2, X, Loader2, FilePlus, Pencil, Replace } from 'lucide-react';
 import { useI18n, useCurrentLocale } from '@/lib/i18n/client';
 import { cn } from '@/lib/utils';
 import { format, parseISO, isValid } from 'date-fns';
 import { useFlashcards } from '@/contexts/FlashcardsContext';
-import FlashcardForm from '@/components/FlashcardForm'; // Import FlashcardForm
+import FlashcardForm from '@/components/FlashcardForm';
 import { useToast } from '@/hooks/use-toast';
 import Link from 'next/link';
 
@@ -54,7 +54,7 @@ const artifactLinkSchema = z.object({
   urlValue: z.string().url('task.form.error.artifactLink.invalidUrl').nullable().optional(),
 }).refine(data => !(data.flashcardId && data.urlValue), {
   message: "task.form.error.artifactLink.multipleLinks",
-  path: ["flashcardId"], // Arbitrary path, error can be handled generally
+  path: ["flashcardId"], // Indicates error relates to choosing one or the other
 });
 
 
@@ -67,7 +67,7 @@ const taskSchema = z.object({
   description: z.string().optional().nullable(),
   repeat: z.enum(['none', 'daily', 'weekly', 'monthly', 'annually']).default('none'),
   timeInfo: timeInfoSchema,
-  artifactLink: artifactLinkSchema,
+  artifactLink: artifactLinkSchema.default({ flashcardId: null, urlValue: null }),
   reminderInfo: reminderInfoSchema.default({ type: 'none' }),
 });
 
@@ -91,7 +91,7 @@ export default function TaskForm({
   const t = useI18n();
   const { toast } = useToast();
   const currentLocale = useCurrentLocale();
-  const { getFlashcardById, addFlashcard, decks, isLoadingDecks } = useFlashcards();
+  const { getFlashcardById, addFlashcard, decks, isLoadingDecks, updateTask: updateTaskInContext } = useFlashcards();
 
   const form = useForm<TaskFormData>({
     resolver: zodResolver(taskSchema),
@@ -227,6 +227,17 @@ export default function TaskForm({
   const handleRemoveLink = () => {
     form.setValue('artifactLink', { flashcardId: null, urlValue: null });
     setLinkedFlashcard(null);
+     // If editing an existing task, immediately update it in Firestore to remove the link
+    if (mode === 'edit' && initialData?.id) {
+      updateTaskInContext(initialData.id, { artifactLink: { flashcardId: null, urlValue: null } })
+        .then(() => {
+          toast({ title: t('success'), description: t('toast.task.linkRemovedAndTaskUpdated') });
+        })
+        .catch(error => {
+          console.error("Error removing link from task:", error);
+          toast({ title: t('error'), description: t('toast.task.error.save'), variant: 'destructive' });
+        });
+    }
   };
 
   const handleNewFlashcardSubmit = async (data: { front: string; back: string; deckId?: string | null }) => {
@@ -235,8 +246,14 @@ export default function TaskForm({
       const newCard = await addFlashcard(data);
       if (newCard && newCard.id) {
         form.setValue('artifactLink.flashcardId', newCard.id);
-        form.setValue('artifactLink.urlValue', null); // Ensure URL value is cleared
-        toast({ title: t('success'), description: t('toast.task.flashcardLinked') });
+        form.setValue('artifactLink.urlValue', null); 
+
+        if (mode === 'edit' && initialData?.id) {
+          await updateTaskInContext(initialData.id, { artifactLink: { flashcardId: newCard.id, urlValue: null } });
+          toast({ title: t('success'), description: t('toast.task.flashcardLinkedAndTaskUpdated') });
+        } else {
+          toast({ title: t('success'), description: t('toast.task.flashcardLinked') });
+        }
         setIsNewFlashcardDialogOpen(false);
       } else {
         throw new Error("Failed to create flashcard or get ID.");
@@ -388,7 +405,7 @@ export default function TaskForm({
             <FormItem>
                 <FormLabel className="text-base flex items-center text-muted-foreground">
                     <Link2 className="mr-2 h-4 w-4" />
-                    {t('task.form.label.artifactLink.sectionTitle')}
+                    {t('task.form.artifactLink.sectionTitle')}
                 </FormLabel>
                 <div className="p-3 border rounded-md space-y-3 text-sm">
                     {isFetchingFlashcard && watchedArtifactLink?.flashcardId && (
@@ -506,7 +523,7 @@ export default function TaskForm({
                     )}
                     { (watchedArtifactLink?.flashcardId || watchedArtifactLink?.urlValue) &&
                         <Button type="button" variant="ghost" size="xs" onClick={handleRemoveLink} className="text-destructive hover:text-destructive-foreground hover:bg-destructive/90 w-full mt-2">
-                            <Trash2 className="mr-1 h-3 w-3" /> {t('task.form.artifactLink.button.removeLink')}
+                            <Trash2 className="mr-1 h-3 w-3" /> {t('task.form.artifactLink.button.remove')}
                         </Button>
                     }
                 </div>
@@ -531,7 +548,7 @@ export default function TaskForm({
 
         <div className="flex justify-end gap-2 pt-4 border-t mt-auto">
           {onCancel && (
-            <Button type="button" variant="ghost" onClick={onCancel} disabled={isLoading || isSubmittingNewFlashcard} size="sm">
+            <Button type="button" variant="ghost" onClick={onCancel} disabled={isLoading || isSubmittingNewFlashcard || isFetchingFlashcard} size="sm">
                <X className="mr-2 h-4 w-4" /> {t('deck.item.delete.confirm.cancel')}
             </Button>
           )}
@@ -544,4 +561,3 @@ export default function TaskForm({
     </Form>
   );
 }
-

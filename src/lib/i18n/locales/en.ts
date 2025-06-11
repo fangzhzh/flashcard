@@ -341,7 +341,6 @@ export default {
   'task.form.timeInfo.selectTimeButton': 'Select Time...',
   'task.form.timeInfo.setTimeButton': 'Set Time',
   'task.form.timeInfo.removeTimeButton': 'Remove Time',
-  'task.form.label.artifactLink.sectionTitle': 'Artifact Link',
   'task.form.artifactLink.sectionTitle': 'Linked Flashcard',
   'task.form.artifactLink.button.newFlashcard': 'New Flashcard',
   'task.form.artifactLink.button.selectFlashcard': 'Select Flashcard',
@@ -397,7 +396,9 @@ export default {
   'task.display.started': 'Started',
   'task.display.startsToday': 'Starts Today',
   'task.display.inXDays': 'in {count} days',
+  'task.display.durationDays': '{count} days long',
   'task.display.endsInXDays': 'ends in {count} days',
+  'task.display.ended': 'Ended',
   'task.display.due': 'Due',
   'task.display.allDay': 'All day',
   'task.display.on': 'on',
@@ -421,3 +422,5 @@ export default {
   'error': 'Error',
 
 } as const;
+
+    

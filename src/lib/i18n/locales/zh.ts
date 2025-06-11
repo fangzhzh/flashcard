@@ -341,7 +341,6 @@ export default {
   'task.form.timeInfo.selectTimeButton': '选择时间...',
   'task.form.timeInfo.setTimeButton': '设置时间',
   'task.form.timeInfo.removeTimeButton': '移除时间',
-  'task.form.label.artifactLink.sectionTitle': '关联工件',
   'task.form.artifactLink.sectionTitle': '关联的抽认卡',
   'task.form.artifactLink.button.newFlashcard': '新建抽认卡',
   'task.form.artifactLink.button.selectFlashcard': '选择抽认卡',
@@ -397,7 +396,9 @@ export default {
   'task.display.started': '已开始',
   'task.display.startsToday': '今日开始',
   'task.display.inXDays': '{count}天内',
-  'task.display.endsInXDays': '{count}天后结束',
+  'task.display.durationDays': '{count} 天',
+  'task.display.endsInXDays': '{count} 天后结束',
+  'task.display.ended': '已结束',
   'task.display.due': '截止于',
   'task.display.allDay': '全天',
   'task.display.on': '于',
@@ -406,6 +407,7 @@ export default {
   'task.display.noTime': '无特定时间',
   'task.pomodoroStartedFor': '任务番茄钟已启动: {title}',
   'task.currentTaskLabel': '当前任务:',
+
 
   // Notifications (General)
   'notifications.enabled.title': '通知已启用',
@@ -420,3 +422,5 @@ export default {
   'error': '错误',
 
 } as const;
+
+    

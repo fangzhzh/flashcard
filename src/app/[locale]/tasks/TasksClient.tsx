@@ -13,7 +13,7 @@ import type { Task, TimeInfo, TaskStatus, RepeatFrequency, ReminderType } from '
 import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
 import TaskForm, { type TaskFormData } from '@/components/TaskForm';
 import { usePomodoro } from '@/contexts/PomodoroContext';
-import { format, parseISO, differenceInCalendarDays, isToday, isTomorrow, isValid, isSameYear } from 'date-fns';
+import { format, parseISO, differenceInCalendarDays, isToday, isTomorrow, isValid, isSameYear, startOfDay } from 'date-fns';
 import { cn } from '@/lib/utils';
 
 export default function TasksClient() {
@@ -72,20 +72,76 @@ export default function TasksClient() {
   };
 
   const formatTimeLabel = useCallback((timeInfo?: TimeInfo): string => {
-    if (!timeInfo || timeInfo.type === 'no_time' || !timeInfo.startDate || !isValid(parseISO(timeInfo.startDate))) {
+    if (!timeInfo || timeInfo.type === 'no_time' || !timeInfo.startDate) {
       return '';
     }
 
-    const startDate = parseISO(timeInfo.startDate);
-    const currentDate = new Date();
+    const todayForComparison = startOfDay(new Date());
 
-    if (isToday(startDate)) return t('task.display.label.today');
-    if (isTomorrow(startDate)) return t('task.display.label.tomorrowShort');
-    
-    if (isSameYear(startDate, currentDate)) {
-      return format(startDate, 'MM/dd');
+    let parsedStartDate: Date;
+    try {
+      // Ensure time part is ignored for day-level comparisons by using startOfDay
+      parsedStartDate = startOfDay(parseISO(timeInfo.startDate));
+      if (!isValid(parsedStartDate)) return '';
+    } catch (e) {
+      return ''; // Invalid date string
     }
-    return format(startDate, 'yyyy/MM/dd');
+
+    let parsedEndDate: Date | null = null;
+    if (timeInfo.endDate) {
+      try {
+        parsedEndDate = startOfDay(parseISO(timeInfo.endDate));
+        if (!isValid(parsedEndDate)) parsedEndDate = null;
+      } catch (e) {
+        parsedEndDate = null;
+      }
+    }
+
+    const formatDateDisplay = (date: Date): string => {
+      if (isSameYear(date, todayForComparison)) {
+        return format(date, 'MM/dd');
+      }
+      return format(date, 'yyyy/MM/dd');
+    };
+
+    // Part 1: Determine the primary label for the start date
+    let primaryStartLabel = '';
+    if (isToday(parsedStartDate)) {
+      primaryStartLabel = t('task.display.today');
+    } else if (isTomorrow(parsedStartDate)) {
+      primaryStartLabel = t('task.display.tomorrowShort');
+    } else if (parsedStartDate < todayForComparison) {
+      primaryStartLabel = formatDateDisplay(parsedStartDate);
+    } else { // Start date is in the future (and not tomorrow)
+      const daysToStart = differenceInCalendarDays(parsedStartDate, todayForComparison);
+      primaryStartLabel = `${formatDateDisplay(parsedStartDate)} (${t('task.display.inXDays', { count: daysToStart })})`;
+    }
+
+    // Part 2: Handle date ranges and single dates
+    if (timeInfo.type === 'date_range' && parsedEndDate && parsedEndDate >= parsedStartDate) {
+      if (isToday(parsedStartDate)) {
+        const durationDays = differenceInCalendarDays(parsedEndDate, parsedStartDate);
+        return `${primaryStartLabel}(${t('task.display.inXDays', { count: durationDays })})`;
+      } else {
+        // If start date is not today (future or past), the label focuses only on the start date's relation to today.
+        return primaryStartLabel;
+      }
+    } else if (timeInfo.type === 'datetime' || timeInfo.type === 'all_day') {
+      // Single date task
+      if (parsedStartDate < todayForComparison && (!parsedEndDate || parsedEndDate < todayForComparison)) { // Check if overdue
+        return `${primaryStartLabel} (${t('task.display.overdue')})`;
+      }
+      // If start date is today, tomorrow, or future (not overdue), primaryStartLabel is already correct.
+      return primaryStartLabel;
+    }
+    
+    // Fallback if type is not explicitly handled after 'date_range', 'datetime', 'all_day'
+    // or if it's a date_range with invalid/missing endDate.
+    // This primarily covers cases where only startDate is relevant or where range is invalid.
+    if (parsedStartDate < todayForComparison) {
+       return `${primaryStartLabel} (${t('task.display.overdue')})`;
+    }
+    return primaryStartLabel;
 
   }, [t]);
 

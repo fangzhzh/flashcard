@@ -1,6 +1,6 @@
 
 "use client";
-import type { Flashcard, FlashcardSourceDataItem, AppUser, Deck, Task, TaskStatus, RepeatFrequency, TimeInfo, ArtifactLink } from '@/types';
+import type { Flashcard, FlashcardSourceDataItem, AppUser, Deck, Task, TaskStatus, RepeatFrequency, TimeInfo, ArtifactLink, ReminderInfo } from '@/types';
 import React, { createContext, useContext, ReactNode, useCallback, useMemo, useEffect, useState } from 'react';
 import { db } from '@/lib/firebase';
 import {
@@ -19,7 +19,7 @@ import {
   where,
   getDoc,
   runTransaction,
-  limit, 
+  limit,
 } from 'firebase/firestore';
 import { useAuth } from './AuthContext';
 import { formatISO, parseISO } from 'date-fns';
@@ -38,7 +38,7 @@ interface FlashcardsContextType {
   updateFlashcard: (id: string, updates: Partial<Omit<Flashcard, 'id'>>) => Promise<Flashcard | null>;
   deleteFlashcard: (id: string) => Promise<void>;
   getFlashcardById: (id: string) => Flashcard | undefined;
-  
+
   addDeck: (name: string) => Promise<Deck | null>;
   updateDeck: (id: string, updates: Partial<Omit<Deck, 'id' | 'userId'>>) => Promise<Deck | null>;
   deleteDeck: (id: string) => Promise<void>;
@@ -51,10 +51,10 @@ interface FlashcardsContextType {
 
   getReviewQueue: () => Flashcard[];
   getStatistics: () => { total: number; mastered: number; learning: number; new: number; dueToday: number };
-  isLoading: boolean; 
+  isLoading: boolean;
   isLoadingDecks: boolean;
   isLoadingTasks: boolean; // Added for tasks
-  isSeeding: boolean; 
+  isSeeding: boolean;
 }
 
 const FlashcardsContext = createContext<FlashcardsContextType | undefined>(undefined);
@@ -80,9 +80,9 @@ export const FlashcardsProvider = ({ children }: { children: ReactNode }) => {
       if (!existingSeedSnapshot.empty) {
         console.log("Skipping seed: User already has cards sourced from JSON.");
         setIsSeeding(false);
-        return; 
+        return;
       }
-      
+
       const decksCollectionRef = collection(db, 'users', currentUser.uid, 'decks');
       let seedDeckId: string | null = null;
       const seedDeckQuery = query(decksCollectionRef, where("name", "==", DEFAULT_SEED_DECK_NAME));
@@ -113,11 +113,11 @@ export const FlashcardsProvider = ({ children }: { children: ReactNode }) => {
           setIsSeeding(false);
           return;
       }
-      
+
       const batch = writeBatch(db);
       const nowServerTime = serverTimestamp();
       vocabulary.forEach(item => {
-        const newCardDocRef = doc(flashcardsCollectionRef); 
+        const newCardDocRef = doc(flashcardsCollectionRef);
         const newCardFromSource: Omit<Flashcard, 'id' | 'createdAt' | 'updatedAt'> & { createdAt: any, updatedAt: any } = {
           front: item.question,
           back: item.answer,
@@ -127,7 +127,7 @@ export const FlashcardsProvider = ({ children }: { children: ReactNode }) => {
           interval: 1,
           status: 'new' as 'new',
           sourceQuestion: item.question,
-          createdAt: nowServerTime, 
+          createdAt: nowServerTime,
           updatedAt: nowServerTime,
         };
         batch.set(newCardDocRef, newCardFromSource);
@@ -146,11 +146,11 @@ export const FlashcardsProvider = ({ children }: { children: ReactNode }) => {
       setIsLoading(true);
       setIsLoadingDecks(true);
       setIsLoadingTasks(true); // Set loading for tasks
-      
+
       const checkAndSeed = async () => {
         const flashcardsQuery = query(collection(db, 'users', user.uid, 'flashcards'), limit(1));
         const flashcardsSnapshot = await getDocs(flashcardsQuery);
-        if (flashcardsSnapshot.empty) { 
+        if (flashcardsSnapshot.empty) {
           await seedInitialData(user);
         }
       };
@@ -196,16 +196,18 @@ export const FlashcardsProvider = ({ children }: { children: ReactNode }) => {
         const unsubscribeTasks = onSnapshot(qTasks, (snapshot) => {
           const fetchedTasks = snapshot.docs.map(doc => {
             const data = doc.data();
-            return {
+            const taskData = {
               id: doc.id, ...data,
               createdAt: data.createdAt instanceof Timestamp ? formatISO(data.createdAt.toDate()) : (typeof data.createdAt === 'string' ? data.createdAt : null),
               updatedAt: data.updatedAt instanceof Timestamp ? formatISO(data.updatedAt.toDate()) : (typeof data.updatedAt === 'string' ? data.updatedAt : null),
-              timeInfo: { // Ensure date strings are handled
+              timeInfo: {
                 ...data.timeInfo,
                 startDate: data.timeInfo?.startDate instanceof Timestamp ? formatISO(data.timeInfo.startDate.toDate()) : data.timeInfo?.startDate,
                 endDate: data.timeInfo?.endDate instanceof Timestamp ? formatISO(data.timeInfo.endDate.toDate()) : data.timeInfo?.endDate,
-              }
+              },
+              reminderInfo: data.reminderInfo || { type: 'none' } // Ensure default reminderInfo
             } as Task;
+            return taskData;
           });
           setTasks(fetchedTasks);
           setIsLoadingTasks(false);
@@ -299,7 +301,7 @@ export const FlashcardsProvider = ({ children }: { children: ReactNode }) => {
       });
     } catch (error) { console.error("Error deleting deck:", error); }
   }, [user]);
-  
+
   const getDeckById = useCallback((id: string) => decks.find(deck => deck.id === id), [decks]);
 
   // Task CRUD operations
@@ -308,15 +310,22 @@ export const FlashcardsProvider = ({ children }: { children: ReactNode }) => {
     try {
       const tasksCollectionRef = collection(db, 'users', user.uid, 'tasks');
       const now = serverTimestamp();
-      const newTaskData = { ...data, userId: user.uid, createdAt: now, updatedAt: now };
+      const newTaskData = {
+        ...data,
+        userId: user.uid,
+        reminderInfo: data.reminderInfo || { type: 'none' }, // Ensure default reminderInfo
+        createdAt: now,
+        updatedAt: now
+      };
       const docRef = await addDoc(tasksCollectionRef, newTaskData);
       const localCreatedAt = formatISO(new Date());
-      return { 
-        id: docRef.id, 
-        userId: user.uid, 
-        ...data, 
-        createdAt: localCreatedAt, 
-        updatedAt: localCreatedAt 
+      return {
+        id: docRef.id,
+        userId: user.uid,
+        ...data,
+        reminderInfo: data.reminderInfo || { type: 'none' },
+        createdAt: localCreatedAt,
+        updatedAt: localCreatedAt
       } as Task;
     } catch (error) { console.error("Error adding task:", error); return null; }
   }, [user]);
@@ -325,7 +334,11 @@ export const FlashcardsProvider = ({ children }: { children: ReactNode }) => {
     if (!user || !user.uid) { console.error("User not authenticated to update task"); return null; }
     try {
       const taskDocRef = doc(db, 'users', user.uid, 'tasks', id);
-      const updateData = { ...updates, updatedAt: serverTimestamp() };
+      const updateData = {
+        ...updates,
+        reminderInfo: updates.reminderInfo || (tasks.find(t => t.id === id)?.reminderInfo) || { type: 'none' }, // Preserve or default reminderInfo
+        updatedAt: serverTimestamp()
+      };
       await updateDoc(taskDocRef, updateData);
       const task = tasks.find(t => t.id === id);
       return task ? { ...task, ...updates, updatedAt: formatISO(new Date()) } : null;
@@ -348,16 +361,16 @@ export const FlashcardsProvider = ({ children }: { children: ReactNode }) => {
     return flashcards
       .filter(card => {
         if (card.status === 'mastered') return false;
-        if (!card.nextReviewDate) return true; 
+        if (!card.nextReviewDate) return true;
         try {
           if (typeof card.nextReviewDate === 'string' && card.nextReviewDate.match(/^\d{4}-\d{2}-\d{2}$/)) {
             return card.nextReviewDate <= today;
           }
-          return true; 
+          return true;
         } catch (e) { return true; }
       })
       .sort((a, b) => {
-        const dateA = a.nextReviewDate && typeof a.nextReviewDate === 'string' && a.nextReviewDate.match(/^\d{4}-\d{2}-\d{2}$/) ? parseISO(a.nextReviewDate) : new Date(0); 
+        const dateA = a.nextReviewDate && typeof a.nextReviewDate === 'string' && a.nextReviewDate.match(/^\d{4}-\d{2}-\d{2}$/) ? parseISO(a.nextReviewDate) : new Date(0);
         const dateB = b.nextReviewDate && typeof b.nextReviewDate === 'string' && b.nextReviewDate.match(/^\d{4}-\d{2}-\d{2}$/) ? parseISO(b.nextReviewDate) : new Date(0);
         if (dateA.getTime() < dateB.getTime()) return -1;
         if (dateA.getTime() > dateB.getTime()) return 1;
@@ -376,7 +389,7 @@ export const FlashcardsProvider = ({ children }: { children: ReactNode }) => {
         if (typeof c.nextReviewDate === 'string' && c.nextReviewDate.match(/^\d{4}-\d{2}-\d{2}$/)) {
             return c.nextReviewDate <= today;
         }
-        return true; 
+        return true;
     }).length;
     return {
       total: flashcards.length, mastered: flashcards.filter(c => c.status === 'mastered').length,
@@ -393,16 +406,16 @@ export const FlashcardsProvider = ({ children }: { children: ReactNode }) => {
     addDeck, updateDeck, deleteDeck, getDeckById,
     addTask, updateTask, deleteTask, getTaskById, // Provide task actions
     getReviewQueue, getStatistics,
-    isLoading: isLoading || (user && isSeeding), 
+    isLoading: isLoading || (user && isSeeding),
     isLoadingDecks: isLoadingDecks || (user && isSeeding),
     isLoadingTasks: isLoadingTasks || (user && isSeeding), // Provide task loading state
     isSeeding,
   }), [
       flashcards, decks, tasks, // Include tasks in dependencies
-      addFlashcard, updateFlashcard, deleteFlashcard, getFlashcardById, 
+      addFlashcard, updateFlashcard, deleteFlashcard, getFlashcardById,
       addDeck, updateDeck, deleteDeck, getDeckById,
       addTask, updateTask, deleteTask, getTaskById, // Include task actions
-      getReviewQueue, getStatistics, 
+      getReviewQueue, getStatistics,
       isLoading, isLoadingDecks, isLoadingTasks, // Include task loading state
       user, isSeeding
     ]);

@@ -1,75 +1,114 @@
 
 "use client";
-import { useState } from 'react';
+import React, { useState, useMemo, useCallback } from 'react';
 import Link from 'next/link';
 import { useFlashcards } from '@/contexts/FlashcardsContext';
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardFooter, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-import { PlusCircle, Edit3, Trash2, Loader2, Info, ShieldAlert, ListChecks, CalendarDays, Link2 as LinkIcon, Repeat, Tag } from 'lucide-react';
+import { PlusCircle, Loader2, Info, ShieldAlert, PlayCircle, Edit } from 'lucide-react'; // Removed ListChecks, CalendarDays, LinkIcon, Repeat, Tag. Added PlayCircle, Edit
 import { useToast } from '@/hooks/use-toast';
 import { useI18n, useCurrentLocale } from '@/lib/i18n/client';
-import type { Task, TimeInfo } from '@/types';
+import type { Task, TimeInfo } from '@/types'; // Removed TaskStatus, RepeatFrequency, ArtifactLink as they are part of Task
 import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-  AlertDialogTrigger,
-} from "@/components/ui/alert-dialog";
-import { Badge } from '@/components/ui/badge';
-import { format, parseISO } from 'date-fns';
+import TaskForm, { type TaskFormData } from '@/components/TaskForm';
+import { usePomodoro } from '@/contexts/PomodoroContext';
+import { usePomodoroLocal } from '@/contexts/PomodoroLocalContext';
+import { Separator } from '@/components/ui/separator';
+import { format, parseISO, differenceInCalendarDays, isToday, isTomorrow, isValid } from 'date-fns';
+import { cn } from '@/lib/utils';
 
 export default function TasksClient() {
   const { user, loading: authLoading } = useAuth();
-  const { tasks, deleteTask, isLoadingTasks, isLoading: contextOverallLoading, isSeeding } = useFlashcards();
+  const { tasks, deleteTask, isLoadingTasks, isLoading: contextOverallLoading, isSeeding, getTaskById, updateTask } = useFlashcards();
   const { toast } = useToast();
   const t = useI18n();
   const currentLocale = useCurrentLocale();
 
+  const pomodoroContext = usePomodoro();
+  const pomodoroLocalContext = usePomodoroLocal();
+
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [selectedTaskId, setSelectedTaskId] = useState<string | null>(null);
+  const [isCreatingNewTask, setIsCreatingNewTask] = useState(false);
 
-  const handleDeleteTask = async (taskId: string) => {
-    if (!user) {
-      toast({ title: t('error'), description: t('auth.pleaseSignIn'), variant: "destructive" });
-      return;
-    }
-    setIsSubmitting(true);
-    try {
-      await deleteTask(taskId);
-      toast({ title: t('success'), description: t('toast.task.deleted') });
-    } catch (error) {
-      toast({ title: t('error'), description: t('toast.task.error.delete'), variant: "destructive" });
-    } finally {
-      setIsSubmitting(false);
-    }
+  const handleEditTask = (taskId: string) => {
+    setIsCreatingNewTask(false);
+    setSelectedTaskId(taskId);
   };
 
-  const formatTimeInfo = (timeInfo: TimeInfo): string => {
-    if (!timeInfo || timeInfo.type === 'no_time' || !timeInfo.startDate) {
-      return t('task.display.noTime');
+  const handleCreateNewTask = () => {
+    setSelectedTaskId(null);
+    setIsCreatingNewTask(true);
+  };
+
+  const handleCancelEdit = () => {
+    setSelectedTaskId(null);
+    setIsCreatingNewTask(false);
+  };
+
+  const selectedTask = useMemo(() => {
+    if (selectedTaskId) {
+      return getTaskById(selectedTaskId);
     }
+    return undefined;
+  }, [selectedTaskId, getTaskById]);
+
+
+  const formatTimeLabel = (timeInfo: TimeInfo): string => {
+    if (!timeInfo || timeInfo.type === 'no_time' || !timeInfo.startDate || !isValid(parseISO(timeInfo.startDate))) {
+      return ''; // No specific time or invalid date
+    }
+
     const startDate = parseISO(timeInfo.startDate);
-    switch (timeInfo.type) {
-      case 'datetime':
-        return `${t('task.display.due')} ${format(startDate, 'PP')} ${t('task.display.on')} ${timeInfo.time || ''}`;
-      case 'all_day':
-        return `${t('task.display.allDay')} ${t('task.display.on')} ${format(startDate, 'PP')}`;
-      case 'date_range':
-        if (timeInfo.endDate) {
-          const endDate = parseISO(timeInfo.endDate);
-          return `${t('task.display.from')} ${format(startDate, 'PP')} ${t('task.display.to')} ${format(endDate, 'PP')}`;
-        }
-        return `${t('task.display.from')} ${format(startDate, 'PP')}`;
-      default:
-        return t('task.display.noTime');
+
+    if (timeInfo.type === 'datetime' || timeInfo.type === 'all_day') {
+      if (isToday(startDate)) {
+        return timeInfo.type === 'datetime' && timeInfo.time ? timeInfo.time : t('task.display.today');
+      }
+      if (isTomorrow(startDate)) {
+        return t('task.display.tomorrow');
+      }
+      return format(startDate, 'MMM d');
+    }
+
+    if (timeInfo.type === 'date_range') {
+      const daysUntilStart = differenceInCalendarDays(startDate, new Date());
+      if (daysUntilStart < 0) { // Started in the past
+          if (timeInfo.endDate && isValid(parseISO(timeInfo.endDate))) {
+              const endDate = parseISO(timeInfo.endDate);
+              if (isToday(endDate)) return `${t('task.display.ends')} ${t('task.display.today')}`;
+              if (isTomorrow(endDate)) return `${t('task.display.ends')} ${t('task.display.tomorrow')}`;
+              const daysUntilEnd = differenceInCalendarDays(endDate, new Date());
+              if (daysUntilEnd < 0) return t('task.display.overdue'); // Ended in the past
+              return `${t('task.display.endsInXDays', { count: daysUntilEnd + 1 })}`;
+          }
+          return t('task.display.started'); // No end date or invalid end date, but started
+      }
+      if (daysUntilStart === 0) return t('task.display.startsToday');
+      return `${format(startDate, 'MMM d')} (${t('task.display.inXDays', { count: daysUntilStart })})`;
+    }
+    return '';
+  };
+
+  const handleStartPomodoroForTask = (taskTitle: string) => {
+    console.log(`Attempting to start Pomodoro for task: "${taskTitle}"`);
+    // Actual Pomodoro start logic will be integrated with PomodoroContext/PomodoroLocalContext
+    // This might involve setting a 'currentTaskTitle' in the Pomodoro state.
+    // For now, we just log.
+    const duration = user ? pomodoroContext.sessionState?.userPreferredDurationMinutes : pomodoroLocalContext.sessionState.userPreferredDurationMinutes;
+    const startFn = user ? pomodoroContext.startPomodoro : pomodoroLocalContext.startPomodoro;
+
+    if (duration) {
+      startFn(duration, taskTitle); // Pass taskTitle to the start function
+      toast({ title: t('pomodoro.button.start'), description: t('task.pomodoroStartedFor', { title: taskTitle }) });
+      // Potentially navigate to Pomodoro page or show floating timer more prominently
+      router.push(`/${currentLocale}/`);
+    } else {
+      toast({ title: t('error'), description: t('pomodoro.settings.durationError'), variant: 'destructive' });
     }
   };
+  const router = useRouter();
+
 
   const effectiveLoading = authLoading || isLoadingTasks || (contextOverallLoading && user) || (isSeeding && user);
 
@@ -84,7 +123,7 @@ export default function TasksClient() {
 
   if (!user && !authLoading) {
     return (
-       <Alert variant="destructive" className="mt-8">
+       <Alert variant="destructive" className="mt-8 max-w-md mx-auto">
           <ShieldAlert className="h-5 w-5" />
           <AlertTitle>{t('error')}</AlertTitle>
           <AlertDescription>{t('auth.pleaseSignIn')}</AlertDescription>
@@ -92,111 +131,85 @@ export default function TasksClient() {
     );
   }
 
+  const showEditPanel = selectedTaskId !== null || isCreatingNewTask;
+
   return (
-    <>
-      <div className="flex flex-col sm:flex-row justify-between items-center mb-8 gap-4">
-        <h1 className="text-3xl font-bold tracking-tight">{t('tasks.title')}</h1>
-        <Link href={`/${currentLocale}/tasks/new`} passHref>
-          <Button className="w-full sm:w-auto text-base py-3">
-            <PlusCircle className="mr-2 h-5 w-5" /> {t('tasks.button.create')}
+    <div className="flex h-[calc(100vh-var(--header-height,8rem))]"> {/* Adjust header height var if needed */}
+      <div className={cn("transition-all duration-300 ease-in-out py-4 pr-4 overflow-y-auto", showEditPanel ? "w-1/2" : "w-full")}>
+        <div className="flex justify-between items-center mb-6">
+          <h1 className="text-2xl font-semibold tracking-tight">{t('tasks.title')}</h1>
+          <Button onClick={handleCreateNewTask} size="sm">
+            <PlusCircle className="mr-2 h-4 w-4" /> {t('tasks.button.create')}
           </Button>
-        </Link>
-      </div>
+        </div>
 
-      {tasks.length === 0 && !effectiveLoading && (
-        <Alert className="mt-8 border-primary/50 text-primary bg-primary/5">
-          <Info className="h-5 w-5 text-primary" />
-          <AlertTitle className="font-semibold text-primary">{t('tasks.list.empty.title')}</AlertTitle>
-          <AlertDescription>
-            {t('tasks.list.empty.description')}
-          </AlertDescription>
-        </Alert>
-      )}
+        {tasks.length === 0 && !effectiveLoading && (
+          <Alert className="mt-8 border-primary/50 text-primary bg-primary/5">
+            <Info className="h-5 w-5 text-primary" />
+            <AlertTitle className="font-semibold text-primary">{t('tasks.list.empty.title')}</AlertTitle>
+            <AlertDescription>
+              {t('tasks.list.empty.description')}
+            </AlertDescription>
+          </Alert>
+        )}
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {tasks.map((task) => (
-          <Card key={task.id} className="flex flex-col h-full shadow-lg hover:shadow-xl transition-shadow duration-300">
-            <CardHeader>
-              <div className="flex justify-between items-start">
-                <CardTitle className="text-xl flex items-center flex-grow mr-2">
-                  <ListChecks className="mr-2 h-5 w-5 text-primary/80 flex-shrink-0"/>
-                  <span className="truncate" title={task.title}>{task.title}</span>
-                </CardTitle>
-                <Link href={`/${currentLocale}/tasks/${task.id}/edit`} passHref legacyBehavior>
-                    <Button variant="ghost" size="icon" className="flex-shrink-0 h-7 w-7 p-1" title={t('task.item.edit')}>
-                        <Edit3 className="h-4 w-4" />
-                    </Button>
-                </Link>
-              </div>
-              <Badge variant={task.status === 'completed' ? 'default' : 'secondary'} className="w-fit mt-1">
-                {t(`task.item.status.${task.status}` as any)}
-              </Badge>
-            </CardHeader>
-            <CardContent className="flex-grow space-y-3">
-              {task.description && <p className="text-sm text-muted-foreground line-clamp-3">{task.description}</p>}
-              
-              <div className="text-xs text-muted-foreground space-y-1">
+        <ul className="space-y-1">
+          {tasks.map((task) => (
+            <li key={task.id}
+                className={cn(
+                    "group flex items-center justify-between p-3 rounded-md hover:bg-muted cursor-pointer",
+                    selectedTaskId === task.id && "bg-muted"
+                )}
+            >
+              <div className="flex-grow min-w-0" onClick={() => handleEditTask(task.id)}>
+                <p className="text-base font-medium truncate" title={task.title}>{task.title}</p>
                 {task.timeInfo && task.timeInfo.type !== 'no_time' && task.timeInfo.startDate && (
-                  <div className="flex items-center">
-                    <CalendarDays className="mr-1.5 h-3.5 w-3.5" />
-                    <span>{formatTimeInfo(task.timeInfo)}</span>
-                  </div>
-                )}
-                {task.repeat !== 'none' && (
-                  <div className="flex items-center">
-                    <Repeat className="mr-1.5 h-3.5 w-3.5" />
-                    <span>{t('task.form.label.repeat')}: {t(`task.form.repeat.${task.repeat}` as any)}</span>
-                  </div>
-                )}
-                {task.artifactLink && task.artifactLink.type !== 'none' && (
-                  <div className="flex items-center">
-                    <LinkIcon className="mr-1.5 h-3.5 w-3.5" />
-                    {task.artifactLink.type === 'url' && task.artifactLink.urlValue ? (
-                      <a 
-                        href={task.artifactLink.urlValue} 
-                        target="_blank" 
-                        rel="noopener noreferrer" 
-                        className="hover:underline text-primary truncate"
-                        title={task.artifactLink.urlValue}
-                      >
-                        {task.artifactLink.linkTitle || task.artifactLink.urlValue}
-                      </a>
-                    ) : task.artifactLink.type === 'flashcard' && task.artifactLink.flashcardId ? (
-                      <span className="truncate" title={t('task.display.artifact.flashcard', { title: task.artifactLink.linkTitle || task.artifactLink.flashcardId }) as string}>
-                        {t('task.display.artifact.flashcard', { title: task.artifactLink.linkTitle || task.artifactLink.flashcardId })}
-                      </span>
-                    ) : null}
-                  </div>
+                  <span className="text-xs text-muted-foreground">{formatTimeLabel(task.timeInfo)}</span>
                 )}
               </div>
-            </CardContent>
-            <CardFooter className="flex justify-end gap-2 pt-4 border-t">
-                <AlertDialog>
-                  <AlertDialogTrigger asChild>
-                    <Button variant="destructive" size="sm" className="flex-1 sm:flex-none" disabled={isSubmitting}>
-                      <Trash2 className="mr-2 h-4 w-4" /> {t('task.item.delete')}
-                    </Button>
-                  </AlertDialogTrigger>
-                  <AlertDialogContent>
-                    <AlertDialogHeader>
-                      <AlertDialogTitle>{t('task.item.delete.confirm.title')}</AlertDialogTitle>
-                      <AlertDialogDescription>
-                        {t('task.item.delete.confirm.description')}
-                      </AlertDialogDescription>
-                    </AlertDialogHeader>
-                    <AlertDialogFooter>
-                      <AlertDialogCancel>{t('deck.item.delete.confirm.cancel')}</AlertDialogCancel>
-                      <AlertDialogAction onClick={() => handleDeleteTask(task.id)} disabled={isSubmitting}>
-                        {isSubmitting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
-                        {t('task.item.delete')}
-                      </AlertDialogAction>
-                    </AlertDialogFooter>
-                  </AlertDialogContent>
-                </AlertDialog>
-            </CardFooter>
-          </Card>
-        ))}
+              <Button
+                variant="ghost"
+                size="icon"
+                className="ml-2 opacity-0 group-hover:opacity-100 focus-visible:opacity-100 transition-opacity h-8 w-8"
+                onClick={(e) => { e.stopPropagation(); handleStartPomodoroForTask(task.title); }}
+                title={t('task.item.startPomodoro')}
+              >
+                <PlayCircle className="h-5 w-5 text-primary" />
+              </Button>
+            </li>
+          ))}
+        </ul>
       </div>
-    </>
+
+      {showEditPanel && (
+        <div className="w-1/2 border-l pl-4 py-4 overflow-y-auto">
+           <TaskForm
+            key={selectedTaskId || 'new-task'} // Re-mount form when task changes
+            mode={isCreatingNewTask ? 'create' : 'edit'}
+            initialData={isCreatingNewTask ? { status: 'pending', repeat: 'none', timeInfo: {type: 'no_time'}, artifactLink: {type: 'none'}, reminderInfo: {type: 'none'}} : selectedTask}
+            onSubmit={async (data) => {
+              setIsSubmitting(true);
+              try {
+                if (isCreatingNewTask) {
+                  await useFlashcards().addTask(data); // Directly call from hook
+                  toast({ title: t('success'), description: t('toast.task.created') });
+                  setIsCreatingNewTask(false);
+                } else if (selectedTask) {
+                  await updateTask(selectedTask.id, data);
+                  toast({ title: t('success'), description: t('toast.task.updated') });
+                }
+                setSelectedTaskId(null); // Close panel after save
+              } catch (error) {
+                toast({ title: t('error'), description: t('toast.task.error.save'), variant: "destructive" });
+              } finally {
+                setIsSubmitting(false);
+              }
+            }}
+            isLoading={isSubmitting}
+            onCancel={handleCancelEdit}
+          />
+        </div>
+      )}
+    </div>
   );
 }

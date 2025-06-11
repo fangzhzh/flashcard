@@ -4,26 +4,25 @@ import type { PomodoroSessionState as PomodoroStateStructure } from '@/types'; /
 import React, { createContext, useContext, useState, useEffect, ReactNode, useCallback, useRef } from 'react';
 import { useToast } from '@/hooks/use-toast';
 import { useI18n } from '@/lib/i18n/client';
-// BreakOptionsDialog will be rendered by PomodoroLocalClient directly or as part of its structure
 
 const DEFAULT_POMODORO_MINUTES = 25;
 const DEFAULT_REST_MINUTES = 5;
 
-// Define a local session state type, similar to Firestore but without server timestamps
 interface LocalPomodoroSessionState extends Omit<PomodoroStateStructure, 'userId' | 'updatedAt'> {
-  updatedAt: number; // Use simple number timestamp
+  updatedAt: number;
+  currentTaskTitle?: string | null;
 }
 
 interface PomodoroLocalContextType {
   sessionState: LocalPomodoroSessionState;
   timeLeftSeconds: number;
-  startPomodoro: (durationMinutes: number) => Promise<void>;
+  startPomodoro: (durationMinutes: number, taskTitle?: string) => Promise<void>; // Added taskTitle
   pausePomodoro: () => Promise<void>;
   continuePomodoro: () => Promise<void>;
   giveUpPomodoro: () => Promise<void>;
   updateUserPreferredDuration: (minutes: number) => Promise<void>;
   updateNotes: (text: string) => Promise<void>;
-  
+
   isBreakDialogOpen: boolean;
   setIsBreakDialogOpen: React.Dispatch<React.SetStateAction<boolean>>;
   handleStartRestPeriod: (selectedOptionId: string) => void;
@@ -45,19 +44,19 @@ export const PomodoroLocalProvider = ({ children }: { children: ReactNode }) => 
     currentSessionInitialDurationMinutes: DEFAULT_POMODORO_MINUTES,
     userPreferredDurationMinutes: DEFAULT_POMODORO_MINUTES,
     notes: '',
+    currentTaskTitle: null,
     updatedAt: Date.now(),
   };
 
   const [sessionState, setSessionState] = useState<LocalPomodoroSessionState>(initialSessionState);
   const [timeLeftSeconds, setTimeLeftSeconds] = useState(DEFAULT_POMODORO_MINUTES * 60);
-  
+
   const pomodoroIntervalRef = useRef<NodeJS.Timeout | null>(null);
-  
+
   const [originalTitle, setOriginalTitle] = useState('');
   const [originalFaviconHref, setOriginalFaviconHref] = useState<string | null>(null);
 
   const [isBreakDialogOpen, setIsBreakDialogOpen] = useState(false);
-  // const [selectedBreakOptionId, setSelectedBreakOptionId] = useState<string>('stretch'); // Managed by Client
   const [isResting, setIsResting] = useState(false);
   const [restTimeLeftSeconds, setRestTimeLeftSeconds] = useState(DEFAULT_REST_MINUTES * 60);
 
@@ -87,8 +86,8 @@ export const PomodoroLocalProvider = ({ children }: { children: ReactNode }) => 
 
     if (!context) return;
     context.clearRect(0, 0, faviconSize, faviconSize);
-    
-    if (minutes === null || (isPomodoroIdle && !useRestStyling)) { 
+
+    if (minutes === null || (isPomodoroIdle && !useRestStyling)) {
         if (originalFaviconHref) {
              const link = document.querySelector<HTMLLinkElement>("link[rel*='icon']") || document.createElement('link');
              link.type = 'image/x-icon';
@@ -101,9 +100,9 @@ export const PomodoroLocalProvider = ({ children }: { children: ReactNode }) => 
 
     context.beginPath();
     context.arc(faviconSize / 2, faviconSize / 2, faviconSize / 2, 0, 2 * Math.PI);
-    context.fillStyle = useRestStyling 
-        ? (getComputedStyle(document.documentElement).getPropertyValue('--accent').trim() || '#F48FB1') 
-        : (getComputedStyle(document.documentElement).getPropertyValue('--primary').trim() || '#7E57C2'); 
+    context.fillStyle = useRestStyling
+        ? (getComputedStyle(document.documentElement).getPropertyValue('--accent').trim() || '#F48FB1')
+        : (getComputedStyle(document.documentElement).getPropertyValue('--primary').trim() || '#7E57C2');
     context.fill();
 
     context.font = `bold ${faviconSize * (String(minutes).length > 1 ? 0.5 : 0.6)}px Arial`;
@@ -135,7 +134,7 @@ export const PomodoroLocalProvider = ({ children }: { children: ReactNode }) => 
       clearInterval(pomodoroIntervalRef.current);
       pomodoroIntervalRef.current = null;
     }
-    
+
     const currentPreferredDuration = sessionState.userPreferredDurationMinutes || DEFAULT_POMODORO_MINUTES;
     const notesToPreserve = sessionState.notes || '';
     setSessionState(prev => ({
@@ -145,9 +144,10 @@ export const PomodoroLocalProvider = ({ children }: { children: ReactNode }) => 
       pausedTimeLeftSeconds: null,
       currentSessionInitialDurationMinutes: currentPreferredDuration,
       notes: notesToPreserve,
+      currentTaskTitle: null, // Clear task title
       updatedAt: Date.now()
     }));
-    
+
     setIsBreakDialogOpen(true);
     if (typeof window !== 'undefined' && Notification.permission === "granted") {
       new Notification(t('pomodoro.notification.title'), {
@@ -170,7 +170,7 @@ export const PomodoroLocalProvider = ({ children }: { children: ReactNode }) => 
       }
       return;
     }
-    
+
     const updateTimer = () => {
       const currentTargetEndTime = sessionState.targetEndTime;
       if (!currentTargetEndTime) {
@@ -189,7 +189,7 @@ export const PomodoroLocalProvider = ({ children }: { children: ReactNode }) => 
     if (pomodoroIntervalRef.current) clearInterval(pomodoroIntervalRef.current);
     updateTimer();
     pomodoroIntervalRef.current = setInterval(updateTimer, 1000);
-    
+
     return () => {
       if (pomodoroIntervalRef.current) {
         clearInterval(pomodoroIntervalRef.current);
@@ -206,14 +206,15 @@ export const PomodoroLocalProvider = ({ children }: { children: ReactNode }) => 
       let displayMinutesForFavicon: number | null = null;
       let useRestStylingForFavicon = false;
       let isPomodoroIdleVisual = sessionState.status === 'idle';
+      let taskTitleSegment = sessionState.currentTaskTitle ? `(${sessionState.currentTaskTitle}) ` : '';
 
       if (isResting) {
           currentDisplayTime = restTimeLeftSeconds;
           titlePrefix = `🧘 ${t('pomodoro.rest.titlePrefix')} `;
           displayMinutesForFavicon = Math.max(0, Math.floor(currentDisplayTime / 60));
           useRestStylingForFavicon = true;
-          isPomodoroIdleVisual = false; 
-      } else { 
+          isPomodoroIdleVisual = false;
+      } else {
           currentDisplayTime = timeLeftSeconds;
           if (sessionState.status === 'running') {
               titlePrefix = '⏲️ ';
@@ -225,13 +226,13 @@ export const PomodoroLocalProvider = ({ children }: { children: ReactNode }) => 
       }
 
       if (titlePrefix) {
-          document.title = `${titlePrefix}${formatTime(currentDisplayTime)} - ${originalTitle}`;
+          document.title = `${titlePrefix}${taskTitleSegment}${formatTime(currentDisplayTime)} - ${originalTitle}`;
       } else {
           document.title = originalTitle;
       }
       updateFaviconWithTime(displayMinutesForFavicon, useRestStylingForFavicon, isPomodoroIdleVisual);
 
-  }, [timeLeftSeconds, restTimeLeftSeconds, isResting, sessionState.status, originalTitle, updateFaviconWithTime, t]);
+  }, [timeLeftSeconds, restTimeLeftSeconds, isResting, sessionState.status, sessionState.currentTaskTitle, originalTitle, updateFaviconWithTime, t]);
 
   useEffect(() => {
     if (!isResting) return;
@@ -256,7 +257,7 @@ export const PomodoroLocalProvider = ({ children }: { children: ReactNode }) => 
     return () => clearInterval(intervalId);
   }, [isResting, t]);
 
-  const startPomodoro = async (durationMinutes: number) => {
+  const startPomodoro = async (durationMinutes: number, taskTitle?: string) => {
     if (typeof window !== 'undefined' && 'Notification' in window) {
         if (Notification.permission === "default") {
             try {
@@ -282,6 +283,7 @@ export const PomodoroLocalProvider = ({ children }: { children: ReactNode }) => 
       currentSessionInitialDurationMinutes: durationMinutes,
       userPreferredDurationMinutes: prev.userPreferredDurationMinutes || durationMinutes,
       pausedTimeLeftSeconds: null,
+      currentTaskTitle: taskTitle || null, // Set task title
       updatedAt: Date.now(),
     }));
   };
@@ -325,6 +327,7 @@ export const PomodoroLocalProvider = ({ children }: { children: ReactNode }) => 
       status: 'idle',
       targetEndTime: null,
       pausedTimeLeftSeconds: null,
+      currentTaskTitle: null, // Clear task title
       updatedAt: Date.now(),
     }));
   };
@@ -339,7 +342,7 @@ export const PomodoroLocalProvider = ({ children }: { children: ReactNode }) => 
         };
         if (prev.status === 'idle') {
             newState.currentSessionInitialDurationMinutes = newDuration;
-            setTimeLeftSeconds(newDuration * 60); // Update timer display if idle
+            setTimeLeftSeconds(newDuration * 60);
         }
         return newState;
     });
@@ -351,7 +354,6 @@ export const PomodoroLocalProvider = ({ children }: { children: ReactNode }) => 
 
   const handleStartRestPeriod = (selectedOptionId: string) => {
     setIsBreakDialogOpen(false);
-    // setSelectedBreakOptionId(selectedOptionId); // Client manages this itself if needed
     if (pomodoroIntervalRef.current) {
       clearInterval(pomodoroIntervalRef.current);
       pomodoroIntervalRef.current = null;
@@ -362,16 +364,16 @@ export const PomodoroLocalProvider = ({ children }: { children: ReactNode }) => 
 
   const skipRest = () => {
     setIsResting(false);
-    setRestTimeLeftSeconds(DEFAULT_REST_MINUTES * 60); // Reset for next time
+    setRestTimeLeftSeconds(DEFAULT_REST_MINUTES * 60);
   };
 
   return (
-    <PomodoroLocalContext.Provider value={{ 
-      sessionState, 
-      timeLeftSeconds, 
-      startPomodoro, 
-      pausePomodoro, 
-      continuePomodoro, 
+    <PomodoroLocalContext.Provider value={{
+      sessionState,
+      timeLeftSeconds,
+      startPomodoro,
+      pausePomodoro,
+      continuePomodoro,
       giveUpPomodoro,
       updateUserPreferredDuration,
       updateNotes,
@@ -394,5 +396,3 @@ export const usePomodoroLocal = () => {
   }
   return context;
 };
-
-    

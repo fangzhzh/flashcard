@@ -11,36 +11,34 @@ import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription, SheetFo
 import { Play, Pause, RotateCcw, Settings2, Eraser, Loader2, NotebookPen, NotebookText, ShieldAlert, Coffee, SkipForward } from 'lucide-react';
 import { useI18n } from '@/lib/i18n/client';
 import { useAuth } from '@/contexts/AuthContext';
-import { usePomodoro } from '@/contexts/PomodoroContext'; // For logged-in users
+import { usePomodoro } from '@/contexts/PomodoroContext';
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { cn } from '@/lib/utils';
-// BreakOptionsDialog is now rendered by PomodoroProvider for this client
 
-const DEFAULT_POMODORO_MINUTES_DISPLAY = 25; 
+const DEFAULT_POMODORO_MINUTES_DISPLAY = 25;
 
 export default function PomodoroClient() {
   const t = useI18n();
-  const { user, loading: authLoading } = useAuth(); // Still needed for the auth guard
-  const { 
-    sessionState, 
-    timeLeftSeconds, 
-    isLoading: pomodoroLoading, 
-    startPomodoro, 
-    pausePomodoro, 
-    continuePomodoro, 
+  const { user, loading: authLoading } = useAuth();
+  const {
+    sessionState,
+    timeLeftSeconds,
+    isLoading: pomodoroLoading,
+    startPomodoro,
+    pausePomodoro,
+    continuePomodoro,
     giveUpPomodoro,
     updateUserPreferredDuration,
     updateNotes,
     isResting,
     restTimeLeftSeconds,
     skipRest,
-    // isBreakDialogOpen and setIsBreakDialogOpen are handled by PomodoroProvider
-  } = usePomodoro(); // Consumes Firestore-backed context
+  } = usePomodoro();
 
   const [localNotes, setLocalNotes] = useState('');
   const [isNotesSheetOpen, setIsNotesSheetOpen] = useState(false);
   const [isSettingsCardVisible, setIsSettingsCardVisible] = useState(false);
-  
+
   const [durationInput, setDurationInput] = useState(
     sessionState?.userPreferredDurationMinutes ?? DEFAULT_POMODORO_MINUTES_DISPLAY
   );
@@ -53,7 +51,7 @@ export default function PomodoroClient() {
           ? sessionState.userPreferredDurationMinutes
           : DEFAULT_POMODORO_MINUTES_DISPLAY
       );
-    } else { // Should not happen if user is present and context is loaded
+    } else {
       setDurationInput(DEFAULT_POMODORO_MINUTES_DISPLAY);
       setLocalNotes('');
     }
@@ -66,9 +64,10 @@ export default function PomodoroClient() {
   };
 
   const handleStart = () => {
-    if (!user) return; // Should be guarded by page level
+    if (!user) return;
     const validDuration = durationInput > 0 && durationInput <= 120 ? durationInput : DEFAULT_POMODORO_MINUTES_DISPLAY;
-    startPomodoro(validDuration);
+    // Pass current task title if available, otherwise undefined
+    startPomodoro(validDuration, sessionState?.currentTaskTitle || undefined);
     setIsSettingsCardVisible(false);
   };
 
@@ -77,10 +76,10 @@ export default function PomodoroClient() {
     if (!isNaN(newDuration) && newDuration > 0 && newDuration <= 120) {
       setDurationInput(newDuration);
     } else if (e.target.value === '') {
-      setDurationInput(0); 
+      setDurationInput(0);
     }
   };
-  
+
   const handleDurationSettingsSave = () => {
      if (durationInput > 0 && durationInput <= 120) {
         updateUserPreferredDuration(durationInput);
@@ -95,7 +94,7 @@ export default function PomodoroClient() {
 
   const toggleSettingsVisibility = () => {
     if (isResting) return;
-    if (sessionState?.status === 'idle' || !sessionState) { 
+    if (sessionState?.status === 'idle' || !sessionState) {
       setIsSettingsCardVisible(!isSettingsCardVisible);
     }
   };
@@ -106,9 +105,8 @@ export default function PomodoroClient() {
     }
     setIsNotesSheetOpen(false);
   }
-  
-  // Auth loading check at page level, here assume user context loaded if this component is rendered
-  if (pomodoroLoading) { // Pomodoro context specific loading
+
+  if (pomodoroLoading) {
     return (
       <div className="flex justify-center items-center mt-8">
         <Loader2 className="h-8 w-8 animate-spin text-primary" />
@@ -116,9 +114,7 @@ export default function PomodoroClient() {
     );
   }
 
-  // This component should only be rendered if a user is logged in (handled by page.tsx)
-  // A redundant check here for safety, though page.tsx is the primary guard.
-  if (!user && !authLoading) { 
+  if (!user && !authLoading) {
     return (
        <Alert variant="destructive" className="mt-8 max-w-md mx-auto">
           <ShieldAlert className="h-5 w-5" />
@@ -127,19 +123,27 @@ export default function PomodoroClient() {
         </Alert>
     );
   }
-  
+
   const timerIsActive = sessionState?.status === 'running' || sessionState?.status === 'paused';
   const timerIsIdle = sessionState?.status === 'idle' || !sessionState;
   const displayTime = isResting ? restTimeLeftSeconds : timeLeftSeconds;
+  const currentTaskTitle = sessionState?.currentTaskTitle;
+
 
   return (
-    <div className="flex flex-col items-center space-y-8 relative min-h-[calc(100vh-12rem)] pb-20">
+    <div className="flex flex-col items-center space-y-6 relative min-h-[calc(100vh-12rem)] pb-20">
+      {currentTaskTitle && (
+        <div className="w-full max-w-md text-center p-2 bg-muted rounded-md shadow">
+          <p className="text-sm font-medium text-muted-foreground">{t('task.currentTaskLabel')}</p>
+          <p className="text-lg font-semibold text-foreground truncate" title={currentTaskTitle}>{currentTaskTitle}</p>
+        </div>
+      )}
       <Card className="w-full max-w-md shadow-xl">
-        <CardHeader 
+        <CardHeader
           className={cn(
             "text-center transition-colors duration-300",
-            isResting ? "bg-accent text-accent-foreground rounded-t-lg" 
-                      : (timerIsIdle && !isResting ? "cursor-pointer hover:bg-muted/50 rounded-t-lg" 
+            isResting ? "bg-accent text-accent-foreground rounded-t-lg"
+                      : (timerIsIdle && !isResting ? "cursor-pointer hover:bg-muted/50 rounded-t-lg"
                                                  : "bg-card text-card-foreground rounded-t-lg")
           )}
           onClick={toggleSettingsVisibility}
@@ -153,7 +157,7 @@ export default function PomodoroClient() {
           </CardTitle>
           {isResting && <p className="text-sm font-medium">{t('pomodoro.rest.stateIndicator')}</p>}
         </CardHeader>
-        <CardContent className="space-y-6">
+        <CardContent className="space-y-6 pt-6">
           {isResting ? (
             <Button onClick={skipRest} className="w-full text-lg py-3" size="lg" variant="outline">
               <SkipForward className="mr-2 h-5 w-5" /> {t('pomodoro.rest.button.skip')}
@@ -201,7 +205,7 @@ export default function PomodoroClient() {
                 id="pomodoroDuration"
                 value={durationInput === 0 ? '' : durationInput}
                 onChange={handleDurationInputChange}
-                onBlur={handleDurationSettingsSave} 
+                onBlur={handleDurationSettingsSave}
                 placeholder={t('pomodoro.settings.durationPlaceholder')}
                 className="text-base"
                 min="1"
@@ -216,14 +220,14 @@ export default function PomodoroClient() {
           </CardContent>
         </Card>
       )}
-      
+
       <Sheet open={isNotesSheetOpen} onOpenChange={(open) => {
           if (!open) handleNotesSheetClose();
           else setIsNotesSheetOpen(true);
       }}>
         <SheetTrigger asChild>
-            <Button 
-                variant="outline" 
+            <Button
+                variant="outline"
                 className={cn(
                     "fixed bottom-6 right-6 z-50 rounded-full h-14 w-14 p-0 shadow-lg transition-all",
                     localNotes && localNotes.length > 0 ? "bg-accent text-accent-foreground hover:bg-accent/90 border-primary/30" : "bg-background/80 hover:bg-muted backdrop-blur-sm"
@@ -244,7 +248,7 @@ export default function PomodoroClient() {
               value={localNotes}
               onChange={(e) => setLocalNotes(e.target.value)}
               placeholder={t('pomodoro.notes.sheet.placeholder')}
-              className="flex-grow min-h-[150px] text-base my-4" 
+              className="flex-grow min-h-[150px] text-base my-4"
           />
           <SheetFooter>
             <SheetClose asChild>
@@ -253,9 +257,6 @@ export default function PomodoroClient() {
           </SheetFooter>
         </SheetContent>
       </Sheet>
-      {/* BreakOptionsDialog is now part of PomodoroProvider for logged-in users */}
     </div>
   );
 }
-
-    

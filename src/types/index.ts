@@ -28,7 +28,7 @@ export type PerformanceRating = 'Mastered' | 'Later' | 'Try Again';
 export interface FlashcardSourceDataItem {
   question: string;
   answer: string;
-  [key: string]: any;
+  [key:string]: any;
 }
 
 export type AppUser = Pick<FirebaseUser, 'uid' | 'displayName' | 'email' | 'photoURL'> | null;
@@ -36,12 +36,13 @@ export type AppUser = Pick<FirebaseUser, 'uid' | 'displayName' | 'email' | 'phot
 export interface PomodoroSessionState {
   userId: string;
   status: 'running' | 'paused' | 'idle';
-  targetEndTime: number | null; 
-  pausedTimeLeftSeconds: number | null; 
-  currentSessionInitialDurationMinutes: number; 
-  userPreferredDurationMinutes: number; 
+  targetEndTime: number | null;
+  pausedTimeLeftSeconds: number | null;
+  currentSessionInitialDurationMinutes: number;
+  userPreferredDurationMinutes: number;
   notes: string;
-  updatedAt: any; 
+  updatedAt: any;
+  currentTaskTitle?: string | null; // For displaying task title during Pomodoro
 }
 
 // Task Management Types
@@ -58,8 +59,15 @@ export interface TimeInfo {
 export interface ArtifactLink {
   type: 'none' | 'flashcard' | 'url';
   flashcardId?: string | null;
-  linkTitle?: string | null; 
+  linkTitle?: string | null;
   urlValue?: string | null;
+}
+
+export type ReminderType = 'none' | 'at_event_time' | '5_minutes_before' | '10_minutes_before' | '15_minutes_before' | '30_minutes_before' | '1_hour_before' | '1_day_before';
+
+export interface ReminderInfo {
+  type: ReminderType;
+  // minutesBefore?: number; // Could be used for custom reminders later
 }
 
 export interface Task {
@@ -71,6 +79,7 @@ export interface Task {
   repeat: RepeatFrequency;
   timeInfo: TimeInfo;
   artifactLink: ArtifactLink;
-  createdAt: string; 
-  updatedAt: string; 
+  reminderInfo: ReminderInfo; // Added reminderInfo
+  createdAt: string;
+  updatedAt: string;
 }

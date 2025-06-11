@@ -16,7 +16,7 @@ interface PomodoroContextType {
   sessionState: PomodoroSessionState | null;
   timeLeftSeconds: number;
   isLoading: boolean;
-  startPomodoro: (durationMinutes: number) => Promise<void>;
+  startPomodoro: (durationMinutes: number, taskTitle?: string) => Promise<void>; // Added taskTitle
   pausePomodoro: () => Promise<void>;
   continuePomodoro: () => Promise<void>;
   giveUpPomodoro: () => Promise<void>;
@@ -25,7 +25,6 @@ interface PomodoroContextType {
   isResting: boolean;
   restTimeLeftSeconds: number;
   skipRest: () => void;
-  // Break dialog state is now managed by this context for Firestore-backed sessions
   isBreakDialogOpen: boolean;
   setIsBreakDialogOpen: React.Dispatch<React.SetStateAction<boolean>>;
   handleStartRestPeriod: (selectedOptionId: string) => void;
@@ -41,14 +40,13 @@ export const PomodoroProvider = ({ children }: { children: ReactNode }) => {
   const [firestoreSessionState, setFirestoreSessionState] = useState<PomodoroSessionState | null>(null);
   const [timeLeftSeconds, setTimeLeftSeconds] = useState(DEFAULT_POMODORO_MINUTES * 60);
   const [isLoading, setIsLoading] = useState(true);
-  
+
   const pomodoroIntervalRef = useRef<NodeJS.Timeout | null>(null);
-  
+
   const [originalTitle, setOriginalTitle] = useState('');
   const [originalFaviconHref, setOriginalFaviconHref] = useState<string | null>(null);
 
   const [isBreakDialogOpen, setIsBreakDialogOpen] = useState(false);
-  // selectedBreakOptionId is managed locally by BreakOptionsDialog or passed directly to handleStartRestPeriod
   const [isResting, setIsResting] = useState(false);
   const [restTimeLeftSeconds, setRestTimeLeftSeconds] = useState(DEFAULT_REST_MINUTES * 60);
 
@@ -67,14 +65,13 @@ export const PomodoroProvider = ({ children }: { children: ReactNode }) => {
     return doc(db, 'users', user.uid, 'pomodoro', 'state');
   }, [user?.uid]);
 
-  // Firestore listener for sessionState (for logged-in users)
   useEffect(() => {
     if (authLoading) {
       setIsLoading(true);
       return;
     }
     if (!user?.uid) {
-      setFirestoreSessionState(null); // Clear Firestore state if user logs out
+      setFirestoreSessionState(null);
       setTimeLeftSeconds(DEFAULT_POMODORO_MINUTES * 60);
       setIsLoading(false);
       if (pomodoroIntervalRef.current) {
@@ -94,21 +91,22 @@ export const PomodoroProvider = ({ children }: { children: ReactNode }) => {
       if (snapshot.exists()) {
         const data = snapshot.data() as Omit<PomodoroSessionState, 'updatedAt' | 'userId'> & { updatedAt: Timestamp | number | null, userId?: string };
         const newSessionState: PomodoroSessionState = {
-          userId: data.userId || user.uid, // Should always be user.uid
+          userId: data.userId || user.uid,
           status: data.status,
           targetEndTime: data.targetEndTime as number | null,
           pausedTimeLeftSeconds: data.pausedTimeLeftSeconds || null,
           currentSessionInitialDurationMinutes: data.currentSessionInitialDurationMinutes,
           userPreferredDurationMinutes: data.userPreferredDurationMinutes,
           notes: data.notes || '',
+          currentTaskTitle: data.currentTaskTitle || null,
           updatedAt: data.updatedAt instanceof Timestamp ? data.updatedAt.toMillis() : (typeof data.updatedAt === 'number' ? data.updatedAt : Date.now()),
         };
-        
+
         if (newSessionState.targetEndTime && typeof newSessionState.targetEndTime !== 'number' && 'toDate' in (newSessionState.targetEndTime as any)) {
             newSessionState.targetEndTime = ((newSessionState.targetEndTime as any) as Timestamp).toMillis();
         }
         setFirestoreSessionState(newSessionState);
-      } else { // Create default state in Firestore if it doesn't exist for the user
+      } else {
         const initialDefaultState: PomodoroSessionState = {
           userId: user.uid,
           status: 'idle',
@@ -117,12 +115,13 @@ export const PomodoroProvider = ({ children }: { children: ReactNode }) => {
           currentSessionInitialDurationMinutes: DEFAULT_POMODORO_MINUTES,
           userPreferredDurationMinutes: DEFAULT_POMODORO_MINUTES,
           notes: '',
-          updatedAt: Date.now(), // For local state before Firestore write
+          currentTaskTitle: null,
+          updatedAt: Date.now(),
         };
-        setFirestoreSessionState(initialDefaultState); 
+        setFirestoreSessionState(initialDefaultState);
         const firestoreWriteState: Omit<PomodoroSessionState, 'updatedAt'> & {updatedAt: FieldValue} = {
             ...initialDefaultState,
-            updatedAt: serverTimestamp() 
+            updatedAt: serverTimestamp()
         };
         setDoc(docRef, firestoreWriteState).catch(error => {
           console.error("Error creating default pomodoro state in Firestore:", error);
@@ -139,6 +138,7 @@ export const PomodoroProvider = ({ children }: { children: ReactNode }) => {
           currentSessionInitialDurationMinutes: DEFAULT_POMODORO_MINUTES,
           userPreferredDurationMinutes: DEFAULT_POMODORO_MINUTES,
           notes: '',
+          currentTaskTitle: null,
           updatedAt: Date.now(),
       };
       setFirestoreSessionState(fallbackState);
@@ -165,8 +165,8 @@ export const PomodoroProvider = ({ children }: { children: ReactNode }) => {
 
     if (!context) return;
     context.clearRect(0, 0, faviconSize, faviconSize);
-    
-    if (minutes === null || (isPomodoroIdle && !useRestStyling)) { 
+
+    if (minutes === null || (isPomodoroIdle && !useRestStyling)) {
         if (originalFaviconHref) {
              const link = document.querySelector<HTMLLinkElement>("link[rel*='icon']") || document.createElement('link');
              link.type = 'image/x-icon';
@@ -179,9 +179,9 @@ export const PomodoroProvider = ({ children }: { children: ReactNode }) => {
 
     context.beginPath();
     context.arc(faviconSize / 2, faviconSize / 2, faviconSize / 2, 0, 2 * Math.PI);
-    context.fillStyle = useRestStyling 
-        ? (getComputedStyle(document.documentElement).getPropertyValue('--accent').trim() || '#F48FB1') 
-        : (getComputedStyle(document.documentElement).getPropertyValue('--primary').trim() || '#7E57C2'); 
+    context.fillStyle = useRestStyling
+        ? (getComputedStyle(document.documentElement).getPropertyValue('--accent').trim() || '#F48FB1')
+        : (getComputedStyle(document.documentElement).getPropertyValue('--primary').trim() || '#7E57C2');
     context.fill();
 
     context.font = `bold ${faviconSize * (String(minutes).length > 1 ? 0.5 : 0.6)}px Arial`;
@@ -215,7 +215,7 @@ export const PomodoroProvider = ({ children }: { children: ReactNode }) => {
       clearInterval(pomodoroIntervalRef.current);
       pomodoroIntervalRef.current = null;
     }
-    
+
     const currentPreferredDuration = firestoreSessionState?.userPreferredDurationMinutes || DEFAULT_POMODORO_MINUTES;
     const notesToPreserve = firestoreSessionState?.notes || '';
     const newState: Omit<PomodoroSessionState, 'updatedAt'> & {updatedAt: FieldValue} = {
@@ -226,13 +226,14 @@ export const PomodoroProvider = ({ children }: { children: ReactNode }) => {
       currentSessionInitialDurationMinutes: currentPreferredDuration,
       userPreferredDurationMinutes: currentPreferredDuration,
       notes: notesToPreserve,
+      currentTaskTitle: null, // Clear task title when session ends
       updatedAt: serverTimestamp()
     };
-    
+
     setDoc(docRef, newState, { merge: true })
     .catch(e => console.error("Error setting Pomodoro to idle:", e))
     .finally(() => {
-      setIsBreakDialogOpen(true); // Open dialog for logged-in user
+      setIsBreakDialogOpen(true);
       if (typeof window !== 'undefined' && Notification.permission === "granted") {
         new Notification(t('pomodoro.notification.title'), {
           body: t('pomodoro.notification.body'),
@@ -242,7 +243,6 @@ export const PomodoroProvider = ({ children }: { children: ReactNode }) => {
     });
   }, [user?.uid, firestoreSessionState, isResting, isBreakDialogOpen, pomodoroDocRef, t, setIsBreakDialogOpen]);
 
-  // Effect for MAIN Pomodoro timer logic (for logged-in users)
   useEffect(() => {
     if (!user?.uid || !firestoreSessionState || isResting || isBreakDialogOpen || firestoreSessionState.status !== 'running' || !firestoreSessionState.targetEndTime) {
       if (pomodoroIntervalRef.current) {
@@ -256,7 +256,7 @@ export const PomodoroProvider = ({ children }: { children: ReactNode }) => {
       }
       return;
     }
-    
+
     const updateTimer = () => {
       const currentTargetEndTime = firestoreSessionState.targetEndTime;
       if (!currentTargetEndTime) {
@@ -275,7 +275,7 @@ export const PomodoroProvider = ({ children }: { children: ReactNode }) => {
     if (pomodoroIntervalRef.current) clearInterval(pomodoroIntervalRef.current);
     updateTimer();
     pomodoroIntervalRef.current = setInterval(updateTimer, 1000);
-    
+
     return () => {
       if (pomodoroIntervalRef.current) {
         clearInterval(pomodoroIntervalRef.current);
@@ -284,7 +284,6 @@ export const PomodoroProvider = ({ children }: { children: ReactNode }) => {
     };
   }, [user?.uid, firestoreSessionState?.status, firestoreSessionState?.targetEndTime, firestoreSessionState?.userPreferredDurationMinutes, isResting, isBreakDialogOpen, currentTimerEnds]);
 
-  // Effect for UI updates (title and favicon) - No Firestore writes here
   useEffect(() => {
       if (typeof window === 'undefined' || !firestoreSessionState ) return;
 
@@ -293,14 +292,16 @@ export const PomodoroProvider = ({ children }: { children: ReactNode }) => {
       let displayMinutesForFavicon: number | null = null;
       let useRestStylingForFavicon = false;
       let isPomodoroIdleVisual = firestoreSessionState.status === 'idle';
+      let taskTitleSegment = firestoreSessionState.currentTaskTitle ? `(${firestoreSessionState.currentTaskTitle}) ` : '';
+
 
       if (isResting) {
           currentDisplayTime = restTimeLeftSeconds;
           titlePrefix = `🧘 ${t('pomodoro.rest.titlePrefix')} `;
           displayMinutesForFavicon = Math.max(0, Math.floor(currentDisplayTime / 60));
           useRestStylingForFavicon = true;
-          isPomodoroIdleVisual = false; 
-      } else { 
+          isPomodoroIdleVisual = false;
+      } else {
           currentDisplayTime = timeLeftSeconds;
           if (firestoreSessionState.status === 'running') {
               titlePrefix = '⏲️ ';
@@ -312,17 +313,16 @@ export const PomodoroProvider = ({ children }: { children: ReactNode }) => {
       }
 
       if (titlePrefix) {
-          document.title = `${titlePrefix}${formatTime(currentDisplayTime)} - ${originalTitle}`;
+          document.title = `${titlePrefix}${taskTitleSegment}${formatTime(currentDisplayTime)} - ${originalTitle}`;
       } else {
           document.title = originalTitle;
       }
       updateFaviconWithTime(displayMinutesForFavicon, useRestStylingForFavicon, isPomodoroIdleVisual);
 
-  }, [timeLeftSeconds, restTimeLeftSeconds, isResting, firestoreSessionState?.status, originalTitle, updateFaviconWithTime, t]);
+  }, [timeLeftSeconds, restTimeLeftSeconds, isResting, firestoreSessionState?.status, firestoreSessionState?.currentTaskTitle, originalTitle, updateFaviconWithTime, t]);
 
-  // Effect for Rest Timer
   useEffect(() => {
-    if (!isResting) { // Only applies if a rest period is active
+    if (!isResting) {
       return;
     }
 
@@ -347,15 +347,15 @@ export const PomodoroProvider = ({ children }: { children: ReactNode }) => {
   }, [isResting, t]);
 
 
-  const startPomodoro = async (durationMinutes: number) => {
+  const startPomodoro = async (durationMinutes: number, taskTitle?: string) => {
     const docRef = pomodoroDocRef();
-    if (!docRef || !user?.uid) return; // This context is only for logged-in users now
+    if (!docRef || !user?.uid) return;
 
     if (typeof window !== 'undefined' && 'Notification' in window) {
         if (Notification.permission === "default") {
             try {
                 const permissionResult = await Notification.requestPermission();
-                if (Notification.permission === "granted") { // Check static property after request
+                if (Notification.permission === "granted") {
                     toast({ title: t('notifications.enabled.title'), description: t('notifications.enabled.description') });
                 } else if (permissionResult === "denied" || Notification.permission === "denied") {
                     toast({ title: t('notifications.denied.title'), description: t('notifications.denied.description'), variant: "destructive" });
@@ -369,15 +369,16 @@ export const PomodoroProvider = ({ children }: { children: ReactNode }) => {
 
     const now = Date.now();
     const targetEndTime = now + durationMinutes * 60 * 1000;
-    const newState: Omit<PomodoroSessionState, 'updatedAt'> & {updatedAt: FieldValue} = { 
+    const newState: Omit<PomodoroSessionState, 'updatedAt'> & {updatedAt: FieldValue} = {
       userId: user.uid,
       status: 'running',
       targetEndTime,
       currentSessionInitialDurationMinutes: durationMinutes,
-      userPreferredDurationMinutes: firestoreSessionState?.userPreferredDurationMinutes || durationMinutes, 
+      userPreferredDurationMinutes: firestoreSessionState?.userPreferredDurationMinutes || durationMinutes,
       pausedTimeLeftSeconds: null,
-      notes: firestoreSessionState?.notes || '', 
-      updatedAt: serverTimestamp(), 
+      notes: firestoreSessionState?.notes || '',
+      currentTaskTitle: taskTitle || null, // Set task title
+      updatedAt: serverTimestamp(),
     };
     await setDoc(docRef, newState, { merge: true }).catch(e => console.error("Error starting pomodoro:", e));
   };
@@ -385,7 +386,7 @@ export const PomodoroProvider = ({ children }: { children: ReactNode }) => {
   const pausePomodoro = async () => {
     const docRef = pomodoroDocRef();
     if (!docRef || !firestoreSessionState || firestoreSessionState.status !== 'running' || !firestoreSessionState.targetEndTime || !user?.uid) return;
-    
+
     if (pomodoroIntervalRef.current) {
       clearInterval(pomodoroIntervalRef.current);
       pomodoroIntervalRef.current = null;
@@ -393,7 +394,7 @@ export const PomodoroProvider = ({ children }: { children: ReactNode }) => {
 
     const now = Date.now();
     const pausedTimeLeft = Math.max(0, Math.round((firestoreSessionState.targetEndTime - now) / 1000));
-    const updateData = { 
+    const updateData = {
       status: 'paused',
       pausedTimeLeftSeconds: pausedTimeLeft,
       updatedAt: serverTimestamp(),
@@ -407,7 +408,7 @@ export const PomodoroProvider = ({ children }: { children: ReactNode }) => {
 
     const now = Date.now();
     const newTargetEndTime = now + firestoreSessionState.pausedTimeLeftSeconds * 1000;
-    const updateData = { 
+    const updateData = {
       status: 'running',
       targetEndTime: newTargetEndTime,
       pausedTimeLeftSeconds: null,
@@ -418,17 +419,18 @@ export const PomodoroProvider = ({ children }: { children: ReactNode }) => {
 
   const giveUpPomodoro = async () => {
     const docRef = pomodoroDocRef();
-    if (!docRef || !user?.uid) return; 
-    
+    if (!docRef || !user?.uid) return;
+
     if (pomodoroIntervalRef.current) {
       clearInterval(pomodoroIntervalRef.current);
       pomodoroIntervalRef.current = null;
     }
 
-    const updateData = { 
+    const updateData = {
       status: 'idle',
       targetEndTime: null,
       pausedTimeLeftSeconds: null,
+      currentTaskTitle: null, // Clear task title
       updatedAt: serverTimestamp(),
     };
     await setDoc(docRef, updateData, { merge: true }).catch(e => console.error("Error giving up pomodoro:", e));
@@ -436,10 +438,10 @@ export const PomodoroProvider = ({ children }: { children: ReactNode }) => {
 
   const updateUserPreferredDuration = async (minutes: number) => {
     const docRef = pomodoroDocRef();
-    if (!docRef || !user?.uid ) return; 
-    const newDuration = Math.max(1, Math.min(minutes, 120)); 
-    
-    const updateData: Partial<Omit<PomodoroSessionState, 'userId' | 'updatedAt'>> & {updatedAt: FieldValue} = { 
+    if (!docRef || !user?.uid ) return;
+    const newDuration = Math.max(1, Math.min(minutes, 120));
+
+    const updateData: Partial<Omit<PomodoroSessionState, 'userId' | 'updatedAt'>> & {updatedAt: FieldValue} = {
         userPreferredDurationMinutes: newDuration,
         updatedAt: serverTimestamp(),
     };
@@ -457,32 +459,29 @@ export const PomodoroProvider = ({ children }: { children: ReactNode }) => {
   };
 
   const handleStartRestPeriod = (selectedOptionId: string) => {
-    // This function is called by the BreakOptionsDialog when a user starts a rest.
-    // selectedOptionId can be used if needed for specific rest behaviors in the future.
-    setIsBreakDialogOpen(false); 
-    
-    if (pomodoroIntervalRef.current) { 
+    setIsBreakDialogOpen(false);
+    if (pomodoroIntervalRef.current) {
         clearInterval(pomodoroIntervalRef.current);
         pomodoroIntervalRef.current = null;
     }
-    setRestTimeLeftSeconds(DEFAULT_REST_MINUTES * 60); 
+    setRestTimeLeftSeconds(DEFAULT_REST_MINUTES * 60);
     setIsResting(true);
   };
 
   const skipRest = () => {
     setIsResting(false);
-    setRestTimeLeftSeconds(DEFAULT_REST_MINUTES * 60); 
+    setRestTimeLeftSeconds(DEFAULT_REST_MINUTES * 60);
   };
 
 
   return (
-    <PomodoroContext.Provider value={{ 
-      sessionState: firestoreSessionState, 
-      timeLeftSeconds, 
-      isLoading: isLoading || authLoading, 
-      startPomodoro, 
-      pausePomodoro, 
-      continuePomodoro, 
+    <PomodoroContext.Provider value={{
+      sessionState: firestoreSessionState,
+      timeLeftSeconds,
+      isLoading: isLoading || authLoading,
+      startPomodoro,
+      pausePomodoro,
+      continuePomodoro,
       giveUpPomodoro,
       updateUserPreferredDuration,
       updateNotes,
@@ -494,7 +493,6 @@ export const PomodoroProvider = ({ children }: { children: ReactNode }) => {
       handleStartRestPeriod,
     }}>
       {children}
-      {/* BreakOptionsDialog is rendered here for logged-in users */}
       {user && !authLoading && <BreakOptionsDialog
         isOpen={isBreakDialogOpen}
         onClose={() => setIsBreakDialogOpen(false)}
@@ -511,5 +509,3 @@ export const usePomodoro = () => {
   }
   return context;
 };
-
-    

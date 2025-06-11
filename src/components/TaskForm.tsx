@@ -55,7 +55,7 @@ const artifactLinkSchema = z.object({
   urlValue: z.string().url('task.form.error.artifactLink.invalidUrl').nullable().optional(),
 }).refine(data => !(data.flashcardId && data.urlValue), {
   message: "task.form.error.artifactLink.multipleLinks",
-  path: ["flashcardId"],
+  path: ["flashcardId"], // Or path: ["urlValue"] or a general path
 });
 
 const reminderInfoSchema = z.object({
@@ -129,14 +129,14 @@ export default function TaskForm({
   const [isSubmittingEditedFlashcard, setIsSubmittingEditedFlashcard] = React.useState(false);
 
   const [isSelectFlashcardDialogOpen, setIsSelectFlashcardDialogOpen] = React.useState(false);
-  const [flashcardSearchTerm, setFlashcardSearchTerm] = React.useState('');
+  // flashcardSearchTerm is now managed inside SelectFlashcardDialog
 
   React.useEffect(() => {
     const fetchCard = async () => {
         if (watchedArtifactLink?.flashcardId) {
             setIsFetchingFlashcard(true);
             const card = getFlashcardById(watchedArtifactLink.flashcardId);
-            setLinkedFlashcard(card || null);
+            setLinkedFlashcard(card || null); // Set to null if card not found
             setIsFetchingFlashcard(false);
         } else {
             setLinkedFlashcard(null);
@@ -243,7 +243,7 @@ export default function TaskForm({
         if (success) {
             form.setValue('artifactLink', clearedArtifactLink);
             setLinkedFlashcard(null);
-            setEditingFlashcardData(null);
+            setEditingFlashcardData(null); // Clear editing data if any
             toast({ title: t('success'), description: t('toast.task.linkRemovedAndTaskUpdated') });
         } else {
             toast({ title: t('error'), description: t('toast.task.error.intermediateSaveFailed'), variant: 'destructive' });
@@ -323,13 +323,6 @@ export default function TaskForm({
     }
     setIsSelectFlashcardDialogOpen(false);
   };
-
-
-  const latestFlashcards = React.useMemo(() => {
-    return [...allFlashcardsFromContext]
-        .sort((a, b) => (new Date(b.createdAt || 0).getTime()) - (new Date(a.createdAt || 0).getTime()))
-        .slice(0, 5);
-  }, [allFlashcardsFromContext]);
 
 
   return (
@@ -660,55 +653,14 @@ export default function TaskForm({
       )}
 
       {/* Select Flashcard Dialog */}
-        <Dialog open={isSelectFlashcardDialogOpen} onOpenChange={setIsSelectFlashcardDialogOpen}>
-            <DialogContent className="sm:max-w-lg">
-                <DialogHeader>
-                    <DialogTitle>{t('task.form.artifactLink.dialog.selectFlashcard.title')}</DialogTitle>
-                </DialogHeader>
-                <div className="py-4 space-y-4">
-                    <div className="relative">
-                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                        <Input
-                            type="search"
-                            placeholder={t('task.form.artifactLink.dialog.selectFlashcard.searchPlaceholder')}
-                            value={flashcardSearchTerm}
-                            onChange={(e) => setFlashcardSearchTerm(e.target.value)}
-                            className="pl-10"
-                        />
-                    </div>
-                    <ScrollArea className="h-[300px] w-full">
-                        {isLoadingDecks ? (
-                            <div className="flex justify-center items-center h-full">
-                                <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
-                            </div>
-                        ) : latestFlashcards.length === 0 ? (
-                            <p className="text-sm text-muted-foreground text-center py-4">{t('task.form.artifactLink.dialog.selectFlashcard.noFlashcardsFound')}</p>
-                        ) : (
-                            <div className="space-y-2">
-                                {latestFlashcards.map((card) => (
-                                    <Button
-                                        key={card.id}
-                                        variant="outline"
-                                        className="w-full justify-start text-left h-auto py-2"
-                                        onClick={() => handleSelectFlashcardFromDialog(card.id)}
-                                    >
-                                        <div className="flex flex-col">
-                                            <span className="font-medium truncate" title={card.front}>{card.front}</span>
-                                            <span className="text-xs text-muted-foreground truncate" title={card.back}>{card.back}</span>
-                                        </div>
-                                    </Button>
-                                ))}
-                            </div>
-                        )}
-                    </ScrollArea>
-                </div>
-                <DialogFooter>
-                    <Button variant="outline" onClick={() => setIsSelectFlashcardDialogOpen(false)}>
-                        {t('deck.item.delete.confirm.cancel')}
-                    </Button>
-                </DialogFooter>
-            </DialogContent>
-        </Dialog>
+      <SelectFlashcardDialog
+        isOpen={isSelectFlashcardDialogOpen}
+        onOpenChange={setIsSelectFlashcardDialogOpen}
+        onSelect={handleSelectFlashcardFromDialog}
+        allFlashcards={allFlashcardsFromContext}
+        isLoadingDecks={isLoadingDecks}
+        t={t}
+      />
 
     </Form>
   );
@@ -801,27 +753,4 @@ function SelectFlashcardDialog({
       </DialogContent>
     </Dialog>
   );
-}
-
-declare module "@/components/ui/button" {
-  interface ButtonProps {
-    size?: "default" | "sm" | "lg" | "icon" | "xs" | "xsIcon";
-  }
-}
-
-// Augment buttonVariants in a way that doesn't break if the file is processed multiple times
-// This is a bit of a hack for this environment.
-// Ideally, this augmentation would be in a .d.ts file or directly in the button component.
-const augmentButtonVariantsIfNeeded = () => {
-    const { buttonVariants } = require("@/components/ui/button");
-    if (!buttonVariants.options.variants.size.xsIcon) {
-        buttonVariants.options.variants.size.xsIcon = "h-6 w-6 p-0";
-    }
-     if (!buttonVariants.options.variants.size.xs) {
-        buttonVariants.options.variants.size.xs = "h-6 rounded-md px-2 text-xs";
-    }
-};
-
-if (typeof window !== 'undefined') { // Ensure this runs client-side
-    augmentButtonVariantsIfNeeded();
 }

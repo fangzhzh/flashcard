@@ -7,17 +7,16 @@ import * as z from 'zod';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
-import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form'; // Removed FormDescription
+import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Calendar } from "@/components/ui/calendar";
 import type { Task, TaskStatus, RepeatFrequency, TimeInfo, ArtifactLink, ReminderInfo, ReminderType } from '@/types';
-import { Save, CalendarIcon, Link2, RotateCcw, Clock, Bell, Trash2, X } from 'lucide-react'; // Added X for cancel button
+import { Save, CalendarIcon, Link2, RotateCcw, Clock, Bell, Trash2, X } from 'lucide-react';
 import { useI18n } from '@/lib/i18n/client';
 import { cn } from '@/lib/utils';
 import { format, parseISO, isValid } from 'date-fns';
 
-// Adjusted Zod schema for timeInfo and artifactLink to better match the simplified form logic
 const timeInfoSchema = z.object({
   type: z.enum(['no_time', 'datetime', 'all_day', 'date_range']).default('no_time'),
   startDate: z.string().nullable().optional(),
@@ -27,9 +26,9 @@ const timeInfoSchema = z.object({
   if (data.type === 'date_range' && data.startDate && data.endDate) {
     return new Date(data.endDate) >= new Date(data.startDate);
   }
-  if (data.type === 'datetime' && !data.startDate) return false; // Start date required for datetime
-  if (data.type === 'all_day' && !data.startDate) return false; // Start date required for all_day
-  if (data.type === 'date_range' && (!data.startDate || !data.endDate)) return false; // Both required for date_range
+  if (data.type === 'datetime' && !data.startDate) return false;
+  if (data.type === 'all_day' && !data.startDate) return false;
+  if (data.type === 'date_range' && (!data.startDate || !data.endDate)) return false;
   return true;
 }, (data) => {
     if (data.type === 'date_range' && data.startDate && data.endDate && new Date(data.endDate) < new Date(data.startDate)) {
@@ -39,9 +38,9 @@ const timeInfoSchema = z.object({
         return { message: 'task.form.error.timeInfo.startDateRequired', path: ["startDate"] };
     }
     if (data.type === 'date_range' && (!data.startDate || !data.endDate)) {
-        return { message: 'task.form.error.timeInfo.dateRangeFieldsRequired', path: ["startDate"] }; // Or a more general path
+        return { message: 'task.form.error.timeInfo.dateRangeFieldsRequired', path: ["startDate"] };
     }
-    return { message: 'Invalid time configuration' }; // Fallback, should be caught by specific checks
+    return { message: 'Invalid time configuration' };
 });
 
 
@@ -67,7 +66,7 @@ const reminderInfoSchema = z.object({
 const taskSchema = z.object({
   title: z.string().min(1, 'toast.task.error.titleRequired'),
   description: z.string().optional().nullable(),
-  status: z.enum(['pending', 'in_progress', 'completed']).default('pending'),
+  // status removed from form schema
   repeat: z.enum(['none', 'daily', 'weekly', 'monthly', 'annually']).default('none'),
   timeInfo: timeInfoSchema,
   artifactLink: artifactLinkSchema,
@@ -78,7 +77,7 @@ export type TaskFormData = z.infer<typeof taskSchema>;
 
 interface TaskFormProps {
   onSubmit: (data: TaskFormData) => Promise<void>;
-  initialData?: Partial<Task>;
+  initialData?: Partial<Task>; // Status will be part of initialData but not form data
   isLoading?: boolean;
   mode: 'create' | 'edit';
   onCancel?: () => void;
@@ -97,7 +96,7 @@ export default function TaskForm({
     defaultValues: {
       title: initialData?.title || '',
       description: initialData?.description || '',
-      status: initialData?.status || 'pending',
+      // status: initialData?.status || 'pending', // Status is no longer part of the form
       repeat: initialData?.repeat || 'none',
       timeInfo: initialData?.timeInfo || { type: 'no_time', startDate: null, endDate: null, time: null },
       artifactLink: initialData?.artifactLink || { type: 'none' },
@@ -123,7 +122,7 @@ export default function TaskForm({
       form.reset({
         title: initialData.title || '',
         description: initialData.description || '',
-        status: initialData.status || 'pending',
+        // status: initialData.status || 'pending', // Not in form
         repeat: initialData.repeat || 'none',
         timeInfo: defaultTimeInfo,
         artifactLink: initialData.artifactLink || { type: 'none' },
@@ -139,20 +138,14 @@ export default function TaskForm({
         setIsTimeSectionOpen(false);
       }
     } else {
-        // For create mode, ensure temp states are also reset
         setTempStartDate(undefined);
         setTempTime('');
         setTempEndDate(undefined);
         setIsTimeSectionOpen(false);
     }
+  // biome-ignore lint/correctness/useExhaustiveDependencies: <explanation>
   }, [initialData, form.reset]);
 
-
-  const taskStatusOptions: { value: TaskStatus; labelKey: string }[] = [
-    { value: 'pending', labelKey: 'task.item.status.pending' },
-    { value: 'in_progress', labelKey: 'task.item.status.in_progress' },
-    { value: 'completed', labelKey: 'task.item.status.completed' },
-  ];
 
   const repeatOptions: { value: RepeatFrequency; labelKey: string }[] = [
     { value: 'none', labelKey: 'task.form.repeat.none' },
@@ -184,12 +177,12 @@ export default function TaskForm({
     const endDateStr = tempEndDate ? format(tempEndDate, "yyyy-MM-dd") : null;
     const timeStr = tempTime || null;
 
-    if (startDateStr && timeStr && !endDateStr) { // Datetime
+    if (startDateStr && timeStr && !endDateStr) { 
       form.setValue('timeInfo', { type: 'datetime', startDate: startDateStr, time: timeStr, endDate: null });
-    } else if (startDateStr && !timeStr && !endDateStr) { // All day
+    } else if (startDateStr && !timeStr && !endDateStr) { 
       form.setValue('timeInfo', { type: 'all_day', startDate: startDateStr, time: null, endDate: null });
-    } else if (startDateStr && endDateStr) { // Date range
-       form.setValue('timeInfo', { type: 'date_range', startDate: startDateStr, endDate: endDateStr, time: timeStr }); // Store time if provided, could be used for start time of range
+    } else if (startDateStr && endDateStr) { 
+       form.setValue('timeInfo', { type: 'date_range', startDate: startDateStr, endDate: endDateStr, time: timeStr });
     } else {
       form.setValue('timeInfo', { type: 'no_time', startDate: null, endDate: null, time: null });
     }
@@ -371,30 +364,6 @@ export default function TaskForm({
               )}
             />
             
-            <FormField
-              control={form.control}
-              name="status"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel className="text-base flex items-center text-muted-foreground">{t('task.form.label.status')}</FormLabel>
-                   <Select onValueChange={field.onChange} defaultValue={field.value || 'pending'}>
-                    <FormControl>
-                      <SelectTrigger className="h-9 text-sm"><SelectValue placeholder={t('task.form.label.status')} /></SelectTrigger>
-                    </FormControl>
-                    <SelectContent>
-                      {taskStatusOptions.map(option => (
-                        <SelectItem key={option.value} value={option.value}>
-                          {t(option.labelKey as any)}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-
-
             <details className="group">
                 <summary className="text-base flex items-center cursor-pointer text-muted-foreground hover:text-foreground py-2 text-sm">
                     <Link2 className="mr-2 h-4 w-4" />
@@ -499,3 +468,4 @@ export default function TaskForm({
     </Form>
   );
 }
+

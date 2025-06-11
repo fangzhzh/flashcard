@@ -303,7 +303,6 @@ export default {
   'task.item.delete.confirm.title': 'Delete Task?',
   'task.item.delete.confirm.description': 'This action cannot be undone. This will permanently delete this task.',
   'task.item.status.pending': 'Pending',
-  'task.item.status.in_progress': 'In Progress',
   'task.item.status.completed': 'Completed',
   'task.item.toggleCompletionAria': 'Toggle completion for task: {title}',
   'task.form.page.title.create': 'Create New Task',
@@ -314,7 +313,7 @@ export default {
   'task.form.placeholder.title': 'Enter task title...',
   'task.form.label.description': 'Description (Optional)',
   'task.form.placeholder.description': 'Enter task description...',
-  'task.form.label.status': 'Status',
+  // 'task.form.label.status': 'Status', // Removed
   'task.form.label.repeat': 'Repeat',
   'task.form.repeat.none': 'None',
   'task.form.repeat.daily': 'Daily',

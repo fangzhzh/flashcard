@@ -303,7 +303,6 @@ export default {
   'task.item.delete.confirm.title': '删除任务？',
   'task.item.delete.confirm.description': '此操作无法撤销。这将永久删除此任务。',
   'task.item.status.pending': '待处理',
-  'task.item.status.in_progress': '进行中',
   'task.item.status.completed': '已完成',
   'task.item.toggleCompletionAria': '切换任务 "{title}" 的完成状态',
   'task.form.page.title.create': '创建新任务',
@@ -314,7 +313,7 @@ export default {
   'task.form.placeholder.title': '输入任务标题...',
   'task.form.label.description': '描述 (可选)',
   'task.form.placeholder.description': '输入任务描述...',
-  'task.form.label.status': '状态',
+  // 'task.form.label.status': '状态', // Removed
   'task.form.label.repeat': '重复',
   'task.form.repeat.none': '无',
   'task.form.repeat.daily': '每日',

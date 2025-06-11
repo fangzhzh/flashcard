@@ -33,7 +33,7 @@ const DEFAULT_SEED_DECK_NAME = "Imported Vocabulary";
 interface FlashcardsContextType {
   flashcards: Flashcard[];
   decks: Deck[];
-  tasks: Task[]; // Added tasks
+  tasks: Task[];
   addFlashcard: (data: { front: string; back: string; deckId?: string | null }) => Promise<Flashcard | null>;
   updateFlashcard: (id: string, updates: Partial<Omit<Flashcard, 'id'>>) => Promise<Flashcard | null>;
   deleteFlashcard: (id: string) => Promise<void>;
@@ -44,7 +44,7 @@ interface FlashcardsContextType {
   deleteDeck: (id: string) => Promise<void>;
   getDeckById: (id: string) => Deck | undefined;
 
-  addTask: (data: Omit<Task, 'id' | 'userId' | 'createdAt' | 'updatedAt'>) => Promise<Task | null>;
+  addTask: (data: Omit<Task, 'id' | 'userId' | 'createdAt' | 'updatedAt' | 'status'> & { status?: TaskStatus }) => Promise<Task | null>;
   updateTask: (id: string, updates: Partial<Omit<Task, 'id' | 'userId' | 'createdAt'>>) => Promise<Task | null>;
   deleteTask: (id: string) => Promise<void>;
   getTaskById: (id: string) => Task | undefined;
@@ -53,7 +53,7 @@ interface FlashcardsContextType {
   getStatistics: () => { total: number; mastered: number; learning: number; new: number; dueToday: number };
   isLoading: boolean;
   isLoadingDecks: boolean;
-  isLoadingTasks: boolean; // Added for tasks
+  isLoadingTasks: boolean;
   isSeeding: boolean;
 }
 
@@ -63,10 +63,10 @@ export const FlashcardsProvider = ({ children }: { children: ReactNode }) => {
   const { user } = useAuth();
   const [flashcards, setFlashcards] = useState<Flashcard[]>(EMPTY_FLASHCARDS);
   const [decks, setDecks] = useState<Deck[]>(EMPTY_DECKS);
-  const [tasks, setTasks] = useState<Task[]>(EMPTY_TASKS); // Added tasks state
+  const [tasks, setTasks] = useState<Task[]>(EMPTY_TASKS);
   const [isLoading, setIsLoading] = useState(true);
   const [isLoadingDecks, setIsLoadingDecks] = useState(true);
-  const [isLoadingTasks, setIsLoadingTasks] = useState(true); // Added isLoadingTasks state
+  const [isLoadingTasks, setIsLoadingTasks] = useState(true);
   const [isSeeding, setIsSeeding] = useState(false);
 
   const seedInitialData = useCallback(async (currentUser: AppUser) => {
@@ -145,7 +145,7 @@ export const FlashcardsProvider = ({ children }: { children: ReactNode }) => {
     if (user && user.uid) {
       setIsLoading(true);
       setIsLoadingDecks(true);
-      setIsLoadingTasks(true); // Set loading for tasks
+      setIsLoadingTasks(true);
 
       const checkAndSeed = async () => {
         const flashcardsQuery = query(collection(db, 'users', user.uid, 'flashcards'), limit(1));
@@ -156,7 +156,6 @@ export const FlashcardsProvider = ({ children }: { children: ReactNode }) => {
       };
 
       checkAndSeed().then(() => {
-        // Flashcards listener
         const flashcardsCollectionRef = collection(db, 'users', user.uid, 'flashcards');
         const qFlashcards = query(flashcardsCollectionRef, orderBy('createdAt', 'desc'));
         const unsubscribeFlashcards = onSnapshot(qFlashcards, (snapshot) => {
@@ -174,7 +173,6 @@ export const FlashcardsProvider = ({ children }: { children: ReactNode }) => {
           setIsLoading(false);
         }, (error) => { console.error("Error fetching flashcards:", error); setIsLoading(false); setFlashcards(EMPTY_FLASHCARDS); });
 
-        // Decks listener
         const decksCollectionRef = collection(db, 'users', user.uid, 'decks');
         const qDecks = query(decksCollectionRef, orderBy('createdAt', 'desc'));
         const unsubscribeDecks = onSnapshot(qDecks, (snapshot) => {
@@ -190,7 +188,6 @@ export const FlashcardsProvider = ({ children }: { children: ReactNode }) => {
           setIsLoadingDecks(false);
         }, (error) => { console.error("Error fetching decks:", error); setIsLoadingDecks(false); setDecks(EMPTY_DECKS); });
 
-        // Tasks listener
         const tasksCollectionRef = collection(db, 'users', user.uid, 'tasks');
         const qTasks = query(tasksCollectionRef, orderBy('createdAt', 'desc'));
         const unsubscribeTasks = onSnapshot(qTasks, (snapshot) => {
@@ -205,7 +202,7 @@ export const FlashcardsProvider = ({ children }: { children: ReactNode }) => {
                 startDate: data.timeInfo?.startDate instanceof Timestamp ? formatISO(data.timeInfo.startDate.toDate()) : data.timeInfo?.startDate,
                 endDate: data.timeInfo?.endDate instanceof Timestamp ? formatISO(data.timeInfo.endDate.toDate()) : data.timeInfo?.endDate,
               },
-              reminderInfo: data.reminderInfo || { type: 'none' } // Ensure default reminderInfo
+              reminderInfo: data.reminderInfo || { type: 'none' }
             } as Task;
             return taskData;
           });
@@ -216,7 +213,7 @@ export const FlashcardsProvider = ({ children }: { children: ReactNode }) => {
         return () => {
           unsubscribeFlashcards();
           unsubscribeDecks();
-          unsubscribeTasks(); // Unsubscribe tasks
+          unsubscribeTasks();
         };
       }).catch(err => {
         console.error("Error during checkAndSeed process:", err);
@@ -226,7 +223,7 @@ export const FlashcardsProvider = ({ children }: { children: ReactNode }) => {
     } else {
       setFlashcards(EMPTY_FLASHCARDS);
       setDecks(EMPTY_DECKS);
-      setTasks(EMPTY_TASKS); // Reset tasks on logout
+      setTasks(EMPTY_TASKS);
       setIsLoading(false); setIsLoadingDecks(false); setIsLoadingTasks(false);
     }
   }, [user, seedInitialData]);
@@ -304,8 +301,7 @@ export const FlashcardsProvider = ({ children }: { children: ReactNode }) => {
 
   const getDeckById = useCallback((id: string) => decks.find(deck => deck.id === id), [decks]);
 
-  // Task CRUD operations
-  const addTask = useCallback(async (data: Omit<Task, 'id' | 'userId' | 'createdAt' | 'updatedAt'>): Promise<Task | null> => {
+  const addTask = useCallback(async (data: Omit<Task, 'id' | 'userId' | 'createdAt' | 'updatedAt' | 'status'> & { status?: TaskStatus }): Promise<Task | null> => {
     if (!user || !user.uid) { console.error("User not authenticated to add task"); return null; }
     try {
       const tasksCollectionRef = collection(db, 'users', user.uid, 'tasks');
@@ -313,7 +309,8 @@ export const FlashcardsProvider = ({ children }: { children: ReactNode }) => {
       const newTaskData = {
         ...data,
         userId: user.uid,
-        reminderInfo: data.reminderInfo || { type: 'none' }, // Ensure default reminderInfo
+        status: 'pending' as TaskStatus, // Default status
+        reminderInfo: data.reminderInfo || { type: 'none' },
         createdAt: now,
         updatedAt: now
       };
@@ -322,6 +319,7 @@ export const FlashcardsProvider = ({ children }: { children: ReactNode }) => {
       return {
         id: docRef.id,
         userId: user.uid,
+        status: 'pending' as TaskStatus,
         ...data,
         reminderInfo: data.reminderInfo || { type: 'none' },
         createdAt: localCreatedAt,
@@ -336,7 +334,7 @@ export const FlashcardsProvider = ({ children }: { children: ReactNode }) => {
       const taskDocRef = doc(db, 'users', user.uid, 'tasks', id);
       const updateData = {
         ...updates,
-        reminderInfo: updates.reminderInfo || (tasks.find(t => t.id === id)?.reminderInfo) || { type: 'none' }, // Preserve or default reminderInfo
+        reminderInfo: updates.reminderInfo || (tasks.find(t => t.id === id)?.reminderInfo) || { type: 'none' },
         updatedAt: serverTimestamp()
       };
       await updateDoc(taskDocRef, updateData);
@@ -401,22 +399,22 @@ export const FlashcardsProvider = ({ children }: { children: ReactNode }) => {
   const contextValue = useMemo(() => ({
     flashcards: user ? flashcards : EMPTY_FLASHCARDS,
     decks: user ? decks : EMPTY_DECKS,
-    tasks: user ? tasks : EMPTY_TASKS, // Provide tasks
+    tasks: user ? tasks : EMPTY_TASKS,
     addFlashcard, updateFlashcard, deleteFlashcard, getFlashcardById,
     addDeck, updateDeck, deleteDeck, getDeckById,
-    addTask, updateTask, deleteTask, getTaskById, // Provide task actions
+    addTask, updateTask, deleteTask, getTaskById,
     getReviewQueue, getStatistics,
     isLoading: isLoading || (user && isSeeding),
     isLoadingDecks: isLoadingDecks || (user && isSeeding),
-    isLoadingTasks: isLoadingTasks || (user && isSeeding), // Provide task loading state
+    isLoadingTasks: isLoadingTasks || (user && isSeeding),
     isSeeding,
   }), [
-      flashcards, decks, tasks, // Include tasks in dependencies
+      flashcards, decks, tasks,
       addFlashcard, updateFlashcard, deleteFlashcard, getFlashcardById,
       addDeck, updateDeck, deleteDeck, getDeckById,
-      addTask, updateTask, deleteTask, getTaskById, // Include task actions
+      addTask, updateTask, deleteTask, getTaskById,
       getReviewQueue, getStatistics,
-      isLoading, isLoadingDecks, isLoadingTasks, // Include task loading state
+      isLoading, isLoadingDecks, isLoadingTasks,
       user, isSeeding
     ]);
 
@@ -434,3 +432,4 @@ export const useFlashcards = () => {
   }
   return context;
 };
+

@@ -46,7 +46,7 @@ export interface PomodoroSessionState {
 }
 
 // Task Management Types
-export type TaskStatus = 'pending' | 'in_progress' | 'completed';
+export type TaskStatus = 'pending' | 'completed'; // Simplified
 export type RepeatFrequency = 'none' | 'daily' | 'weekly' | 'monthly' | 'annually';
 
 export interface TimeInfo {
@@ -67,7 +67,6 @@ export type ReminderType = 'none' | 'at_event_time' | '5_minutes_before' | '10_m
 
 export interface ReminderInfo {
   type: ReminderType;
-  // minutesBefore?: number; // Could be used for custom reminders later
 }
 
 export interface Task {
@@ -75,11 +74,12 @@ export interface Task {
   userId: string;
   title: string;
   description?: string | null;
-  status: TaskStatus;
+  status: TaskStatus; // Will always be 'pending' or 'completed'
   repeat: RepeatFrequency;
   timeInfo: TimeInfo;
   artifactLink: ArtifactLink;
-  reminderInfo: ReminderInfo; // Added reminderInfo
+  reminderInfo: ReminderInfo;
   createdAt: string;
   updatedAt: string;
 }
+

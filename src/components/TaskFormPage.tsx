@@ -2,8 +2,8 @@
 "use client";
 import { useEffect, useState } from 'react';
 import { useRouter, useParams, useSearchParams } from 'next/navigation';
-import { useFlashcards } from '@/contexts/FlashcardsContext'; // Reusing for tasks now
-import TaskForm from '@/components/TaskForm';
+import { useFlashcards } from '@/contexts/FlashcardsContext';
+import TaskForm, { type TaskFormData } from '@/components/TaskForm'; // Import TaskFormData
 import PageContainer from '@/components/PageContainer';
 import type { Task, TaskStatus, RepeatFrequency, TimeInfo, ArtifactLink } from '@/types';
 import { useToast } from '@/hooks/use-toast';
@@ -22,7 +22,6 @@ export default function TaskFormPage({ mode }: TaskFormPageProps) {
   const router = useRouter();
   const params = useParams();
   const { user, loading: authLoading } = useAuth();
-  // Using useFlashcards context which now includes task logic
   const { 
     addTask, 
     updateTask, 
@@ -48,20 +47,20 @@ export default function TaskFormPage({ mode }: TaskFormPageProps) {
         router.push(`/${params.locale}/tasks`);
       }
     } else if (mode === 'create' && !taskId) {
-      // Set default values for a new task
       setInitialData({
+        // Status is not set here, context will default to 'pending'
         title: '',
         description: '',
-        status: 'pending',
         repeat: 'none',
         timeInfo: { type: 'no_time' },
         artifactLink: { type: 'none' },
+        reminderInfo: { type: 'none' },
       });
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [mode, taskId, getTaskById, router, toast, isLoadingTasks, user, params.locale]);
 
-  const handleSubmit = async (data: Omit<Task, 'id' | 'userId' | 'createdAt' | 'updatedAt'>) => {
+  const handleSubmit = async (data: TaskFormData) => { // data type is now TaskFormData
     if (!user) {
       toast({ title: t('error'), description: t('auth.pleaseSignIn'), variant: "destructive" });
       return;
@@ -69,10 +68,12 @@ export default function TaskFormPage({ mode }: TaskFormPageProps) {
     setIsSubmitting(true);
     try {
       if (mode === 'create') {
-        await addTask(data);
+        // addTask expects data without status, as context sets it to 'pending'
+        await addTask(data); 
         toast({ title: t('success'), description: t('toast.task.created') });
       } else if (taskId) {
-        await updateTask(taskId, data);
+        // updateTask can receive status if we were to change it, but here data won't have it from the form
+        await updateTask(taskId, data); 
         toast({ title: t('success'), description: t('toast.task.updated') });
       }
       router.push(`/${params.locale}/tasks`);
@@ -86,12 +87,12 @@ export default function TaskFormPage({ mode }: TaskFormPageProps) {
   
   const effectiveLoading = authLoading || (isLoadingTasks && user) || (contextOverallLoading && user);
 
-  if (effectiveLoading && mode === 'edit' && !initialData) { // Show loader only if editing and initial data not yet set
+  if (effectiveLoading && mode === 'edit' && !initialData) {
     return (
       <PageContainer>
         <div className="flex justify-center items-center mt-8">
           <Loader2 className="h-8 w-8 animate-spin text-primary" />
-          <p className="ml-2 text-muted-foreground">{t('flashcard.form.page.loadingSpecific')}</p> {/* Reusing key for now */}
+          <p className="ml-2 text-muted-foreground">{t('flashcard.form.page.loadingSpecific')}</p>
         </div>
       </PageContainer>
     );
@@ -109,8 +110,7 @@ export default function TaskFormPage({ mode }: TaskFormPageProps) {
     );
   }
 
-  // Ensure initialData is ready for the form, especially for create mode.
-  if (!initialData && mode === 'create') {
+  if (!initialData && (mode === 'create' || (mode === 'edit' && !effectiveLoading))) {
      return (
       <PageContainer>
         <div className="flex justify-center items-center mt-8">
@@ -125,7 +125,7 @@ export default function TaskFormPage({ mode }: TaskFormPageProps) {
     <PageContainer>
       <div className="flex justify-between items-center mb-6">
         <Button variant="outline" onClick={() => router.back()}>
-          <ArrowLeft className="mr-2 h-4 w-4" /> {t('flashcard.form.page.button.back')} {/* Reusing key */}
+          <ArrowLeft className="mr-2 h-4 w-4" /> {t('flashcard.form.page.button.back')}
         </Button>
         <h2 className="text-2xl font-semibold tracking-tight">
           {mode === 'edit' ? t('task.form.page.title.edit') : t('task.form.page.title.create')}
@@ -133,10 +133,10 @@ export default function TaskFormPage({ mode }: TaskFormPageProps) {
         <div /> {/* Spacer */}
       </div>
 
-      {initialData && ( // Render form only when initialData is available
+      {initialData && (
         <TaskForm
           onSubmit={handleSubmit}
-          initialData={initialData}
+          initialData={initialData} // Pass initialData which may include status for display purposes if ever needed, but form won't edit it
           isLoading={isSubmitting}
           mode={mode}
         />
@@ -144,3 +144,4 @@ export default function TaskFormPage({ mode }: TaskFormPageProps) {
     </PageContainer>
   );
 }
+

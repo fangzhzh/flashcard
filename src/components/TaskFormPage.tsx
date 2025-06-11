@@ -48,19 +48,18 @@ export default function TaskFormPage({ mode }: TaskFormPageProps) {
       }
     } else if (mode === 'create' && !taskId) {
       setInitialData({
-        // Status is not set here, context will default to 'pending'
         title: '',
         description: '',
         repeat: 'none',
         timeInfo: { type: 'no_time' },
-        artifactLink: { type: 'none' },
+        artifactLink: { flashcardId: null },
         reminderInfo: { type: 'none' },
       });
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [mode, taskId, getTaskById, router, toast, isLoadingTasks, user, params.locale]);
 
-  const handleSubmit = async (data: TaskFormData) => { // data type is now TaskFormData
+  const handleSubmit = async (data: TaskFormData) => { 
     if (!user) {
       toast({ title: t('error'), description: t('auth.pleaseSignIn'), variant: "destructive" });
       return;
@@ -68,11 +67,9 @@ export default function TaskFormPage({ mode }: TaskFormPageProps) {
     setIsSubmitting(true);
     try {
       if (mode === 'create') {
-        // addTask expects data without status, as context sets it to 'pending'
         await addTask(data); 
         toast({ title: t('success'), description: t('toast.task.created') });
       } else if (taskId) {
-        // updateTask can receive status if we were to change it, but here data won't have it from the form
         await updateTask(taskId, data); 
         toast({ title: t('success'), description: t('toast.task.updated') });
       }
@@ -136,7 +133,7 @@ export default function TaskFormPage({ mode }: TaskFormPageProps) {
       {initialData && (
         <TaskForm
           onSubmit={handleSubmit}
-          initialData={initialData} // Pass initialData which may include status for display purposes if ever needed, but form won't edit it
+          initialData={initialData} 
           isLoading={isSubmitting}
           mode={mode}
         />
@@ -144,4 +141,3 @@ export default function TaskFormPage({ mode }: TaskFormPageProps) {
     </PageContainer>
   );
 }
-

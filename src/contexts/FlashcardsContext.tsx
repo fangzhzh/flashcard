@@ -44,7 +44,7 @@ interface FlashcardsContextType {
   deleteDeck: (id: string) => Promise<void>;
   getDeckById: (id: string) => Deck | undefined;
 
-  addTask: (data: Omit<Task, 'id' | 'userId' | 'createdAt' | 'updatedAt' | 'status'> & { status?: TaskStatus }) => Promise<Task | null>;
+  addTask: (data: Omit<Task, 'id' | 'userId' | 'createdAt' | 'updatedAt' | 'status'>) => Promise<Task | null>;
   updateTask: (id: string, updates: Partial<Omit<Task, 'id' | 'userId' | 'createdAt'>>) => Promise<Task | null>;
   deleteTask: (id: string) => Promise<void>;
   getTaskById: (id: string) => Task | undefined;
@@ -202,6 +202,7 @@ export const FlashcardsProvider = ({ children }: { children: ReactNode }) => {
                 startDate: data.timeInfo?.startDate instanceof Timestamp ? formatISO(data.timeInfo.startDate.toDate()) : data.timeInfo?.startDate,
                 endDate: data.timeInfo?.endDate instanceof Timestamp ? formatISO(data.timeInfo.endDate.toDate()) : data.timeInfo?.endDate,
               },
+              artifactLink: data.artifactLink || { flashcardId: null },
               reminderInfo: data.reminderInfo || { type: 'none' }
             } as Task;
             return taskData;
@@ -301,7 +302,7 @@ export const FlashcardsProvider = ({ children }: { children: ReactNode }) => {
 
   const getDeckById = useCallback((id: string) => decks.find(deck => deck.id === id), [decks]);
 
-  const addTask = useCallback(async (data: Omit<Task, 'id' | 'userId' | 'createdAt' | 'updatedAt' | 'status'> & { status?: TaskStatus }): Promise<Task | null> => {
+  const addTask = useCallback(async (data: Omit<Task, 'id' | 'userId' | 'createdAt' | 'updatedAt' | 'status'>): Promise<Task | null> => {
     if (!user || !user.uid) { console.error("User not authenticated to add task"); return null; }
     try {
       const tasksCollectionRef = collection(db, 'users', user.uid, 'tasks');
@@ -309,7 +310,8 @@ export const FlashcardsProvider = ({ children }: { children: ReactNode }) => {
       const newTaskData = {
         ...data,
         userId: user.uid,
-        status: 'pending' as TaskStatus, // Default status
+        status: 'pending' as TaskStatus, 
+        artifactLink: data.artifactLink || { flashcardId: null },
         reminderInfo: data.reminderInfo || { type: 'none' },
         createdAt: now,
         updatedAt: now
@@ -321,6 +323,7 @@ export const FlashcardsProvider = ({ children }: { children: ReactNode }) => {
         userId: user.uid,
         status: 'pending' as TaskStatus,
         ...data,
+        artifactLink: data.artifactLink || { flashcardId: null },
         reminderInfo: data.reminderInfo || { type: 'none' },
         createdAt: localCreatedAt,
         updatedAt: localCreatedAt
@@ -332,9 +335,11 @@ export const FlashcardsProvider = ({ children }: { children: ReactNode }) => {
     if (!user || !user.uid) { console.error("User not authenticated to update task"); return null; }
     try {
       const taskDocRef = doc(db, 'users', user.uid, 'tasks', id);
+      const currentTask = tasks.find(t => t.id === id);
       const updateData = {
         ...updates,
-        reminderInfo: updates.reminderInfo || (tasks.find(t => t.id === id)?.reminderInfo) || { type: 'none' },
+        artifactLink: updates.artifactLink || currentTask?.artifactLink || { flashcardId: null },
+        reminderInfo: updates.reminderInfo || currentTask?.reminderInfo || { type: 'none' },
         updatedAt: serverTimestamp()
       };
       await updateDoc(taskDocRef, updateData);
@@ -432,4 +437,3 @@ export const useFlashcards = () => {
   }
   return context;
 };
-

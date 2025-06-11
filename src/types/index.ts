@@ -46,7 +46,7 @@ export interface PomodoroSessionState {
 }
 
 // Task Management Types
-export type TaskStatus = 'pending' | 'completed'; // Simplified
+export type TaskStatus = 'pending' | 'completed';
 export type RepeatFrequency = 'none' | 'daily' | 'weekly' | 'monthly' | 'annually';
 
 export interface TimeInfo {
@@ -57,10 +57,7 @@ export interface TimeInfo {
 }
 
 export interface ArtifactLink {
-  type: 'none' | 'flashcard' | 'url';
   flashcardId?: string | null;
-  linkTitle?: string | null;
-  urlValue?: string | null;
 }
 
 export type ReminderType = 'none' | 'at_event_time' | '5_minutes_before' | '10_minutes_before' | '15_minutes_before' | '30_minutes_before' | '1_hour_before' | '1_day_before';
@@ -74,7 +71,7 @@ export interface Task {
   userId: string;
   title: string;
   description?: string | null;
-  status: TaskStatus; // Will always be 'pending' or 'completed'
+  status: TaskStatus;
   repeat: RepeatFrequency;
   timeInfo: TimeInfo;
   artifactLink: ArtifactLink;

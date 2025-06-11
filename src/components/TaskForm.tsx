@@ -20,7 +20,6 @@ import { format, parseISO, isValid } from 'date-fns';
 import { useFlashcards } from '@/contexts/FlashcardsContext';
 import FlashcardForm from '@/components/FlashcardForm';
 import { useToast } from '@/hooks/use-toast';
-import Link from 'next/link';
 import { ScrollArea } from '@/components/ui/scroll-area';
 
 
@@ -52,10 +51,6 @@ const timeInfoSchema = z.object({
 
 const artifactLinkSchema = z.object({
   flashcardId: z.string().nullable().optional(),
-  urlValue: z.string().url('task.form.error.artifactLink.invalidUrl').nullable().optional(),
-}).refine(data => !(data.flashcardId && data.urlValue), {
-  message: "task.form.error.artifactLink.multipleLinks",
-  path: ["flashcardId"], 
 });
 
 const reminderInfoSchema = z.object({
@@ -67,7 +62,7 @@ const taskSchema = z.object({
   description: z.string().optional().nullable(),
   repeat: z.enum(['none', 'daily', 'weekly', 'monthly', 'annually']).default('none'),
   timeInfo: timeInfoSchema,
-  artifactLink: artifactLinkSchema.default({ flashcardId: null, urlValue: null }),
+  artifactLink: artifactLinkSchema.default({ flashcardId: null }),
   reminderInfo: reminderInfoSchema.default({ type: 'none' }),
 });
 
@@ -102,7 +97,7 @@ export default function TaskForm({
       description: initialData?.description || '',
       repeat: initialData?.repeat || 'none',
       timeInfo: initialData?.timeInfo || { type: 'no_time', startDate: null, endDate: null, time: null },
-      artifactLink: initialData?.artifactLink || { flashcardId: null, urlValue: null },
+      artifactLink: initialData?.artifactLink || { flashcardId: null },
       reminderInfo: initialData?.reminderInfo || { type: 'none' },
     },
   });
@@ -153,7 +148,7 @@ export default function TaskForm({
         description: initialData.description || '',
         repeat: initialData.repeat || 'none',
         timeInfo: defaultTimeInfo,
-        artifactLink: initialData.artifactLink || { flashcardId: null, urlValue: null },
+        artifactLink: initialData.artifactLink || { flashcardId: null },
         reminderInfo: initialData.reminderInfo || { type: 'none' },
       });
       setTempStartDate(defaultTimeInfo.startDate && isValid(parseISO(defaultTimeInfo.startDate)) ? parseISO(defaultTimeInfo.startDate) : undefined);
@@ -236,7 +231,7 @@ export default function TaskForm({
   };
 
   const handleRemoveLink = async () => {
-    const clearedArtifactLink = { flashcardId: null, urlValue: null };
+    const clearedArtifactLink = { flashcardId: null };
     if (mode === 'edit' && initialData?.id && onIntermediateSave) {
         const success = await onIntermediateSave({ artifactLink: clearedArtifactLink });
         if (success) {
@@ -260,7 +255,7 @@ export default function TaskForm({
     try {
       const newCard = await addFlashcard(data);
       if (newCard && newCard.id) {
-        const newArtifactLink = { flashcardId: newCard.id, urlValue: null };
+        const newArtifactLink = { flashcardId: newCard.id };
         if (mode === 'edit' && initialData?.id && onIntermediateSave) {
             const success = await onIntermediateSave({ artifactLink: newArtifactLink });
             if (success) {
@@ -306,7 +301,7 @@ export default function TaskForm({
   };
 
   const handleSelectFlashcardFromDialog = async (flashcardId: string) => {
-    const newArtifactLink = { flashcardId: flashcardId, urlValue: null };
+    const newArtifactLink = { flashcardId: flashcardId };
      if (mode === 'edit' && initialData?.id && onIntermediateSave) {
         const success = await onIntermediateSave({ artifactLink: newArtifactLink });
         if (success) {
@@ -506,59 +501,8 @@ export default function TaskForm({
                             </div>
                         </div>
                     )}
-
-                    {watchedArtifactLink?.urlValue && (
-                         <div className="flex items-center justify-between text-sm">
-                            <span className="font-medium mr-1 text-foreground">{t('task.form.artifactLink.urlPrefix')}</span>
-                            <a href={watchedArtifactLink.urlValue} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline truncate flex-grow" title={watchedArtifactLink.urlValue}>
-                                {watchedArtifactLink.urlValue.substring(0,30)}{watchedArtifactLink.urlValue.length > 30 ? "..." : ""}
-                            </a>
-                            <div className="flex gap-1 flex-shrink-0 ml-2">
-                                <Button type="button" variant="ghost" size="xsIcon" onClick={() => form.setValue('artifactLink.urlValue', '')} title={t('task.form.artifactLink.button.editUrl')}>
-                                    <Pencil className="h-4 w-4" />
-                                </Button>
-                                 <Button type="button" variant="ghost" size="xsIcon" onClick={handleRemoveLink} title={t('task.form.artifactLink.button.remove')}>
-                                    <Trash2 className="h-4 w-4 text-destructive" />
-                                </Button>
-                            </div>
-                        </div>
-                    )}
-                    {((watchedArtifactLink?.urlValue === '' && !watchedArtifactLink?.flashcardId) || (!watchedArtifactLink?.flashcardId && !watchedArtifactLink?.urlValue)) && (
-                        <FormField
-                            control={form.control}
-                            name="artifactLink.urlValue"
-                            render={({ field }) => (
-                            <FormItem className={cn("mt-2 text-sm", watchedArtifactLink?.flashcardId || watchedArtifactLink?.urlValue ? "hidden" : "")}>
-                                <FormLabel className="text-xs sr-only">{t('task.form.label.urlValue')}</FormLabel>
-                                <div className="flex items-center gap-2">
-                                    <FormControl>
-                                        <Input
-                                        type="url"
-                                        placeholder={t('task.form.placeholder.urlValue')}
-                                        {...field}
-                                        value={field.value ?? ""}
-                                        className="h-8 text-xs flex-grow"
-                                        onBlur={() => {
-                                            if (!field.value && !form.getValues("artifactLink.flashcardId")) {
-                                                form.setValue('artifactLink.urlValue', null);
-                                            }
-                                            form.trigger("artifactLink.urlValue");
-                                        }}
-                                        />
-                                    </FormControl>
-                                     {field.value && (
-                                        <Button type="button" variant="ghost" size="xsIcon" onClick={() => form.setValue('artifactLink.urlValue', null)}>
-                                            <X className="h-3 w-3"/>
-                                        </Button>
-                                    )}
-                                </div>
-                                <FormMessage className="text-xs">{form.formState.errors.artifactLink?.urlValue?.message && t(form.formState.errors.artifactLink.urlValue.message as any)}</FormMessage>
-                            </FormItem>
-                            )}
-                        />
-                    )}
-
-                    {!watchedArtifactLink?.flashcardId && !watchedArtifactLink?.urlValue && (
+                    
+                    {!watchedArtifactLink?.flashcardId && (
                         <div className="flex flex-wrap gap-2 pt-2">
                              <Dialog open={isNewFlashcardDialogOpen} onOpenChange={setIsNewFlashcardDialogOpen}>
                                 <DialogTrigger asChild>
@@ -585,14 +529,6 @@ export default function TaskForm({
                             <Button type="button" variant="outline" size="xs" onClick={() => setIsSelectFlashcardDialogOpen(true)}>
                                <ListChecks className="mr-1 h-3 w-3" /> {t('task.form.artifactLink.button.selectFlashcard')}
                             </Button>
-                            {watchedArtifactLink?.urlValue !== '' && (
-                                <Button type="button" variant="outline" size="xs" onClick={() => {
-                                    form.setValue('artifactLink.flashcardId', null);
-                                    form.setValue('artifactLink.urlValue', '');
-                                }}>
-                                    {t('task.form.artifactLink.button.addUrl')}
-                                </Button>
-                            )}
                         </div>
                     )}
                 </div>
@@ -750,4 +686,3 @@ function SelectFlashcardDialog({
     </Dialog>
   );
 }
-

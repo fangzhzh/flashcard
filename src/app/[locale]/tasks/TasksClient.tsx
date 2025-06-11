@@ -1,31 +1,30 @@
 
 "use client";
 import React, { useState, useMemo, useCallback } from 'react';
-import { useRouter } from 'next/navigation'; // Import useRouter
+import { useRouter } from 'next/navigation';
 import { useFlashcards } from '@/contexts/FlashcardsContext';
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
+import { Checkbox } from '@/components/ui/checkbox'; // Import Checkbox
 import { PlusCircle, Loader2, Info, ShieldAlert, PlayCircle } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { useI18n, useCurrentLocale } from '@/lib/i18n/client';
-import type { Task, TimeInfo } from '@/types';
+import type { Task, TimeInfo, TaskStatus } from '@/types';
 import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
 import TaskForm from '@/components/TaskForm';
 import { usePomodoro } from '@/contexts/PomodoroContext';
-// Removed: import { usePomodoroLocal } from '@/contexts/PomodoroLocalContext';
-import { format, parseISO, differenceInCalendarDays, isToday, isTomorrow, isValid } from 'date-fns';
+import { format, parseISO, differenceInCalendarDays, isToday, isTomorrow, isValid, isSameYear } from 'date-fns';
 import { cn } from '@/lib/utils';
 
 export default function TasksClient() {
   const { user, loading: authLoading } = useAuth();
-  const { tasks, deleteTask, isLoadingTasks, isLoading: contextOverallLoading, isSeeding, getTaskById, updateTask: updateTaskInContext, addTask: addTaskInContext } = useFlashcards();
+  const { tasks, isLoadingTasks, isLoading: contextOverallLoading, isSeeding, getTaskById, updateTask: updateTaskInContext, addTask: addTaskInContext } = useFlashcards();
   const { toast } = useToast();
   const t = useI18n();
   const currentLocale = useCurrentLocale();
-  const router = useRouter(); // Initialize useRouter
+  const router = useRouter();
 
   const pomodoroContext = usePomodoro();
-  // Removed: const pomodoroLocalContext = usePomodoroLocal();
 
   const [isSubmittingForm, setIsSubmittingForm] = useState(false);
   const [selectedTaskId, setSelectedTaskId] = useState<string | null>(null);
@@ -53,43 +52,33 @@ export default function TasksClient() {
     return undefined;
   }, [selectedTaskId, getTaskById]);
 
+  const handleToggleTaskCompletion = async (task: Task) => {
+    const newStatus: TaskStatus = task.status === 'completed' ? 'pending' : 'completed';
+    try {
+      await updateTaskInContext(task.id, { status: newStatus });
+      // Optionally, show a toast message
+      // toast({ title: t('success'), description: newStatus === 'completed' ? t('toast.task.markedComplete') : t('toast.task.markedPending') });
+    } catch (error) {
+      toast({ title: t('error'), description: t('toast.task.error.save'), variant: "destructive" });
+    }
+  };
+
   const formatTimeLabel = useCallback((timeInfo: TimeInfo): string => {
     if (!timeInfo || timeInfo.type === 'no_time' || !timeInfo.startDate || !isValid(parseISO(timeInfo.startDate))) {
-      return t('task.display.noTime');
+      return ''; // Return empty for no date or invalid date
     }
 
     const startDate = parseISO(timeInfo.startDate);
+    const currentDate = new Date();
 
-    if (timeInfo.type === 'datetime') {
-      if (isToday(startDate) && timeInfo.time) return `${t('task.display.today')} ${t('task.display.at')} ${timeInfo.time}`;
-      if (isToday(startDate)) return t('task.display.today');
-      if (isTomorrow(startDate)) return `${t('task.display.tomorrow')}${timeInfo.time ? ` ${t('task.display.at')} ${timeInfo.time}`: ''}`;
-      return timeInfo.time ? `${format(startDate, 'MMM d')} ${t('task.display.at')} ${timeInfo.time}` : format(startDate, 'MMM d');
+    if (isToday(startDate)) return t('task.display.label.today');
+    if (isTomorrow(startDate)) return t('task.display.label.tomorrowShort');
+    
+    if (isSameYear(startDate, currentDate)) {
+      return format(startDate, 'MM/dd');
     }
+    return format(startDate, 'yyyy/MM/dd');
 
-    if (timeInfo.type === 'all_day') {
-      if (isToday(startDate)) return t('task.display.today');
-      if (isTomorrow(startDate)) return t('task.display.tomorrow');
-      return format(startDate, 'MMM d');
-    }
-
-    if (timeInfo.type === 'date_range') {
-      const daysUntilStart = differenceInCalendarDays(startDate, new Date());
-      if (daysUntilStart < 0) { 
-          if (timeInfo.endDate && isValid(parseISO(timeInfo.endDate))) {
-              const endDate = parseISO(timeInfo.endDate);
-              if (isToday(endDate)) return `${t('task.display.ends')} ${t('task.display.today').toLowerCase()}`;
-              if (isTomorrow(endDate)) return `${t('task.display.ends')} ${t('task.display.tomorrow').toLowerCase()}`;
-              const daysUntilEnd = differenceInCalendarDays(endDate, new Date());
-              if (daysUntilEnd < 0) return t('task.display.overdue');
-              return t('task.display.endsInXDays', { count: daysUntilEnd + 1 });
-          }
-          return t('task.display.started');
-      }
-      if (daysUntilStart === 0) return t('task.display.startsToday');
-      return `${format(startDate, 'MMM d')} (${t('task.display.inXDays', { count: daysUntilStart })})`;
-    }
-    return t('task.display.noTime');
   }, [t]);
 
   const handleStartPomodoroForTask = (taskTitle: string) => {
@@ -136,15 +125,32 @@ export default function TasksClient() {
     );
   }
 
-
   const showEditPanel = selectedTaskId !== null || isCreatingNewTask;
-  const sortedTasks = [...tasks].sort((a, b) => (b.createdAt || '').localeCompare(a.createdAt || ''));
+  
+  const sortedTasks = [...tasks].sort((a, b) => {
+    if (a.status === 'completed' && b.status !== 'completed') return 1;
+    if (a.status !== 'completed' && b.status === 'completed') return -1;
+    
+    const aDate = a.timeInfo?.startDate ? parseISO(a.timeInfo.startDate) : null;
+    const bDate = b.timeInfo?.startDate ? parseISO(b.timeInfo.startDate) : null;
+
+    if (aDate && bDate) {
+        if (aDate < bDate) return -1;
+        if (aDate > bDate) return 1;
+    } else if (aDate) { // a has date, b does not
+        return -1; 
+    } else if (bDate) { // b has date, a does not
+        return 1;
+    }
+    // Fallback to createdAt if dates are same or not present
+    return (b.createdAt && a.createdAt) ? (new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()) : 0;
+  });
 
 
   return (
     <div className="flex h-[calc(100vh-var(--header-height,4rem)-4rem)]"> 
-      <div className={cn("transition-all duration-300 ease-in-out overflow-y-auto py-4", showEditPanel ? "w-1/2 pr-2" : "w-full pr-4")}>
-        <div className="flex justify-between items-center mb-6 px-2">
+      <div className={cn("transition-all duration-300 ease-in-out overflow-y-auto py-4 flex flex-col", showEditPanel ? "w-1/2 pr-2" : "w-full pr-0")}>
+        <div className="flex justify-between items-center mb-6 px-4">
           <h1 className="text-2xl font-semibold tracking-tight">{t('tasks.title')}</h1>
           <Button onClick={handleCreateNewTask} size="sm">
             <PlusCircle className="mr-2 h-4 w-4" /> {t('tasks.button.create')}
@@ -152,7 +158,7 @@ export default function TasksClient() {
         </div>
 
         {sortedTasks.length === 0 && !effectiveLoading && (
-          <Alert className="mt-8 mx-2 border-primary/50 text-primary bg-primary/5">
+          <Alert className="mt-8 mx-4 border-primary/50 text-primary bg-primary/5">
             <Info className="h-5 w-5 text-primary" />
             <AlertTitle className="font-semibold text-primary">{t('tasks.list.empty.title')}</AlertTitle>
             <AlertDescription>
@@ -161,27 +167,56 @@ export default function TasksClient() {
           </Alert>
         )}
 
-        <ul className="space-y-1 px-2">
+        <ul className="space-y-1 px-4 flex-grow">
           {sortedTasks.map((task) => (
             <li key={task.id}
                 className={cn(
-                    "group flex items-center justify-between p-3 rounded-md hover:bg-muted",
+                    "group flex items-center justify-between p-3 rounded-md hover:bg-muted cursor-pointer",
                     selectedTaskId === task.id && "bg-muted shadow-md"
                 )}
+                 onClick={() => handleEditTask(task.id)}
             >
-              <div className="flex-grow min-w-0 cursor-pointer" onClick={() => handleEditTask(task.id)}>
-                <p className="text-base font-medium whitespace-normal break-words" title={task.title}>{task.title}</p>
-                <span className="text-xs text-muted-foreground">{formatTimeLabel(task.timeInfo)}</span>
+              <div className="flex items-center flex-grow min-w-0 mr-4">
+                 <Checkbox
+                    id={`task-${task.id}`}
+                    checked={task.status === 'completed'}
+                    onCheckedChange={(checked) => {
+                        // Prevent panel opening when checkbox is clicked directly
+                        event?.stopPropagation(); 
+                        handleToggleTaskCompletion(task);
+                    }}
+                    className="mr-3 flex-shrink-0"
+                    aria-label={t('task.item.toggleCompletionAria', {title: task.title})}
+                  />
+                <div className="min-w-0">
+                  <p className={cn(
+                      "text-base font-medium truncate",
+                      task.status === 'completed' && "line-through text-muted-foreground"
+                    )} title={task.title}>
+                    {task.title}
+                  </p>
+                  {task.description && (
+                    <p className={cn(
+                        "text-xs text-muted-foreground truncate",
+                        task.status === 'completed' && "line-through"
+                      )} title={task.description}>
+                      {task.description}
+                    </p>
+                  )}
+                </div>
               </div>
-              <Button
-                variant="ghost"
-                size="icon"
-                className="ml-2 opacity-0 group-hover:opacity-100 focus-visible:opacity-100 transition-opacity h-8 w-8 flex-shrink-0"
-                onClick={(e) => { e.stopPropagation(); handleStartPomodoroForTask(task.title); }}
-                title={t('task.item.startPomodoro')}
-              >
-                <PlayCircle className="h-5 w-5 text-primary" />
-              </Button>
+              <div className="flex items-center flex-shrink-0 ml-auto">
+                <span className="text-xs text-muted-foreground mr-2">{formatTimeLabel(task.timeInfo)}</span>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="opacity-0 group-hover:opacity-100 focus-visible:opacity-100 transition-opacity h-8 w-8 flex-shrink-0"
+                  onClick={(e) => { e.stopPropagation(); handleStartPomodoroForTask(task.title); }}
+                  title={t('task.item.startPomodoro')}
+                >
+                  <PlayCircle className="h-5 w-5 text-primary" />
+                </Button>
+              </div>
             </li>
           ))}
         </ul>
@@ -219,4 +254,3 @@ export default function TasksClient() {
     </div>
   );
 }
-

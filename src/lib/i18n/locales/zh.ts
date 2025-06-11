@@ -305,6 +305,7 @@ export default {
   'task.item.status.pending': '待处理',
   'task.item.status.in_progress': '进行中',
   'task.item.status.completed': '已完成',
+  'task.item.toggleCompletionAria': '切换任务 "{title}" 的完成状态',
   'task.form.page.title.create': '创建新任务',
   'task.form.page.title.edit': '编辑任务',
   'task.form.title.create': '创建新任务',
@@ -337,6 +338,8 @@ export default {
   'task.form.error.timeInfo.endDateRequired': '日期范围需要结束日期。',
   'task.form.error.timeInfo.timeRequired': '特定日期和时间需要时间。',
   'task.form.error.timeInfo.invalidTime': '无效的时间格式。请使用 HH:MM。',
+  'task.form.error.timeInfo.dateRangeFieldsRequired': '日期范围需要开始和结束日期。',
+  'task.form.timeInfo.missingTime': '未设置时间',
   'task.form.timeInfo.selectTimeButton': '选择时间...',
   'task.form.timeInfo.setTimeButton': '设置时间',
   'task.form.timeInfo.removeTimeButton': '移除时间',
@@ -376,6 +379,8 @@ export default {
   'toast.task.notFound': '未找到任务。',
   'task.display.today': '今天',
   'task.display.tomorrow': '明天',
+  'task.display.label.today': '今天',
+  'task.display.label.tomorrowShort': '明天',
   'task.display.at': '于',
   'task.display.ends': '结束于',
   'task.display.overdue': '已过期',
@@ -393,7 +398,6 @@ export default {
   'task.display.noTime': '无特定时间',
   'task.pomodoroStartedFor': '任务番茄钟已启动: {title}',
   'task.currentTaskLabel': '当前任务:',
-
 
   // Notifications (General)
   'notifications.enabled.title': '通知已启用',

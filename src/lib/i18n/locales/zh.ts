@@ -409,6 +409,9 @@ export default {
   'task.display.from': '从',
   'task.display.to': '到',
   'task.display.noTime': '无特定时间',
+  'task.display.status.upcoming': '即将开始',
+  'task.display.status.active': '进行中',
+  'task.display.status.overdue': '已过期',
   'task.pomodoroStartedFor': '任务番茄钟已启动: {title}',
   'task.currentTaskLabel': '当前任务:',
 

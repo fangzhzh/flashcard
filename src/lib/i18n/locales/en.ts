@@ -409,6 +409,9 @@ export default {
   'task.display.from': 'From',
   'task.display.to': 'to',
   'task.display.noTime': 'No specific time',
+  'task.display.status.upcoming': 'Upcoming',
+  'task.display.status.active': 'Active',
+  'task.display.status.overdue': 'Overdue',
   'task.pomodoroStartedFor': 'Pomodoro started for task: {title}',
   'task.currentTaskLabel': 'Current Task:',
 

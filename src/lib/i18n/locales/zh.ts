@@ -316,6 +316,8 @@ export default {
   'task.form.label.repeat': '重复',
   'task.form.repeat.none': '无',
   'task.form.repeat.daily': '每日',
+  'task.form.repeat.weekday': '工作日 (周一至周五)',
+  'task.form.repeat.weekend': '周末 (周六至周日)',
   'task.form.repeat.weekly': '每周',
   'task.form.repeat.monthly': '每月',
   'task.form.repeat.annually': '每年',

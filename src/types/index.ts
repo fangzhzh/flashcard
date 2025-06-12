@@ -47,7 +47,7 @@ export interface PomodoroSessionState {
 
 // Task Management Types
 export type TaskStatus = 'pending' | 'completed';
-export type RepeatFrequency = 'none' | 'daily' | 'weekly' | 'monthly' | 'annually';
+export type RepeatFrequency = 'none' | 'daily' | 'weekly' | 'monthly' | 'annually' | 'weekday' | 'weekend';
 
 export interface TimeInfo {
   type: 'no_time' | 'datetime' | 'all_day' | 'date_range';
@@ -79,4 +79,3 @@ export interface Task {
   createdAt: string;
   updatedAt: string;
 }
-

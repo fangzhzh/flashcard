@@ -316,6 +316,8 @@ export default {
   'task.form.label.repeat': 'Repeat',
   'task.form.repeat.none': 'None',
   'task.form.repeat.daily': 'Daily',
+  'task.form.repeat.weekday': 'Weekday (Mon-Fri)',
+  'task.form.repeat.weekend': 'Weekend (Sat-Sun)',
   'task.form.repeat.weekly': 'Weekly',
   'task.form.repeat.monthly': 'Monthly',
   'task.form.repeat.annually': 'Annually',

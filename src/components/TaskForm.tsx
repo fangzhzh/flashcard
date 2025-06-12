@@ -12,7 +12,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Calendar } from "@/components/ui/calendar";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter, DialogTrigger, DialogClose } from "@/components/ui/dialog";
-import type { Task, RepeatFrequency, TimeInfo, ArtifactLink, ReminderInfo, ReminderType, Flashcard as FlashcardType, Deck } from '@/types';
+import type { Task, RepeatFrequency, TimeInfo, ArtifactLink, ReminderInfo, Flashcard as FlashcardType, Deck } from '@/types';
 import { Save, CalendarIcon, Link2, RotateCcw, Clock, Bell, Trash2, X, Loader2, FilePlus, ListChecks, Search } from 'lucide-react';
 import { useI18n, useCurrentLocale } from '@/lib/i18n/client';
 import { cn } from '@/lib/utils';
@@ -71,7 +71,7 @@ const reminderInfoSchema = z.object({
 const taskSchema = z.object({
   title: z.string().min(1, 'toast.task.error.titleRequired'),
   description: z.string().optional().nullable(),
-  repeat: z.enum(['none', 'daily', 'weekly', 'monthly', 'annually']).default('none'),
+  repeat: z.enum(['none', 'daily', 'weekly', 'monthly', 'annually', 'weekday', 'weekend']).default('none'),
   timeInfo: timeInfoSchema,
   artifactLink: artifactLinkSchema.default({ flashcardId: null }),
   reminderInfo: reminderInfoSchema.default({ type: 'none' }),
@@ -185,6 +185,8 @@ export default function TaskForm({
   const repeatOptions: { value: RepeatFrequency; labelKey: string }[] = [
     { value: 'none', labelKey: 'task.form.repeat.none' },
     { value: 'daily', labelKey: 'task.form.repeat.daily' },
+    { value: 'weekday', labelKey: 'task.form.repeat.weekday' },
+    { value: 'weekend', labelKey: 'task.form.repeat.weekend' },
     { value: 'weekly', labelKey: 'task.form.repeat.weekly' },
     { value: 'monthly', labelKey: 'task.form.repeat.monthly' },
     { value: 'annually', labelKey: 'task.form.repeat.annually' },

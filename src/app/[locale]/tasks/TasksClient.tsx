@@ -272,7 +272,7 @@ export default function TasksClient() {
         "transition-all duration-300 ease-in-out overflow-y-auto flex flex-col",
         showEditPanel ? "hidden md:flex md:w-1/2 md:pr-2" : "w-full pr-0"
       )}>
-        <div className={cn("flex justify-between items-center mb-6", showEditPanel ? "px-2 md:px-0" : "px-4")}>
+        <div className={cn("flex justify-between items-center mb-6", showEditPanel ? "px-1 md:px-0" : "px-1")}>
           <h1 className="text-2xl font-semibold tracking-tight">{t('tasks.title')}</h1>
           <Button onClick={handleCreateNewTask} size="sm">
             <PlusCircle className="mr-2 h-4 w-4" /> {t('tasks.button.create')}
@@ -280,7 +280,7 @@ export default function TasksClient() {
         </div>
 
         {sortedTasks.length === 0 && !effectiveLoading && (
-          <Alert className={cn("mt-8 border-primary/50 text-primary bg-primary/5", showEditPanel ? "mx-2 md:mx-0" : "mx-4")}>
+          <Alert className={cn("mt-8 border-primary/50 text-primary bg-primary/5", showEditPanel ? "mx-1 md:mx-0" : "mx-1")}>
             <Info className="h-5 w-5 text-primary" />
             <AlertTitle className="font-semibold text-primary">{t('tasks.list.empty.title')}</AlertTitle>
             <AlertDescription>
@@ -289,15 +289,15 @@ export default function TasksClient() {
           </Alert>
         )}
 
-        <ul className={cn("space-y-1 flex-grow", showEditPanel ? "px-2 md:px-0" : "px-4")}>
+        <ul className={cn("space-y-1 flex-grow", showEditPanel ? "px-1 md:px-0" : "px-1")}>
           {sortedTasks.map((task) => (
             <li key={task.id}
                 className={cn(
-                    "group flex items-center justify-between p-3 rounded-md hover:bg-muted",
+                    "group flex items-center justify-between py-2.5 px-1 rounded-md hover:bg-muted",
                     selectedTaskId === task.id && "bg-muted shadow-md"
                 )}
             >
-              <div className="flex items-center flex-grow min-w-0 mr-4">
+              <div className="flex items-center flex-grow min-w-0 mr-2"> {/* Reduced mr-4 to mr-2 */}
                  <Checkbox
                     id={`task-${task.id}`}
                     checked={task.status === 'completed'}
@@ -305,7 +305,7 @@ export default function TasksClient() {
                         event?.stopPropagation(); 
                         handleToggleTaskCompletion(task);
                     }}
-                    className="mr-3 flex-shrink-0"
+                    className="mr-2 flex-shrink-0" /* Reduced mr-3 to mr-2 */
                     aria-label={t('task.item.toggleCompletionAria', {title: task.title})}
                   />
                 <div className="min-w-0 cursor-pointer flex-grow" onClick={() => handleEditTask(task.id)}>
@@ -368,4 +368,5 @@ export default function TasksClient() {
     
 
     
+
 

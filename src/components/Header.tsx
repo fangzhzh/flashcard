@@ -7,6 +7,8 @@ import { usePathname } from 'next/navigation';
 import { cn } from '@/lib/utils';
 import { useI18n, useChangeLocale, useCurrentLocale } from '@/lib/i18n/client';
 import { useAuth } from '@/contexts/AuthContext';
+import { useFlashcards } from '@/contexts/FlashcardsContext'; // Import useFlashcards
+import { Badge } from '@/components/ui/badge'; // Import Badge
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -25,10 +27,11 @@ export default function Header() {
   const currentLocale = useCurrentLocale();
   const pathname = usePathname();
   const { user, signOut, loading: authLoading } = useAuth();
+  const { getStatistics, isLoading: flashcardsLoading } = useFlashcards(); // Get stats and loading state
 
   const navItems = [
     { href: '/', labelKey: 'nav.pomodoro', icon: Timer },
-    { href: '/tasks', labelKey: 'nav.tasks', icon: ListChecks }, // Added Tasks
+    { href: '/tasks', labelKey: 'nav.tasks', icon: ListChecks },
     { href: '/flashcards-hub', labelKey: 'nav.flashcards', icon: LayoutDashboard },
   ];
 
@@ -36,6 +39,8 @@ export default function Header() {
     ? pathname.substring(`/${currentLocale}`.length) || '/'
     : pathname;
 
+  const stats = user ? getStatistics() : { dueToday: 0 }; // Get stats only if user is logged in
+  const dueTodayCount = stats.dueToday;
 
   return (
     <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
@@ -53,15 +58,25 @@ export default function Header() {
                   key={item.href}
                   href={item.href}
                   className={cn(
-                    "text-sm font-medium transition-colors hover:text-primary px-1 py-1 md:px-3 rounded-md",
-                    (basePathname === item.href || (item.href !== '/' && basePathname.startsWith(item.href))) 
+                    "relative text-sm font-medium transition-colors hover:text-primary px-1 py-1 md:px-3 rounded-md", // Added relative for badge positioning
+                    (basePathname === item.href || (item.href !== '/' && basePathname.startsWith(item.href)))
                       ? "text-primary bg-primary/10"
                       : "text-muted-foreground"
                   )}
-                  title={t(item.labelKey as any)} // Tooltip for icon-only version on mobile
+                  title={t(item.labelKey as any)}
                 >
-                  <item.icon className="inline-block h-5 w-5 md:hidden" />
-                  <span className="hidden md:inline-block">{t(item.labelKey as any)}</span>
+                  <div className="flex items-center"> {/* Wrapper for icon and text to keep them aligned */}
+                    <item.icon className="inline-block h-5 w-5 md:hidden" />
+                    <span className="hidden md:inline-block">{t(item.labelKey as any)}</span>
+                  </div>
+                  {item.labelKey === 'nav.flashcards' && user && !flashcardsLoading && dueTodayCount > 0 && (
+                    <Badge
+                      variant="destructive"
+                      className="absolute top-0.5 right-0.5 h-4 min-w-[1rem] transform translate-x-1/2 -translate-y-1/2 p-0.5 text-[0.625rem] leading-tight flex items-center justify-center rounded-full"
+                    >
+                      {dueTodayCount > 9 ? '9+' : dueTodayCount}
+                    </Badge>
+                  )}
                 </Link>
               ))}
             </nav>
@@ -72,7 +87,7 @@ export default function Header() {
         <div className="flex items-center gap-2 md:gap-3">
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <Button variant="outline" size="icon" className="h-8 w-8 md:h-[1.2rem] md:w-[1.2rem] md:h-9 md:w-9"> {/* Adjusted size for consistency */}
+              <Button variant="outline" size="icon" className="h-8 w-8 md:h-9 md:w-9">
                 <Languages className="h-[1.2rem] w-[1.2rem]" />
                 <span className="sr-only">{t('theme.toggle')}</span>
               </Button>
@@ -119,7 +134,7 @@ export default function Header() {
           ) : (
             <Button variant="outline" asChild className="h-9 text-sm px-3">
               <Link href="/auth">
-                <KeyRound className="mr-2 h-4 w-4" /> 
+                <KeyRound className="mr-2 h-4 w-4" />
                 {t('auth.signIn')}
               </Link>
             </Button>

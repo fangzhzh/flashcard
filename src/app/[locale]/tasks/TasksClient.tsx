@@ -117,7 +117,7 @@ export default function TasksClient() {
     } else if (isTomorrow(parsedStartDate)) {
       visibleLabel = t('task.display.label.tomorrowShort');
     } else {
-      visibleLabel = formatDateDisplay(parsedStartDate);
+      visibleLabel = formatDateDisplay(parsedStartDate, false); // Show MM/DD for visible, year in tooltip
     }
 
     // Determine tooltipLabel and timeStatus
@@ -127,23 +127,22 @@ export default function TasksClient() {
         parsedEndDate = startOfDay(parseISO(timeInfo.endDate));
         if (!isValid(parsedEndDate) || parsedEndDate < parsedStartDate) { 
            tooltipLabel = `${formatDateDisplay(parsedStartDate, true)} (${t('task.display.overdue')})`;
-           timeStatus = daysToStart < 0 ? 'overdue' : 'upcoming'; // If end date invalid, base status on start
+           timeStatus = daysToStart < 0 ? 'overdue' : 'upcoming';
         } else {
           const duration = differenceInCalendarDays(parsedEndDate, parsedStartDate) + 1;
           const fullStartDateStr = formatDateDisplay(parsedStartDate, true);
           const fullEndDateStr = formatDateDisplay(parsedEndDate, true);
 
-          if (todayForComparison > parsedEndDate) { // Range is fully in the past
+          if (todayForComparison > parsedEndDate) { 
             tooltipLabel = `${fullStartDateStr} - ${fullEndDateStr} (${t('task.display.ended')})`;
             timeStatus = 'overdue';
-          } else if (todayForComparison >= parsedStartDate && todayForComparison <= parsedEndDate) { // Active range
+          } else if (todayForComparison >= parsedStartDate && todayForComparison <= parsedEndDate) { 
             tooltipLabel = `${fullStartDateStr} - ${fullEndDateStr} (${t('task.display.durationDays', { count: duration })})`;
-            visibleLabel = isToday(parsedStartDate) ? t('task.display.label.today') : formatDateDisplay(parsedStartDate); // Keep visibleLabel concise
             timeStatus = 'active';
-          } else if (todayForComparison < parsedStartDate) { // Future range
+          } else if (todayForComparison < parsedStartDate) { 
              tooltipLabel = `${fullStartDateStr} - ${fullEndDateStr} (${t('task.display.inXDays', { count: daysToStart })})`;
              timeStatus = 'upcoming';
-          } else { // Started in past, still ongoing (todayForComparison > parsedStartDate && todayForComparison <= parsedEndDate)
+          } else { // Started in past, still ongoing
              tooltipLabel = `${fullStartDateStr} - ${fullEndDateStr} (${t('task.display.endsInXDays', {count: differenceInCalendarDays(parsedEndDate, todayForComparison) + 1 })})`;
              timeStatus = 'active';
           }
@@ -167,15 +166,14 @@ export default function TasksClient() {
       if (timeInfo.type === 'datetime' && timeInfo.time) {
         tooltipLabel += ` ${t('task.display.at')} ${timeInfo.time}`;
       }
-    } else if (timeInfo.type === 'no_time' && timeInfo.startDate) { // Technically shouldn't hit 'no_time' if startDate exists as per our defaultReturn
+    } else if (timeInfo.type === 'no_time' && timeInfo.startDate) { 
       tooltipLabel = formatDateDisplay(parsedStartDate, true); 
-      // Determine status for 'no_time' with a date, similar to all_day
       if (isToday(parsedStartDate)) timeStatus = 'active';
       else if (daysToStart > 0) timeStatus = 'upcoming';
       else timeStatus = 'overdue';
-    } else { // No valid date info, keep default
+    } else { 
        tooltipLabel = t('task.display.noTime');
-       visibleLabel = ''; // Ensure visible label is empty if no valid date
+       visibleLabel = ''; 
        timeStatus = 'none';
     }
     
@@ -376,15 +374,36 @@ export default function TasksClient() {
                     )}
                   {visibleLabel && timeStatus !== 'none' && task.status !== 'completed' && (
                     <>
-                      {timeStatus === 'upcoming' && <Hourglass className="h-3.5 w-3.5 text-muted-foreground mx-1" title={t('task.display.status.upcoming')} />}
-                      {timeStatus === 'active' && <Zap className="h-3.5 w-3.5 text-green-500 mx-1" title={t('task.display.status.active')} />}
-                      {timeStatus === 'overdue' && <AlertTriangle className="h-3.5 w-3.5 text-yellow-500 mx-1" title={t('task.display.status.overdue')} />}
+                      {timeStatus === 'upcoming' && 
+                        <Tooltip delayDuration={300}>
+                            <TooltipTrigger asChild>
+                                <Hourglass className="h-3.5 w-3.5 text-muted-foreground mx-1" />
+                            </TooltipTrigger>
+                            <TooltipContent><p>{t('task.display.status.upcoming')}</p></TooltipContent>
+                        </Tooltip>
+                      }
+                      {timeStatus === 'active' && 
+                        <Tooltip delayDuration={300}>
+                            <TooltipTrigger asChild>
+                                <Zap className="h-3.5 w-3.5 text-green-500 mx-1" />
+                            </TooltipTrigger>
+                            <TooltipContent><p>{t('task.display.status.active')}</p></TooltipContent>
+                        </Tooltip>
+                      }
+                      {timeStatus === 'overdue' && 
+                        <Tooltip delayDuration={300}>
+                            <TooltipTrigger asChild>
+                                <AlertTriangle className="h-3.5 w-3.5 text-yellow-500 mx-1" />
+                            </TooltipTrigger>
+                            <TooltipContent><p>{t('task.display.status.overdue')}</p></TooltipContent>
+                        </Tooltip>
+                      }
                     </>
                   )}
                   <Button
                     variant="ghost"
                     size="icon"
-                    className="opacity-0 group-hover:opacity-100 focus-visible:opacity-100 transition-opacity h-8 w-8 flex-shrink-0"
+                    className="transition-opacity h-8 w-8 flex-shrink-0"
                     onClick={(e) => { e.stopPropagation(); handleStartPomodoroForTask(task.title); }}
                     title={t('task.item.startPomodoro')}
                     disabled={task.status === 'completed'}
@@ -422,6 +441,7 @@ export default function TasksClient() {
     
 
     
+
 
 
 

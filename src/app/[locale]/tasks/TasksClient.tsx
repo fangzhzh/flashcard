@@ -15,6 +15,13 @@ import TaskForm, { type TaskFormData } from '@/components/TaskForm';
 import { usePomodoro } from '@/contexts/PomodoroContext';
 import { format, parseISO, differenceInCalendarDays, isToday, isTomorrow, isValid, isSameYear, startOfDay } from 'date-fns';
 import { cn } from '@/lib/utils';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+
+
+interface FormattedTimeLabels {
+  visibleLabel: string;
+  tooltipLabel: string;
+}
 
 export default function TasksClient() {
   const { user, loading: authLoading } = useAuth();
@@ -80,77 +87,86 @@ export default function TasksClient() {
     }
   };
 
-  const formatTimeLabel = useCallback((timeInfo?: TimeInfo): string => {
+  const formatTimeLabel = useCallback((timeInfo?: TimeInfo): FormattedTimeLabels => {
+    const defaultReturn = { visibleLabel: '', tooltipLabel: t('task.display.noTime') };
     if (!timeInfo || !timeInfo.startDate) {
-      return t('task.display.noTime');
+      return defaultReturn;
     }
 
     const todayForComparison = startOfDay(new Date());
     let parsedStartDate: Date;
     try {
       parsedStartDate = startOfDay(parseISO(timeInfo.startDate));
-      if (!isValid(parsedStartDate)) return t('task.display.noTime');
-    } catch (e) { return t('task.display.noTime'); }
+      if (!isValid(parsedStartDate)) return defaultReturn;
+    } catch (e) { return defaultReturn; }
 
-    const formatDateDisplay = (date: Date): string => {
-      return isSameYear(date, todayForComparison) ? format(date, 'MM/dd') : format(date, 'yyyy/MM/dd');
+    const formatDateDisplay = (date: Date, includeYear = false): string => {
+      const yearFormat = includeYear || !isSameYear(date, todayForComparison) ? 'yyyy/MM/dd' : 'MM/dd';
+      return format(date, yearFormat);
     };
-
+    
+    let visibleLabel = '';
+    let tooltipLabel = '';
     const daysToStart = differenceInCalendarDays(parsedStartDate, todayForComparison);
 
+    // Determine visibleLabel
+    if (isToday(parsedStartDate)) {
+      visibleLabel = t('task.display.label.today');
+    } else if (isTomorrow(parsedStartDate)) {
+      visibleLabel = t('task.display.label.tomorrowShort');
+    } else {
+      visibleLabel = formatDateDisplay(parsedStartDate);
+    }
+
+    // Determine tooltipLabel
     if (timeInfo.type === 'date_range' && timeInfo.endDate) {
       let parsedEndDate: Date;
       try {
         parsedEndDate = startOfDay(parseISO(timeInfo.endDate));
-        if (!isValid(parsedEndDate) || parsedEndDate < parsedStartDate) {
-          // Fallback to single date display if end date is invalid or before start
-          if (daysToStart === 0) return t('task.display.today');
-          if (daysToStart > 0) return `${formatDateDisplay(parsedStartDate)} (${t('task.display.inXDays', { count: daysToStart })})`;
-          return `${formatDateDisplay(parsedStartDate)} (${t('task.display.overdue')})`;
-        }
-
-        const duration = differenceInCalendarDays(parsedEndDate, parsedStartDate) + 1;
-
-        if (daysToStart === 0) { // Starts Today
-          return `${t('task.display.today')} (${t('task.display.durationDays', { count: duration })})`;
-        } else if (daysToStart > 0) { // Starts in Future
-          return `${formatDateDisplay(parsedStartDate)} (${t('task.display.inXDays', { count: daysToStart })})`;
-        } else { // daysToStart < 0 (Started in Past)
-          const daysToEnd = differenceInCalendarDays(parsedEndDate, todayForComparison);
-          if (daysToEnd >= 0) { // Still ongoing or ends today
-            return `${formatDateDisplay(parsedStartDate)} (${t('task.display.endsInXDays', { count: daysToEnd + 1 })})`;
-          } else { // Entire range is in the past
-            return `${formatDateDisplay(parsedStartDate)} (${t('task.display.ended')})`;
+        if (!isValid(parsedEndDate) || parsedEndDate < parsedStartDate) { // Fallback if end date invalid
+          if (daysToStart === 0) tooltipLabel = `${t('task.display.today')}`;
+          else if (daysToStart > 0) tooltipLabel = `${formatDateDisplay(parsedStartDate, true)} (${t('task.display.inXDays', { count: daysToStart })})`;
+          else tooltipLabel = `${formatDateDisplay(parsedStartDate, true)} (${t('task.display.overdue')})`;
+        } else {
+          const duration = differenceInCalendarDays(parsedEndDate, parsedStartDate) + 1;
+          if (daysToStart === 0) { // Starts Today
+            tooltipLabel = `${t('task.display.today')} (${t('task.display.durationDays', { count: duration })})`;
+          } else if (daysToStart > 0) { // Starts in Future
+            tooltipLabel = `${formatDateDisplay(parsedStartDate, true)} - ${formatDateDisplay(parsedEndDate, true)} (${t('task.display.inXDays', { count: daysToStart })})`;
+          } else { // daysToStart < 0 (Started in Past)
+            const daysToEnd = differenceInCalendarDays(parsedEndDate, todayForComparison);
+            if (daysToEnd >= 0) { // Still ongoing or ends today
+              tooltipLabel = `${formatDateDisplay(parsedStartDate, true)} - ${formatDateDisplay(parsedEndDate, true)} (${t('task.display.endsInXDays', { count: daysToEnd + 1 })})`;
+            } else { // Entire range is in the past
+              tooltipLabel = `${formatDateDisplay(parsedStartDate, true)} - ${formatDateDisplay(parsedEndDate, true)} (${t('task.display.ended')})`;
+            }
           }
         }
-      } catch (e) { 
-        // Fallback if end date parsing fails
-        if (daysToStart === 0) return t('task.display.today');
-        if (daysToStart > 0) return `${formatDateDisplay(parsedStartDate)} (${t('task.display.inXDays', { count: daysToStart })})`;
-        return `${formatDateDisplay(parsedStartDate)} (${t('task.display.overdue')})`;
+      } catch (e) { // Fallback on end date parse error
+          if (daysToStart === 0) tooltipLabel = `${t('task.display.today')}`;
+          else if (daysToStart > 0) tooltipLabel = `${formatDateDisplay(parsedStartDate, true)} (${t('task.display.inXDays', { count: daysToStart })})`;
+          else tooltipLabel = `${formatDateDisplay(parsedStartDate, true)} (${t('task.display.overdue')})`;
       }
-    }
-
-    // Handle single date tasks or fallback from range
-    if (timeInfo.type === 'datetime' || timeInfo.type === 'all_day' || (timeInfo.type === 'date_range' && !timeInfo.endDate)) {
+    } else if (timeInfo.type === 'datetime' || timeInfo.type === 'all_day' || (timeInfo.type === 'date_range' && !timeInfo.endDate /* single date marked as range */) ) {
       if (daysToStart === 0) {
-        return t('task.display.today');
+        tooltipLabel = t('task.display.today');
       } else if (daysToStart > 0) {
-        return `${formatDateDisplay(parsedStartDate)} (${t('task.display.inXDays', { count: daysToStart })})`;
+        tooltipLabel = `${formatDateDisplay(parsedStartDate, true)} (${t('task.display.inXDays', { count: daysToStart })})`;
       } else { 
-        return `${formatDateDisplay(parsedStartDate)} (${t('task.display.overdue')})`;
+        tooltipLabel = `${formatDateDisplay(parsedStartDate, true)} (${t('task.display.overdue')})`;
       }
+      if (timeInfo.type === 'datetime' && timeInfo.time) {
+        tooltipLabel += ` ${t('task.display.at')} ${timeInfo.time}`;
+      }
+    } else if (timeInfo.type === 'no_time' && timeInfo.startDate) {
+      // This case for 'no_time' but startDate exists - primarily for visible label consistency
+      tooltipLabel = formatDateDisplay(parsedStartDate, true); // Tooltip shows full date
+    } else {
+       tooltipLabel = t('task.display.noTime');
+       visibleLabel = ''; // No visible label if truly no time info
     }
     
-    // This case should ideally be caught by the initial check, but as a safeguard
-    if (timeInfo.type === 'no_time' && timeInfo.startDate) {
-        if (daysToStart === 0) return `${formatDateDisplay(parsedStartDate)} (${t('task.display.today')})`;
-        if (daysToStart > 0) return `${formatDateDisplay(parsedStartDate)} (${t('task.display.inXDays', { count: daysToStart })})`;
-        if (daysToStart < 0) return `${formatDateDisplay(parsedStartDate)} (${t('task.display.overdue')})`;
-        return formatDateDisplay(parsedStartDate); // Just date if no other info
-    }
-    
-    return t('task.display.noTime'); 
+    return { visibleLabel, tooltipLabel };
 
   }, [t]);
 
@@ -241,11 +257,9 @@ export default function TasksClient() {
     if (selectedTask?.id) {
         try {
             await updateTaskInContext(selectedTask.id, updates);
-            // Toasts are now handled by TaskForm based on context
             return true;
         } catch (error) {
             console.error("Intermediate save failed:", error);
-            // TaskForm can show its own error toast
             return false;
         }
     }
@@ -267,7 +281,6 @@ export default function TasksClient() {
 
   return (
     <div className="flex h-[calc(100vh-var(--header-height,4rem)-4rem)]"> 
-      {/* Task List Container */}
       <div className={cn(
         "transition-all duration-300 ease-in-out overflow-y-auto flex flex-col",
         showEditPanel ? "hidden md:flex md:w-1/2 md:pr-2" : "w-full pr-0"
@@ -290,14 +303,16 @@ export default function TasksClient() {
         )}
 
         <ul className={cn("space-y-1 flex-grow", showEditPanel ? "px-1 md:px-0" : "px-1")}>
-          {sortedTasks.map((task) => (
+          {sortedTasks.map((task) => {
+            const { visibleLabel, tooltipLabel } = formatTimeLabel(task.timeInfo);
+            return (
             <li key={task.id}
                 className={cn(
                     "group flex items-center justify-between py-2.5 px-1 rounded-md hover:bg-muted",
                     selectedTaskId === task.id && "bg-muted shadow-md"
                 )}
             >
-              <div className="flex items-center flex-grow min-w-0 mr-2"> {/* Reduced mr-4 to mr-2 */}
+              <div className="flex items-center flex-grow min-w-0 mr-2"> 
                  <Checkbox
                     id={`task-${task.id}`}
                     checked={task.status === 'completed'}
@@ -305,7 +320,7 @@ export default function TasksClient() {
                         event?.stopPropagation(); 
                         handleToggleTaskCompletion(task);
                     }}
-                    className="mr-2 flex-shrink-0" /* Reduced mr-3 to mr-2 */
+                    className="mr-2 flex-shrink-0" 
                     aria-label={t('task.item.toggleCompletionAria', {title: task.title})}
                   />
                 <div className="min-w-0 cursor-pointer flex-grow" onClick={() => handleEditTask(task.id)}>
@@ -326,9 +341,25 @@ export default function TasksClient() {
                 </div>
               </div>
               <div className="flex items-center flex-shrink-0 ml-auto">
-                <span className="text-xs text-muted-foreground mr-2 cursor-pointer" onClick={() => handleEditTask(task.id)}>
-                    {formatTimeLabel(task.timeInfo)}
-                </span>
+                {visibleLabel ? (
+                    <Tooltip delayDuration={300}>
+                      <TooltipTrigger asChild>
+                        <span 
+                          className="text-xs text-muted-foreground mr-2 cursor-pointer"
+                          onClick={(e) => { e.stopPropagation(); handleEditTask(task.id);}} // Keep clickable for edit
+                        >
+                          {visibleLabel}
+                        </span>
+                      </TooltipTrigger>
+                      <TooltipContent>
+                        <p>{tooltipLabel}</p>
+                      </TooltipContent>
+                    </Tooltip>
+                  ) : (
+                     <span className="text-xs text-muted-foreground mr-2 cursor-pointer" onClick={() => handleEditTask(task.id)}>
+                        {/* Placeholder or empty if no time */}
+                     </span>
+                  )}
                 <Button
                   variant="ghost"
                   size="icon"
@@ -340,15 +371,15 @@ export default function TasksClient() {
                 </Button>
               </div>
             </li>
-          ))}
+            );
+          })}
         </ul>
       </div>
 
-      {/* Edit Panel Container */}
       {showEditPanel && (
         <div className={cn(
             "w-full md:w-1/2 md:border-l md:pl-4 py-4 overflow-y-auto",
-            "flex flex-col" // Ensure TaskForm can expand vertically
+            "flex flex-col" 
           )}>
            <TaskForm
             key={selectedTaskId || 'new-task'}
@@ -368,5 +399,6 @@ export default function TasksClient() {
     
 
     
+
 
 

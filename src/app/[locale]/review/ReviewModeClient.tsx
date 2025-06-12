@@ -357,17 +357,17 @@ export default function ReviewModeClient() {
   return (
     <div className="flex flex-col items-center pt-2">
       <h1 className="text-2xl font-semibold tracking-tight mb-6 text-center">{pageTitle}</h1>
-      <p className="text-muted-foreground mb-4">{t('review.cardProgress', { currentIndex: currentCardIndex + 1, totalCards: reviewQueue.length })}</p>
-      <Card className="w-full max-w-2xl min-h-[350px] flex flex-col shadow-xl transition-all duration-500 ease-in-out transform hover:scale-[1.01]">
+      <p className="text-muted-foreground mb-4">{t('review.cardProgress', { currentIndex: currentCardIndex + 1, totalCards: reviewQueue.length })}</p>      
+      <Card className="w-full max-w-3xl min-h-[350px] flex flex-col shadow-xl transition-all duration-500 ease-in-out transform hover:scale-[1.01]">
         <CardHeader className="flex-grow flex items-center justify-center p-8">
           <div className="flex items-start w-full">
-            <CardTitle className="text-3xl md:text-4xl font-semibold flex-grow">
+            <div className="flex-grow">
               <div className="markdown-content whitespace-pre-wrap">
                 <ReactMarkdown remarkPlugins={[remarkGfm]}>
                   {currentCardText}
                 </ReactMarkdown>
               </div>
-            </CardTitle>
+            </div>
             <Button
               variant="ghost"
               size="icon"

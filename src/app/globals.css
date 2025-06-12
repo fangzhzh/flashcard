@@ -1,3 +1,4 @@
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -93,7 +94,7 @@ body {
   .markdown-content h2 { @apply text-2xl font-semibold my-3; }
   .markdown-content h3 { @apply text-xl font-medium my-2; }
   .markdown-content h4 { @apply text-lg font-medium my-2; }
-  .markdown-content p { @apply my-2 leading-relaxed text-base; }
+  .markdown-content p { @apply my-2 leading-relaxed text-base break-words; }
   .markdown-content ul { @apply list-disc list-inside my-3 pl-5 text-base; }
   .markdown-content ol { @apply list-decimal list-inside my-3 pl-5 text-base; }
   .markdown-content li { @apply mb-1; }
@@ -105,8 +106,9 @@ body {
   .markdown-content blockquote { @apply border-l-4 border-primary/50 pl-4 italic my-3 text-muted-foreground; }
   .markdown-content hr { @apply my-6 border-border; }
   .markdown-content a { @apply text-primary underline hover:text-primary/80; }
-  .markdown-content table { @apply w-full my-3 border-collapse border border-border; }
+  .markdown-content table { @apply w-full my-3 border-collapse border border-border text-sm; }
   .markdown-content th, .markdown-content td { @apply border border-border px-3 py-2 text-left; }
   .markdown-content th { @apply bg-muted font-semibold; }
   .markdown-content img { @apply max-w-full h-auto rounded-md my-3; }
 }
+

@@ -100,8 +100,8 @@ export default function TasksClient() {
       if (!isValid(parsedStartDate)) return defaultReturn;
     } catch (e) { return defaultReturn; }
 
-    const formatDateDisplay = (date: Date, includeYear = false): string => {
-      const yearFormat = includeYear || !isSameYear(date, todayForComparison) ? 'yyyy/MM/dd' : 'MM/dd';
+    const formatDateDisplay = (date: Date, includeYearIfDifferent = true): string => {
+      const yearFormat = (includeYearIfDifferent && !isSameYear(date, todayForComparison)) ? 'yyyy/MM/dd' : 'MM/dd';
       return format(date, yearFormat);
     };
     
@@ -123,47 +123,46 @@ export default function TasksClient() {
       let parsedEndDate: Date;
       try {
         parsedEndDate = startOfDay(parseISO(timeInfo.endDate));
-        if (!isValid(parsedEndDate) || parsedEndDate < parsedStartDate) { // Fallback if end date invalid
-          if (daysToStart === 0) tooltipLabel = `${t('task.display.today')}`;
-          else if (daysToStart > 0) tooltipLabel = `${formatDateDisplay(parsedStartDate, true)} (${t('task.display.inXDays', { count: daysToStart })})`;
-          else tooltipLabel = `${formatDateDisplay(parsedStartDate, true)} (${t('task.display.overdue')})`;
+        if (!isValid(parsedEndDate) || parsedEndDate < parsedStartDate) { 
+          tooltipLabel = `${formatDateDisplay(parsedStartDate, true)} (${t('task.display.overdue')})`; // Fallback if end date invalid
         } else {
           const duration = differenceInCalendarDays(parsedEndDate, parsedStartDate) + 1;
+          const fullStartDateStr = formatDateDisplay(parsedStartDate, true);
+          const fullEndDateStr = formatDateDisplay(parsedEndDate, true);
+
           if (daysToStart === 0) { // Starts Today
             tooltipLabel = `${t('task.display.today')} (${t('task.display.durationDays', { count: duration })})`;
           } else if (daysToStart > 0) { // Starts in Future
-            tooltipLabel = `${formatDateDisplay(parsedStartDate, true)} - ${formatDateDisplay(parsedEndDate, true)} (${t('task.display.inXDays', { count: daysToStart })})`;
+            tooltipLabel = `${fullStartDateStr} - ${fullEndDateStr} (${t('task.display.inXDays', { count: daysToStart })})`;
           } else { // daysToStart < 0 (Started in Past)
             const daysToEnd = differenceInCalendarDays(parsedEndDate, todayForComparison);
             if (daysToEnd >= 0) { // Still ongoing or ends today
-              tooltipLabel = `${formatDateDisplay(parsedStartDate, true)} - ${formatDateDisplay(parsedEndDate, true)} (${t('task.display.endsInXDays', { count: daysToEnd + 1 })})`;
+              tooltipLabel = `${fullStartDateStr} - ${fullEndDateStr} (${t('task.display.endsInXDays', { count: daysToEnd + 1 })})`;
             } else { // Entire range is in the past
-              tooltipLabel = `${formatDateDisplay(parsedStartDate, true)} - ${formatDateDisplay(parsedEndDate, true)} (${t('task.display.ended')})`;
+              tooltipLabel = `${fullStartDateStr} - ${fullEndDateStr} (${t('task.display.ended')})`;
             }
           }
         }
       } catch (e) { // Fallback on end date parse error
-          if (daysToStart === 0) tooltipLabel = `${t('task.display.today')}`;
-          else if (daysToStart > 0) tooltipLabel = `${formatDateDisplay(parsedStartDate, true)} (${t('task.display.inXDays', { count: daysToStart })})`;
-          else tooltipLabel = `${formatDateDisplay(parsedStartDate, true)} (${t('task.display.overdue')})`;
+          tooltipLabel = `${formatDateDisplay(parsedStartDate, true)} (${t('task.display.overdue')})`;
       }
     } else if (timeInfo.type === 'datetime' || timeInfo.type === 'all_day' || (timeInfo.type === 'date_range' && !timeInfo.endDate /* single date marked as range */) ) {
+      const fullStartDateStr = formatDateDisplay(parsedStartDate, true);
       if (daysToStart === 0) {
         tooltipLabel = t('task.display.today');
       } else if (daysToStart > 0) {
-        tooltipLabel = `${formatDateDisplay(parsedStartDate, true)} (${t('task.display.inXDays', { count: daysToStart })})`;
+        tooltipLabel = `${fullStartDateStr} (${t('task.display.inXDays', { count: daysToStart })})`;
       } else { 
-        tooltipLabel = `${formatDateDisplay(parsedStartDate, true)} (${t('task.display.overdue')})`;
+        tooltipLabel = `${fullStartDateStr} (${t('task.display.overdue')})`;
       }
       if (timeInfo.type === 'datetime' && timeInfo.time) {
         tooltipLabel += ` ${t('task.display.at')} ${timeInfo.time}`;
       }
     } else if (timeInfo.type === 'no_time' && timeInfo.startDate) {
-      // This case for 'no_time' but startDate exists - primarily for visible label consistency
-      tooltipLabel = formatDateDisplay(parsedStartDate, true); // Tooltip shows full date
+      tooltipLabel = formatDateDisplay(parsedStartDate, true); 
     } else {
        tooltipLabel = t('task.display.noTime');
-       visibleLabel = ''; // No visible label if truly no time info
+       visibleLabel = '';
     }
     
     return { visibleLabel, tooltipLabel };
@@ -306,71 +305,73 @@ export default function TasksClient() {
           {sortedTasks.map((task) => {
             const { visibleLabel, tooltipLabel } = formatTimeLabel(task.timeInfo);
             return (
-            <li key={task.id}
-                className={cn(
-                    "group flex items-center justify-between py-2.5 px-1 rounded-md hover:bg-muted",
-                    selectedTaskId === task.id && "bg-muted shadow-md"
-                )}
-            >
-              <div className="flex items-center flex-grow min-w-0 mr-2"> 
-                 <Checkbox
-                    id={`task-${task.id}`}
-                    checked={task.status === 'completed'}
-                    onCheckedChange={(checked) => {
-                        event?.stopPropagation(); 
-                        handleToggleTaskCompletion(task);
-                    }}
-                    className="mr-2 flex-shrink-0" 
-                    aria-label={t('task.item.toggleCompletionAria', {title: task.title})}
-                  />
-                <div className="min-w-0 cursor-pointer flex-grow" onClick={() => handleEditTask(task.id)}>
-                  <p className={cn(
-                      "text-base font-medium truncate",
-                      task.status === 'completed' && "line-through text-muted-foreground"
-                    )} title={task.title}>
-                    {task.title}
-                  </p>
-                  {task.description && (
+            <TooltipProvider key={task.id}>
+              <li
+                  className={cn(
+                      "group flex items-center justify-between py-2.5 px-1 rounded-md hover:bg-muted",
+                      selectedTaskId === task.id && "bg-muted shadow-md"
+                  )}
+              >
+                <div className="flex items-center flex-grow min-w-0 mr-2"> 
+                   <Checkbox
+                      id={`task-${task.id}`}
+                      checked={task.status === 'completed'}
+                      onCheckedChange={(checked) => {
+                          event?.stopPropagation(); 
+                          handleToggleTaskCompletion(task);
+                      }}
+                      className="mr-2 flex-shrink-0" 
+                      aria-label={t('task.item.toggleCompletionAria', {title: task.title})}
+                    />
+                  <div className="min-w-0 cursor-pointer flex-grow" onClick={() => handleEditTask(task.id)}>
                     <p className={cn(
-                        "text-xs text-muted-foreground truncate",
-                        task.status === 'completed' && "line-through"
-                      )} title={task.description}>
-                      {task.description}
+                        "text-base font-medium truncate",
+                        task.status === 'completed' && "line-through text-muted-foreground"
+                      )} title={task.title}>
+                      {task.title}
                     </p>
-                  )}
+                    {task.description && (
+                      <p className={cn(
+                          "text-xs text-muted-foreground truncate",
+                          task.status === 'completed' && "line-through"
+                        )} title={task.description}>
+                        {task.description}
+                      </p>
+                    )}
+                  </div>
                 </div>
-              </div>
-              <div className="flex items-center flex-shrink-0 ml-auto">
-                {visibleLabel ? (
-                    <Tooltip delayDuration={300}>
-                      <TooltipTrigger asChild>
-                        <span 
-                          className="text-xs text-muted-foreground mr-2 cursor-pointer"
-                          onClick={(e) => { e.stopPropagation(); handleEditTask(task.id);}} // Keep clickable for edit
-                        >
-                          {visibleLabel}
-                        </span>
-                      </TooltipTrigger>
-                      <TooltipContent>
-                        <p>{tooltipLabel}</p>
-                      </TooltipContent>
-                    </Tooltip>
-                  ) : (
-                     <span className="text-xs text-muted-foreground mr-2 cursor-pointer" onClick={() => handleEditTask(task.id)}>
-                        {/* Placeholder or empty if no time */}
-                     </span>
-                  )}
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  className="opacity-0 group-hover:opacity-100 focus-visible:opacity-100 transition-opacity h-8 w-8 flex-shrink-0"
-                  onClick={(e) => { e.stopPropagation(); handleStartPomodoroForTask(task.title); }}
-                  title={t('task.item.startPomodoro')}
-                >
-                  <PlayCircle className="h-5 w-5 text-primary" />
-                </Button>
-              </div>
-            </li>
+                <div className="flex items-center flex-shrink-0 ml-auto">
+                  {visibleLabel ? (
+                      <Tooltip delayDuration={300}>
+                        <TooltipTrigger asChild>
+                          <span 
+                            className="text-xs text-muted-foreground mr-2 cursor-pointer"
+                            onClick={(e) => { e.stopPropagation(); handleEditTask(task.id);}}
+                          >
+                            {visibleLabel}
+                          </span>
+                        </TooltipTrigger>
+                        <TooltipContent>
+                          <p>{tooltipLabel}</p>
+                        </TooltipContent>
+                      </Tooltip>
+                    ) : (
+                       <span className="text-xs text-muted-foreground mr-2 cursor-pointer" onClick={() => handleEditTask(task.id)}>
+                          {/* Placeholder or empty if no time */}
+                       </span>
+                    )}
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="opacity-0 group-hover:opacity-100 focus-visible:opacity-100 transition-opacity h-8 w-8 flex-shrink-0"
+                    onClick={(e) => { e.stopPropagation(); handleStartPomodoroForTask(task.title); }}
+                    title={t('task.item.startPomodoro')}
+                  >
+                    <PlayCircle className="h-5 w-5 text-primary" />
+                  </Button>
+                </div>
+              </li>
+            </TooltipProvider>
             );
           })}
         </ul>
@@ -399,6 +400,7 @@ export default function TasksClient() {
     
 
     
+
 
 
 

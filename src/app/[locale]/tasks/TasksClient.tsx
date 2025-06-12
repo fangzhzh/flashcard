@@ -26,7 +26,7 @@ export default function TasksClient() {
     getTaskById, 
     updateTask: updateTaskInContext, 
     addTask: addTaskInContext,
-    deleteTask: deleteTaskInContext // Added deleteTask from context
+    deleteTask: deleteTaskInContext
   } = useFlashcards();
   const { toast } = useToast();
   const t = useI18n();
@@ -103,24 +103,32 @@ export default function TasksClient() {
       try {
         parsedEndDate = startOfDay(parseISO(timeInfo.endDate));
         if (!isValid(parsedEndDate) || parsedEndDate < parsedStartDate) {
-           // Fallback or error display
-        } else {
-          const daysToEnd = differenceInCalendarDays(parsedEndDate, todayForComparison);
-          const duration = differenceInCalendarDays(parsedEndDate, parsedStartDate) + 1;
+          // Fallback to single date display if end date is invalid or before start
+          if (daysToStart === 0) return t('task.display.today');
+          if (daysToStart > 0) return `${formatDateDisplay(parsedStartDate)} (${t('task.display.inXDays', { count: daysToStart })})`;
+          return `${formatDateDisplay(parsedStartDate)} (${t('task.display.overdue')})`;
+        }
 
-          if (daysToStart === 0) { // Starts Today
-            return `${t('task.display.today')} (${t('task.display.durationDays', { count: duration })})`;
-          } else if (daysToStart > 0) { // Starts in Future
-            return `${formatDateDisplay(parsedStartDate)} (${t('task.display.inXDays', { count: daysToStart })})`;
-          } else { // daysToStart < 0 (Started in Past)
-            if (daysToEnd >= 0) { // Still ongoing or ends today
-              return `${formatDateDisplay(parsedStartDate)} (${t('task.display.endsInXDays', { count: daysToEnd +1 })})`;
-            } else { // Entire range is in the past
-              return `${formatDateDisplay(parsedStartDate)} (${t('task.display.ended')})`;
-            }
+        const duration = differenceInCalendarDays(parsedEndDate, parsedStartDate) + 1;
+
+        if (daysToStart === 0) { // Starts Today
+          return `${t('task.display.today')} (${t('task.display.durationDays', { count: duration })})`;
+        } else if (daysToStart > 0) { // Starts in Future
+          return `${formatDateDisplay(parsedStartDate)} (${t('task.display.inXDays', { count: daysToStart })})`;
+        } else { // daysToStart < 0 (Started in Past)
+          const daysToEnd = differenceInCalendarDays(parsedEndDate, todayForComparison);
+          if (daysToEnd >= 0) { // Still ongoing or ends today
+            return `${formatDateDisplay(parsedStartDate)} (${t('task.display.endsInXDays', { count: daysToEnd + 1 })})`;
+          } else { // Entire range is in the past
+            return `${formatDateDisplay(parsedStartDate)} (${t('task.display.ended')})`;
           }
         }
-      } catch (e) { /* Fall through or specific error */ }
+      } catch (e) { 
+        // Fallback if end date parsing fails
+        if (daysToStart === 0) return t('task.display.today');
+        if (daysToStart > 0) return `${formatDateDisplay(parsedStartDate)} (${t('task.display.inXDays', { count: daysToStart })})`;
+        return `${formatDateDisplay(parsedStartDate)} (${t('task.display.overdue')})`;
+      }
     }
 
     // Handle single date tasks or fallback from range
@@ -134,11 +142,12 @@ export default function TasksClient() {
       }
     }
     
+    // This case should ideally be caught by the initial check, but as a safeguard
     if (timeInfo.type === 'no_time' && timeInfo.startDate) {
         if (daysToStart === 0) return `${formatDateDisplay(parsedStartDate)} (${t('task.display.today')})`;
         if (daysToStart > 0) return `${formatDateDisplay(parsedStartDate)} (${t('task.display.inXDays', { count: daysToStart })})`;
         if (daysToStart < 0) return `${formatDateDisplay(parsedStartDate)} (${t('task.display.overdue')})`;
-        return formatDateDisplay(parsedStartDate);
+        return formatDateDisplay(parsedStartDate); // Just date if no other info
     }
     
     return t('task.display.noTime'); 
@@ -232,9 +241,11 @@ export default function TasksClient() {
     if (selectedTask?.id) {
         try {
             await updateTaskInContext(selectedTask.id, updates);
+            // Toasts are now handled by TaskForm based on context
             return true;
         } catch (error) {
             console.error("Intermediate save failed:", error);
+            // TaskForm can show its own error toast
             return false;
         }
     }
@@ -256,8 +267,12 @@ export default function TasksClient() {
 
   return (
     <div className="flex h-[calc(100vh-var(--header-height,4rem)-4rem)]"> 
-      <div className={cn("transition-all duration-300 ease-in-out overflow-y-auto flex flex-col", showEditPanel ? "w-1/2 pr-2" : "w-full pr-0")}>
-        <div className={cn("flex justify-between items-center mb-6", showEditPanel ? "px-2" : "px-4")}>
+      {/* Task List Container */}
+      <div className={cn(
+        "transition-all duration-300 ease-in-out overflow-y-auto flex flex-col",
+        showEditPanel ? "hidden md:flex md:w-1/2 md:pr-2" : "w-full pr-0"
+      )}>
+        <div className={cn("flex justify-between items-center mb-6", showEditPanel ? "px-2 md:px-0" : "px-4")}>
           <h1 className="text-2xl font-semibold tracking-tight">{t('tasks.title')}</h1>
           <Button onClick={handleCreateNewTask} size="sm">
             <PlusCircle className="mr-2 h-4 w-4" /> {t('tasks.button.create')}
@@ -265,7 +280,7 @@ export default function TasksClient() {
         </div>
 
         {sortedTasks.length === 0 && !effectiveLoading && (
-          <Alert className={cn("mt-8 border-primary/50 text-primary bg-primary/5", showEditPanel ? "mx-2" : "mx-4")}>
+          <Alert className={cn("mt-8 border-primary/50 text-primary bg-primary/5", showEditPanel ? "mx-2 md:mx-0" : "mx-4")}>
             <Info className="h-5 w-5 text-primary" />
             <AlertTitle className="font-semibold text-primary">{t('tasks.list.empty.title')}</AlertTitle>
             <AlertDescription>
@@ -274,7 +289,7 @@ export default function TasksClient() {
           </Alert>
         )}
 
-        <ul className={cn("space-y-1 flex-grow", showEditPanel ? "px-2" : "px-4")}>
+        <ul className={cn("space-y-1 flex-grow", showEditPanel ? "px-2 md:px-0" : "px-4")}>
           {sortedTasks.map((task) => (
             <li key={task.id}
                 className={cn(
@@ -329,8 +344,12 @@ export default function TasksClient() {
         </ul>
       </div>
 
+      {/* Edit Panel Container */}
       {showEditPanel && (
-        <div className="w-1/2 border-l pl-4 py-4 overflow-y-auto">
+        <div className={cn(
+            "w-full md:w-1/2 md:border-l md:pl-4 py-4 overflow-y-auto",
+            "flex flex-col" // Ensure TaskForm can expand vertically
+          )}>
            <TaskForm
             key={selectedTaskId || 'new-task'}
             mode={isCreatingNewTask ? 'create' : 'edit'}
@@ -338,8 +357,8 @@ export default function TasksClient() {
             onSubmit={handleMainFormSubmit}
             isLoading={isSubmittingForm}
             onCancel={handleCancelEdit}
-            onIntermediateSave={handleIntermediateFormSave}
-            onDelete={selectedTask ? handleDeleteTask : undefined} // Pass delete handler
+            onIntermediateSave={selectedTask ? handleIntermediateFormSave : undefined}
+            onDelete={selectedTask ? handleDeleteTask : undefined}
           />
         </div>
       )}
@@ -349,3 +368,4 @@ export default function TasksClient() {
     
 
     
+

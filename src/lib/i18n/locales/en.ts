@@ -427,8 +427,7 @@ export default {
   'task.form.dateTimeReminder.dialog.endTimeLabel': 'End Time',
   'task.form.dateTimeReminder.dialog.repeatLabel': 'Repeat',
   'task.form.dateTimeReminder.dialog.reminderLabel': 'Reminder',
-  'task.form.dateTimeReminder.dialog.selectDate': 'Select date(s)',
-  'task.form.dateTimeReminder.dialog.selectTime': 'Select time',
+  'task.form.dateTimeReminder.dialog.selectDate': 'Select date(s) on calendar',
   'task.form.dateTimeReminder.dialog.clearTime': 'Clear Time Info',
   'task.form.dateTimeReminder.dialog.save': 'Save Settings',
   'task.form.dateTimeReminder.summary.addDateTime': 'Add date, time, repeat...',
@@ -458,5 +457,6 @@ export default {
   'error': 'Error',
 
 } as const;
+
 
     

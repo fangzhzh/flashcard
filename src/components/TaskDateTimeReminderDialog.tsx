@@ -58,7 +58,7 @@ export default function TaskDateTimeReminderDialog({
 
   const [selectedDates, setSelectedDates] = React.useState<DateRange | undefined>(undefined);
   const [startTime, setStartTime] = React.useState<string>('');
-  const [endTime, setEndTime] = React.useState<string>(''); 
+  // const [endTime, setEndTime] = React.useState<string>(''); // End time input is not explicitly used for setting a range's time
   const [currentRepeat, setCurrentRepeat] = React.useState<RepeatFrequency>('none');
   const [currentReminder, setCurrentReminder] = React.useState<ReminderType>('none');
 
@@ -79,7 +79,7 @@ export default function TaskDateTimeReminderDialog({
       }
       setSelectedDates(initialDateRange);
       setStartTime(initialTimeInfo.time || '');
-      setEndTime(''); 
+      // setEndTime(''); 
       setCurrentRepeat(initialRepeat);
       setCurrentReminder(initialReminderInfo.type);
     }
@@ -114,10 +114,10 @@ export default function TaskDateTimeReminderDialog({
   const handleClearTimeInfo = () => {
     setSelectedDates(undefined);
     setStartTime('');
-    setEndTime('');
+    // setEndTime('');
     onSave({ 
         timeInfo: { type: 'no_time', startDate: null, endDate: null, time: null }, 
-        repeat: currentRepeat, 
+        repeat: currentRepeat, // Keep current repeat/reminder or reset them too? For now, keep.
         reminderInfo: {type: currentReminder} 
     });
     onOpenChange(false);
@@ -141,8 +141,8 @@ export default function TaskDateTimeReminderDialog({
             {t('task.form.dateTimeReminder.dialog.title')}
           </DialogDescription>
         </DialogHeader>
-        <div className="flex-grow grid grid-cols-1 md:grid-cols-2 gap-6 overflow-y-auto pr-2">
-          <div className="flex flex-col items-center justify-center border-r-0 md:border-r md:pr-6 ">
+        <div className="flex-grow grid grid-cols-1 md:grid-cols-2 gap-x-6 overflow-y-auto pr-1 md:pr-2">
+          <div className="flex flex-col items-center justify-start md:border-r md:pr-6 ">
             <Calendar
               mode="range"
               selected={selectedDates}
@@ -153,24 +153,40 @@ export default function TaskDateTimeReminderDialog({
             />
           </div>
 
-          <div className="space-y-4 py-2">
-            <div>
-              <Label htmlFor="startTime">{t('task.form.dateTimeReminder.dialog.startTimeLabel')}</Label>
+          <div className="space-y-3 py-2 pr-1">
+            <div className="text-sm text-center font-medium min-h-[1.5em]">
+              {selectedDates?.from ? (
+                <>
+                  {format(selectedDates.from, 'PPP', { locale: dateFnsLocale })}
+                  {selectedDates.to && !isSameDay(selectedDates.from, selectedDates.to) && selectedDates.to > selectedDates.from
+                    ? ` - ${format(selectedDates.to, 'PPP', { locale: dateFnsLocale })}`
+                    : ''}
+                </>
+              ) : (
+                <span className="text-muted-foreground italic">{t('task.form.dateTimeReminder.dialog.selectDate')}</span>
+              )}
+            </div>
+            
+            <div className="flex items-center gap-2">
+              <Label htmlFor="startTime" className="whitespace-nowrap min-w-[70px] text-right text-sm">
+                {t('task.form.dateTimeReminder.dialog.startTimeLabel')}
+              </Label>
               <Input
                 id="startTime"
                 type="time"
                 value={startTime}
                 onChange={(e) => setStartTime(e.target.value)}
-                className="mt-1 text-sm"
+                className="text-sm flex-grow"
                 disabled={!selectedDates?.from}
               />
-               <p className="text-xs text-muted-foreground mt-1">{t('task.form.timeInfo.type.datetime')}</p>
             </div>
             
-            <div>
-              <Label htmlFor="repeat">{t('task.form.dateTimeReminder.dialog.repeatLabel')}</Label>
+            <div className="flex items-center gap-2">
+              <Label htmlFor="repeat" className="whitespace-nowrap min-w-[70px] text-right text-sm">
+                {t('task.form.dateTimeReminder.dialog.repeatLabel')}
+              </Label>
               <Select value={currentRepeat} onValueChange={(value) => setCurrentRepeat(value as RepeatFrequency)}>
-                <SelectTrigger id="repeat" className="mt-1 text-sm">
+                <SelectTrigger id="repeat" className="text-sm flex-grow">
                   <SelectValue placeholder={t('task.form.label.repeat')} />
                 </SelectTrigger>
                 <SelectContent>
@@ -183,10 +199,12 @@ export default function TaskDateTimeReminderDialog({
               </Select>
             </div>
 
-            <div>
-              <Label htmlFor="reminder">{t('task.form.dateTimeReminder.dialog.reminderLabel')}</Label>
+            <div className="flex items-center gap-2">
+              <Label htmlFor="reminder" className="whitespace-nowrap min-w-[70px] text-right text-sm">
+                {t('task.form.dateTimeReminder.dialog.reminderLabel')}
+              </Label>
               <Select value={currentReminder} onValueChange={(value) => setCurrentReminder(value as ReminderType)}>
-                <SelectTrigger id="reminder" className="mt-1 text-sm">
+                <SelectTrigger id="reminder" className="text-sm flex-grow">
                   <SelectValue placeholder={t('task.form.label.reminder')} />
                 </SelectTrigger>
                 <SelectContent>
@@ -200,7 +218,7 @@ export default function TaskDateTimeReminderDialog({
             </div>
           </div>
         </div>
-        <DialogFooter className="pt-4 border-t">
+        <DialogFooter className="pt-4 border-t mt-2">
           <Button variant="outline" onClick={() => onOpenChange(false)}>
             {t('deck.item.delete.confirm.cancel')}
           </Button>
@@ -214,3 +232,5 @@ export default function TaskDateTimeReminderDialog({
   );
 }
 
+
+    

@@ -17,6 +17,7 @@ import { Save, CalendarIcon, Link2, RotateCcw, Clock, Bell, Trash2, X, Loader2, 
 import { useI18n, useCurrentLocale } from '@/lib/i18n/client';
 import { cn } from '@/lib/utils';
 import { format, parseISO, isValid } from 'date-fns';
+import { zhCN, enUS } from 'date-fns/locale'; // Correctly import locales
 import { useFlashcards } from '@/contexts/FlashcardsContext';
 import FlashcardForm from '@/components/FlashcardForm';
 import { useToast } from '@/hooks/use-toast';
@@ -274,9 +275,11 @@ export default function TaskForm({
         return t('task.form.timeInfo.selectTimeButton'); // Error parsing date
     }
 
-    if (currentTi.type === 'all_day') return `${t('task.form.timeInfo.type.all_day')} - ${format(startDate, 'PPP', { locale: currentLocale === 'zh' ? require('date-fns/locale/zh-CN') : require('date-fns/locale/en-US') })}`;
-    if (currentTi.type === 'datetime' && currentTi.time) return `${format(startDate, 'PPP', { locale: currentLocale === 'zh' ? require('date-fns/locale/zh-CN') : require('date-fns/locale/en-US') })} ${t('task.display.at')} ${currentTi.time}`;
-    if (currentTi.type === 'datetime') return `${format(startDate, 'PPP', { locale: currentLocale === 'zh' ? require('date-fns/locale/zh-CN') : require('date-fns/locale/en-US') })} (${t('task.form.timeInfo.missingTime')})`;
+    const locale = currentLocale === 'zh' ? zhCN : enUS;
+
+    if (currentTi.type === 'all_day') return `${t('task.form.timeInfo.type.all_day')} - ${format(startDate, 'PPP', { locale })}`;
+    if (currentTi.type === 'datetime' && currentTi.time) return `${format(startDate, 'PPP', { locale })} ${t('task.display.at')} ${currentTi.time}`;
+    if (currentTi.type === 'datetime') return `${format(startDate, 'PPP', { locale })} (${t('task.form.timeInfo.missingTime')})`;
     
     if (currentTi.type === 'date_range' && currentTi.endDate) {
         let endDate: Date;
@@ -287,7 +290,7 @@ export default function TaskForm({
             return t('task.form.timeInfo.selectTimeButton'); // Error parsing end date
         }
         if (endDate < startDate) return t('task.form.error.timeInfo.endDateAfterStartDate');
-        return `${format(startDate, 'PP', { locale: currentLocale === 'zh' ? require('date-fns/locale/zh-CN') : require('date-fns/locale/en-US') })} - ${format(endDate, 'PP', { locale: currentLocale === 'zh' ? require('date-fns/locale/zh-CN') : require('date-fns/locale/en-US') })}`;
+        return `${format(startDate, 'PP', { locale })} - ${format(endDate, 'PP', { locale })}`;
     }
     return t('task.form.timeInfo.selectTimeButton'); // Fallback
   };
@@ -433,7 +436,7 @@ export default function TaskForm({
                           className={cn("w-full justify-start text-left font-normal h-9", !tempStartDate && "text-muted-foreground")}
                         >
                           <CalendarIcon className="mr-2 h-4 w-4" />
-                          {tempStartDate ? format(tempStartDate, "PPP", { locale: currentLocale === 'zh' ? require('date-fns/locale/zh-CN') : require('date-fns/locale/en-US') }) : <span>{t('task.form.placeholder.startDate')}</span>}
+                          {tempStartDate ? format(tempStartDate, "PPP", { locale: currentLocale === 'zh' ? zhCN : enUS }) : <span>{t('task.form.placeholder.startDate')}</span>}
                         </Button>
                       </PopoverTrigger>
                       <PopoverContent className="w-auto p-0">
@@ -454,7 +457,7 @@ export default function TaskForm({
                           className={cn("w-full justify-start text-left font-normal h-9", !tempEndDate && "text-muted-foreground")}
                         >
                            <CalendarIcon className="mr-2 h-4 w-4" />
-                          {tempEndDate ? format(tempEndDate, "PPP", { locale: currentLocale === 'zh' ? require('date-fns/locale/zh-CN') : require('date-fns/locale/en-US') }) : <span>{t('task.form.placeholder.endDate')}</span>}
+                          {tempEndDate ? format(tempEndDate, "PPP", { locale: currentLocale === 'zh' ? zhCN : enUS }) : <span>{t('task.form.placeholder.endDate')}</span>}
                         </Button>
                       </PopoverTrigger>
                       <PopoverContent className="w-auto p-0">
@@ -791,4 +794,5 @@ function SelectFlashcardDialog({
   );
 }
     
+
 

@@ -346,20 +346,19 @@ export default function TasksClient() {
   };
 
   return (
+    <>
     <div className="flex h-[calc(100vh-var(--header-height,4rem)-4rem)]">
       <div className={cn(
         "transition-all duration-300 ease-in-out overflow-y-auto flex flex-col",
         showEditPanel ? "hidden md:flex md:w-1/2 md:pr-2" : "w-full pr-0"
       )}>
         <div className={cn("flex flex-col sm:flex-row justify-between items-center mb-4 gap-2", showEditPanel ? "px-1 md:px-0" : "px-1")}>
-          <h1 className="text-2xl font-semibold tracking-tight order-1 sm:order-none">{t('tasks.title')}</h1>
-          <Button onClick={handleCreateNewTask} size="sm" className="order-none sm:order-1 w-full sm:w-auto">
-            <PlusCircle className="mr-2 h-4 w-4" /> {t('tasks.button.create')}
-          </Button>
+          {/* Title removed here */}
+          {/* Create button removed from here, will be a FAB */}
         </div>
 
         <Tabs defaultValue="all" onValueChange={(value) => setActiveFilter(value as TaskFilter)} className="mb-4 px-1">
-          <TabsList className="grid w-full grid-cols-2 sm:grid-cols-4 h-auto">
+          <TabsList className="grid w-full grid-cols-4 h-auto">
             <TabsTrigger value="all" className="py-1.5 sm:py-2">{t('tasks.filter.all')}</TabsTrigger>
             <TabsTrigger value="today" className="py-1.5 sm:py-2">{t('tasks.filter.today')}</TabsTrigger>
             <TabsTrigger value="threeDays" className="py-1.5 sm:py-2">{t('tasks.filter.threeDays')}</TabsTrigger>
@@ -377,7 +376,7 @@ export default function TasksClient() {
           </Alert>
         )}
 
-        <ul className={cn("space-y-1 flex-grow", showEditPanel ? "px-1 md:px-0" : "px-1")}>
+        <ul className={cn("space-y-1 flex-grow pb-20", showEditPanel ? "px-1 md:px-0" : "px-1")}> {/* Added pb-20 for FAB */}
           {filteredAndSortedTasks.map((task) => {
             const { visibleLabel, tooltipLabel, timeStatus } = formatTimeLabel(task.timeInfo);
             let statusIcon: React.ReactNode = null;
@@ -391,16 +390,15 @@ export default function TasksClient() {
                         const daysToStart = differenceInCalendarDays(sDate, todayForComparison);
                         let hourglassStyle: React.CSSProperties = {};
                         let hourglassBaseClassName = 'h-4 w-4 mx-1 flex-shrink-0';
-                        let hourglassFinalClassName = hourglassBaseClassName;
-
+                        
                         if (daysToStart >= 0 && daysToStart <= 7) {
-                            hourglassStyle = { color: '#2ECC71' };
+                            hourglassStyle = { color: '#2ECC71' }; 
                         } else if (daysToStart > 7 && daysToStart <= 30) {
                             hourglassStyle = { color: '#808000' };
                         } else {
-                            hourglassFinalClassName = cn(hourglassBaseClassName, 'text-muted-foreground');
+                            hourglassBaseClassName = cn(hourglassBaseClassName, 'text-muted-foreground');
                         }
-                        statusIcon = <Hourglass className={hourglassFinalClassName} style={hourglassStyle} />;
+                        statusIcon = <Hourglass className={hourglassBaseClassName} style={hourglassStyle} />;
                         statusIconTooltipContent = <p>{t('task.display.status.upcoming')}</p>;
                     }
                 } else if (timeStatus === 'active' && task.timeInfo?.type === 'date_range' && task.timeInfo.startDate && task.timeInfo.endDate) {
@@ -534,6 +532,18 @@ export default function TasksClient() {
         </div>
       )}
     </div>
+      {!showEditPanel && (
+          <Button
+            variant="default"
+            className="fixed bottom-6 right-6 z-50 rounded-full h-14 w-14 p-0 shadow-lg"
+            onClick={handleCreateNewTask}
+            title={t('tasks.button.create')}
+        >
+            <PlusCircle className="h-7 w-7" />
+        </Button>
+      )}
+    </>
   );
 }
     
+

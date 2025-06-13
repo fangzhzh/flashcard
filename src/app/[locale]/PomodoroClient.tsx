@@ -2,14 +2,13 @@
 "use client";
 
 import { useState, useEffect } from 'react';
+import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Textarea } from '@/components/ui/textarea';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription, SheetFooter, SheetTrigger, SheetClose } from '@/components/ui/sheet';
-import { Play, Pause, RotateCcw, Settings2, Eraser, Loader2, NotebookPen, NotebookText, ShieldAlert, Coffee, SkipForward } from 'lucide-react';
-import { useI18n } from '@/lib/i18n/client';
+import { Play, Pause, RotateCcw, Settings2, Eraser, Loader2, ShieldAlert, Coffee, SkipForward, PlusCircle } from 'lucide-react';
+import { useI18n, useCurrentLocale } from '@/lib/i18n/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { usePomodoro } from '@/contexts/PomodoroContext';
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
@@ -19,6 +18,7 @@ const DEFAULT_POMODORO_MINUTES_DISPLAY = 25;
 
 export default function PomodoroClient() {
   const t = useI18n();
+  const currentLocale = useCurrentLocale();
   const { user, loading: authLoading } = useAuth();
   const {
     sessionState,
@@ -29,14 +29,14 @@ export default function PomodoroClient() {
     continuePomodoro,
     giveUpPomodoro,
     updateUserPreferredDuration,
-    updateNotes,
+    // updateNotes, // Removed as notes feature is being replaced
     isResting,
     restTimeLeftSeconds,
     skipRest,
   } = usePomodoro();
 
-  const [localNotes, setLocalNotes] = useState('');
-  const [isNotesSheetOpen, setIsNotesSheetOpen] = useState(false);
+  // const [localNotes, setLocalNotes] = useState(''); // Removed as notes feature is being replaced
+  // const [isNotesSheetOpen, setIsNotesSheetOpen] = useState(false); // Removed
   const [isSettingsCardVisible, setIsSettingsCardVisible] = useState(false);
 
   const [durationInput, setDurationInput] = useState(
@@ -45,7 +45,7 @@ export default function PomodoroClient() {
 
   useEffect(() => {
     if (sessionState) {
-      setLocalNotes(sessionState.notes || '');
+      // setLocalNotes(sessionState.notes || ''); // Removed
       setDurationInput(
         sessionState.userPreferredDurationMinutes && sessionState.userPreferredDurationMinutes > 0
           ? sessionState.userPreferredDurationMinutes
@@ -53,7 +53,7 @@ export default function PomodoroClient() {
       );
     } else {
       setDurationInput(DEFAULT_POMODORO_MINUTES_DISPLAY);
-      setLocalNotes('');
+      // setLocalNotes(''); // Removed
     }
   }, [sessionState]);
 
@@ -66,7 +66,6 @@ export default function PomodoroClient() {
   const handleStart = () => {
     if (!user) return;
     const validDuration = durationInput > 0 && durationInput <= 120 ? durationInput : DEFAULT_POMODORO_MINUTES_DISPLAY;
-    // Pass current task title if available, otherwise undefined
     startPomodoro(validDuration, sessionState?.currentTaskTitle || undefined);
     setIsSettingsCardVisible(false);
   };
@@ -99,12 +98,12 @@ export default function PomodoroClient() {
     }
   };
 
-  const handleNotesSheetClose = () => {
-    if (sessionState && localNotes !== sessionState.notes) {
-        updateNotes(localNotes);
-    }
-    setIsNotesSheetOpen(false);
-  }
+  // const handleNotesSheetClose = () => { // Removed
+  //   if (sessionState && localNotes !== sessionState.notes) {
+  //       updateNotes(localNotes);
+  //   }
+  //   setIsNotesSheetOpen(false);
+  // }
 
   if (pomodoroLoading) {
     return (
@@ -221,42 +220,16 @@ export default function PomodoroClient() {
         </Card>
       )}
 
-      <Sheet open={isNotesSheetOpen} onOpenChange={(open) => {
-          if (!open) handleNotesSheetClose();
-          else setIsNotesSheetOpen(true);
-      }}>
-        <SheetTrigger asChild>
-            <Button
-                variant="outline"
-                className={cn(
-                    "fixed bottom-6 right-6 z-50 rounded-full h-14 w-14 p-0 shadow-lg transition-all",
-                    localNotes && localNotes.length > 0 ? "bg-accent text-accent-foreground hover:bg-accent/90 border-primary/30" : "bg-background/80 hover:bg-muted backdrop-blur-sm"
-                )}
-                title={localNotes && localNotes.length > 0 ? t('pomodoro.notes.button.openWithNotes') : t('pomodoro.notes.button.open')}
-            >
-            {localNotes && localNotes.length > 0 ? <NotebookText className="h-6 w-6" /> : <NotebookPen className="h-6 w-6" />}
-            </Button>
-        </SheetTrigger>
-        <SheetContent side="bottom" className="h-[75vh] flex flex-col">
-          <SheetHeader>
-            <SheetTitle>{t('pomodoro.notes.sheet.title')}</SheetTitle>
-            <SheetDescription>
-              {t('pomodoro.notes.sheet.description')}
-            </SheetDescription>
-          </SheetHeader>
-          <Textarea
-              value={localNotes}
-              onChange={(e) => setLocalNotes(e.target.value)}
-              placeholder={t('pomodoro.notes.sheet.placeholder')}
-              className="flex-grow min-h-[150px] text-base my-4"
-          />
-          <SheetFooter>
-            <SheetClose asChild>
-              <Button type="button" className="w-full sm:w-auto">{t('pomodoro.notes.sheet.button.done')}</Button>
-            </SheetClose>
-          </SheetFooter>
-        </SheetContent>
-      </Sheet>
+      {/* Removed Notes Sheet and its trigger button */}
+      <Link href={`/${currentLocale}/tasks/new`} passHref>
+        <Button
+            variant="default"
+            className="fixed bottom-[6.5rem] right-6 z-40 rounded-full h-14 w-14 p-0 shadow-lg" // Positioned above Pomodoro Timer FAB
+            title={t('tasks.button.create')}
+        >
+            <PlusCircle className="h-7 w-7" />
+        </Button>
+      </Link>
     </div>
   );
 }

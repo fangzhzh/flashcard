@@ -139,18 +139,17 @@ export default function ReviewModeClient() {
         status: newStatus,
       });
       
-      const performanceTranslationMap = {
-        'Mastered': t('review.button.progress.mastered'),
-        'Later': t('review.button.progress.later'),
-        'Try Again': t('review.button.progress.tryAgain'),
-      };
-      const translatedPerformance = performanceTranslationMap[performance] || performance;
+      // const performanceTranslationMap = {
+      //   'Mastered': t('review.button.progress.mastered'),
+      //   'Later': t('review.button.progress.later'),
+      //   'Try Again': t('review.button.progress.tryAgain'),
+      // };
+      // const translatedPerformance = performanceTranslationMap[performance] || performance;
 
-
-      toast({
-        title: t('toast.progress.saved'),
-        description: t('toast.progress.saved.description', { performance: translatedPerformance, nextReviewDate: new Date(nextReviewDateString + 'T00:00:00').toLocaleDateString() }),
-      });
+      // toast({
+      //   title: t('toast.progress.saved'),
+      //   description: t('toast.progress.saved.description', { performance: translatedPerformance, nextReviewDate: new Date(nextReviewDateString + 'T00:00:00').toLocaleDateString() }),
+      // });
 
       if (currentCardIndex < reviewQueue.length - 1) {
         setCurrentCardIndex(currentCardIndex + 1);
@@ -411,5 +410,6 @@ export default function ReviewModeClient() {
 }
 
     
+
 
 

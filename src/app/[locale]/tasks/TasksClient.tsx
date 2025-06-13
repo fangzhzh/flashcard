@@ -6,7 +6,7 @@ import { useFlashcards } from '@/contexts/FlashcardsContext';
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
-import { PlusCircle, Loader2, Info, ShieldAlert, PlayCircle, Hourglass, Zap, AlertTriangle, CalendarRange } from 'lucide-react';
+import { PlusCircle, Loader2, Info, ShieldAlert, PlayCircle, Zap, AlertTriangle, CalendarRange } from 'lucide-react'; // Removed Hourglass
 import { useToast } from '@/hooks/use-toast';
 import { useI18n, useCurrentLocale } from '@/lib/i18n/client';
 import type { Task, TimeInfo, TaskStatus, RepeatFrequency, ReminderType } from '@/types';
@@ -18,6 +18,7 @@ import { format, parseISO, differenceInCalendarDays, isToday, isTomorrow, isVali
 import { cn } from '@/lib/utils';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import TaskDurationPie from '@/components/TaskDurationPie';
+import TaskProgressIndicator from '@/components/TaskProgressIndicator'; // Import new component
 
 type TranslationKeys = keyof typeof enLocale;
 
@@ -27,7 +28,7 @@ interface FormattedTimeInfo {
   timeStatus: 'upcoming' | 'active' | 'overdue' | 'none';
 }
 
-const LOOK_AHEAD_DAYS_FOR_UPCOMING_PIE = 30; // Define a look-ahead window for upcoming tasks
+const LOOK_AHEAD_DAYS_FOR_UPCOMING_PIE = 30; 
 
 export default function TasksClient() {
   const { user, loading: authLoading } = useAuth();
@@ -329,13 +330,16 @@ export default function TasksClient() {
                     const sDate = parseISO(task.timeInfo.startDate);
                     if (isValid(sDate)) {
                         const daysToStart = differenceInCalendarDays(sDate, todayForComparison);
-                        let upcomingPercentage = 100;
+                        let upcomingPercentage = 100; // Default to full if beyond look-ahead
                         if (daysToStart >= 0 && daysToStart <= LOOK_AHEAD_DAYS_FOR_UPCOMING_PIE) {
+                            // Percentage represents "time left in lookahead window"
+                            // So, 0 days to start = 0% full, 30 days to start = 100% full
                             upcomingPercentage = (daysToStart / LOOK_AHEAD_DAYS_FOR_UPCOMING_PIE) * 100;
-                        } else if (daysToStart < 0) { // Should be handled by 'overdue', but as a fallback
-                            upcomingPercentage = 0;
+                        } else if (daysToStart < 0) { 
+                            upcomingPercentage = 0; // Should be overdue, but defensive
                         }
-                        statusIcon = <TaskDurationPie remainingPercentage={upcomingPercentage} variant="upcoming" size={16} className="mx-1 flex-shrink-0" />;
+                        upcomingPercentage = Math.max(0, Math.min(upcomingPercentage, 100));
+                        statusIcon = <TaskProgressIndicator percentage={upcomingPercentage} className="mx-1 flex-shrink-0 h-4 w-4" />;
                         statusIconTooltipContent = <p>{t('task.display.status.upcoming')}</p>;
                     }
                 } else if (timeStatus === 'active' && task.timeInfo?.type === 'date_range' && task.timeInfo.startDate && task.timeInfo.endDate) {
@@ -345,11 +349,11 @@ export default function TasksClient() {
                         const totalDaysInRange = differenceInCalendarDays(eDate, sDate) + 1;
                         let daysRemainingIncludingToday = differenceInCalendarDays(eDate, todayForComparison) + 1;
                         let currentRemainingPercentage = 0;
-                        if (todayForComparison > eDate) { // Already passed
+                        if (todayForComparison > eDate) { 
                             currentRemainingPercentage = 0;
-                        } else if (todayForComparison < sDate) { // Not yet started (should be 'upcoming')
+                        } else if (todayForComparison < sDate) { 
                             currentRemainingPercentage = 100;
-                        } else { // Active
+                        } else { 
                            if (totalDaysInRange > 0) {
                              currentRemainingPercentage = (daysRemainingIncludingToday / totalDaysInRange) * 100;
                            }
@@ -474,6 +478,7 @@ export default function TasksClient() {
     
 
     
+
 
 
 

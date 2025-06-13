@@ -8,16 +8,12 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { Calendar } from "@/components/ui/calendar";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter, DialogTrigger, DialogClose } from "@/components/ui/dialog";
 import type { Task, RepeatFrequency, TimeInfo, ArtifactLink, ReminderInfo, Flashcard as FlashcardType, Deck } from '@/types';
-import { Save, CalendarIcon, Link2, RotateCcw, Clock, Bell, Trash2, X, Loader2, FilePlus, ListChecks, Search } from 'lucide-react';
+import { Save, CalendarIcon, Link2, RotateCcw, Clock, Bell, Trash2, X, Loader2, FilePlus, ListChecks, Search, Edit3 } from 'lucide-react';
 import { useI18n, useCurrentLocale } from '@/lib/i18n/client';
 import { cn } from '@/lib/utils';
-import { format, parseISO, isValid } from 'date-fns';
-import { zhCN, enUS } from 'date-fns/locale'; // Correctly import locales
+import { format, parseISO, isValid, isToday, isTomorrow, formatRelative, isSameDay } from 'date-fns';
+import { zhCN, enUS } from 'date-fns/locale';
 import { useFlashcards } from '@/contexts/FlashcardsContext';
 import FlashcardForm from '@/components/FlashcardForm';
 import { useToast } from '@/hooks/use-toast';
@@ -31,8 +27,9 @@ import {
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
-  AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogTrigger } from "@/components/ui/dialog";
+import TaskDateTimeReminderDialog from '@/components/TaskDateTimeReminderDialog';
 
 
 const artifactLinkSchema = z.object({
@@ -60,9 +57,9 @@ const timeInfoSchema = z.object({
         return { message: 'task.form.error.timeInfo.startDateRequired', path: ["startDate"] };
     }
     if (data.type === 'date_range' && (!data.startDate || !data.endDate)) {
-        return { message: 'task.form.error.timeInfo.dateRangeFieldsRequired', path: ["startDate"] }; // Or a more general path
+        return { message: 'task.form.error.timeInfo.dateRangeFieldsRequired', path: ["startDate"] }; 
     }
-    return { message: 'Invalid time configuration' }; // Generic fallback
+    return { message: 'Invalid time configuration' }; 
 });
 
 const reminderInfoSchema = z.object({
@@ -87,7 +84,7 @@ interface TaskFormProps {
   mode: 'create' | 'edit';
   onCancel?: () => void;
   onIntermediateSave?: (updates: Partial<TaskFormData>) => Promise<boolean>;
-  onDelete?: () => Promise<void>; // New prop for delete action
+  onDelete?: () => Promise<void>; 
 }
 
 export default function TaskForm({
@@ -103,6 +100,7 @@ export default function TaskForm({
   const { toast } = useToast();
   const currentLocale = useCurrentLocale();
   const { getFlashcardById, addFlashcard, updateFlashcard, decks, isLoadingDecks, flashcards: allFlashcardsFromContext } = useFlashcards();
+  const dateFnsLocale = currentLocale === 'zh' ? zhCN : enUS;
 
   const form = useForm<TaskFormData>({
     resolver: zodResolver(taskSchema),
@@ -117,24 +115,21 @@ export default function TaskForm({
   });
 
   const watchedArtifactLink = useWatch({ control: form.control, name: "artifactLink" });
-  const [isTimeSectionOpen, setIsTimeSectionOpen] = React.useState(false);
-
-  const [tempStartDate, setTempStartDate] = React.useState<Date | undefined>(undefined);
-  const [tempTime, setTempTime] = React.useState<string>('');
-  const [tempEndDate, setTempEndDate] = React.useState<Date | undefined>(undefined);
+  const watchedTimeInfo = useWatch({ control: form.control, name: "timeInfo" });
+  const watchedRepeat = useWatch({ control: form.control, name: "repeat" });
+  const watchedReminderInfo = useWatch({ control: form.control, name: "reminderInfo" });
 
   const [linkedFlashcard, setLinkedFlashcard] = React.useState<FlashcardType | null | undefined>(undefined);
   const [isFetchingFlashcard, setIsFetchingFlashcard] = React.useState(false);
-
   const [isNewFlashcardDialogOpen, setIsNewFlashcardDialogOpen] = React.useState(false);
   const [isSubmittingNewFlashcard, setIsSubmittingNewFlashcard] = React.useState(false);
-
   const [isEditFlashcardDialogOpen, setIsEditFlashcardDialogOpen] = React.useState(false);
   const [editingFlashcardData, setEditingFlashcardData] = React.useState<FlashcardType | null>(null);
   const [isSubmittingEditedFlashcard, setIsSubmittingEditedFlashcard] = React.useState(false);
-
   const [isSelectFlashcardDialogOpen, setIsSelectFlashcardDialogOpen] = React.useState(false);
-  const [isDeleting, setIsDeleting] = React.useState(false); // For delete button loader
+  const [isDeleting, setIsDeleting] = React.useState(false);
+  const [isDateTimeReminderDialogOpen, setIsDateTimeReminderDialogOpen] = React.useState(false);
+
 
   React.useEffect(() => {
     const fetchCard = async () => {
@@ -152,32 +147,24 @@ export default function TaskForm({
 
 
   React.useEffect(() => {
+     const normalizedTimeInfo: TimeInfo = {
+      type: initialData?.timeInfo?.type || 'no_time',
+      startDate: (initialData?.timeInfo?.startDate && isValid(parseISO(initialData.timeInfo.startDate))) ? initialData.timeInfo.startDate : null,
+      endDate: (initialData?.timeInfo?.endDate && isValid(parseISO(initialData.timeInfo.endDate))) ? initialData.timeInfo.endDate : null,
+      time: initialData?.timeInfo?.time || null,
+    };
+
     const dataForReset: TaskFormData = {
       title: initialData?.title || '',
       description: initialData?.description || '',
       repeat: initialData?.repeat || 'none',
-      timeInfo: initialData?.timeInfo || { type: 'no_time', startDate: null, endDate: null, time: null },
+      timeInfo: normalizedTimeInfo,
       artifactLink: initialData?.artifactLink || { flashcardId: null },
       reminderInfo: initialData?.reminderInfo || { type: 'none' },
     };
-  
     form.reset(dataForReset);
-  
-    const currentTI = dataForReset.timeInfo;
-    setTempStartDate(currentTI.startDate && isValid(parseISO(currentTI.startDate)) ? parseISO(currentTI.startDate) : undefined);
-    setTempTime(currentTI.time || '');
-    setTempEndDate(currentTI.endDate && isValid(parseISO(currentTI.endDate)) ? parseISO(currentTI.endDate) : undefined);
-    
-    const shouldOpenTimeSection = currentTI.type !== 'no_time' && !!currentTI.startDate;
-    // Only set isTimeSectionOpen if it's different, to avoid potential loops if it were a dep of this effect
-    if (isTimeSectionOpen !== shouldOpenTimeSection) {
-        setIsTimeSectionOpen(shouldOpenTimeSection);
-    }
-  // It's important that form.reset is NOT in the dependency array, as it has a stable reference.
-  // We only want to reset when initialData actually changes.
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [initialData]);
-
 
   const repeatOptions: { value: RepeatFrequency; labelKey: string }[] = [
     { value: 'none', labelKey: 'task.form.repeat.none' },
@@ -199,101 +186,63 @@ export default function TaskForm({
     { value: '1_hour_before', labelKey: 'task.form.reminder.type.1_hour_before' },
     { value: '1_day_before', labelKey: 'task.form.reminder.type.1_day_before' },
   ];
+  
+  const formatDateTimeReminderSummary = React.useCallback(() => {
+    const { timeInfo, repeat, reminderInfo } = form.getValues();
+    const parts: string[] = [];
 
-  const handleSetTimeInfo = () => {
-    let newTimeInfo: TimeInfo = { type: 'no_time', startDate: null, endDate: null, time: null };
-    let sDate = tempStartDate;
-    const eDate = tempEndDate;
-    const timeVal = tempTime || null;
+    // Date and Time part
+    if (timeInfo.type === 'no_time' || !timeInfo.startDate) {
+      parts.push(t('task.form.dateTimeReminder.summary.noTimeSet'));
+    } else {
+      const startDate = parseISO(timeInfo.startDate);
+      let dateStr = '';
+      if (isToday(startDate)) dateStr = t('task.form.dateTimeReminder.summary.today');
+      else if (isTomorrow(startDate)) dateStr = t('task.form.dateTimeReminder.summary.tomorrow');
+      else dateStr = format(startDate, 'MMM d', { locale: dateFnsLocale });
 
-    if (eDate && !sDate) { // If only end date is picked, assume it's for that day.
-        sDate = eDate;
+      if (timeInfo.type === 'all_day') {
+        parts.push(`${dateStr} (${t('task.form.dateTimeReminder.summary.allDay')})`);
+      } else if (timeInfo.type === 'datetime' && timeInfo.time) {
+        parts.push(`${dateStr} ${t('task.form.dateTimeReminder.summary.at')} ${timeInfo.time}`);
+      } else if (timeInfo.type === 'date_range' && timeInfo.endDate) {
+        const endDate = parseISO(timeInfo.endDate);
+        let endDateStr = '';
+        if (isToday(endDate)) endDateStr = t('task.form.dateTimeReminder.summary.today');
+        else if (isTomorrow(endDate)) endDateStr = t('task.form.dateTimeReminder.summary.tomorrow');
+        else endDateStr = format(endDate, 'MMM d', { locale: dateFnsLocale });
+        parts.push(`${dateStr} ${t('task.form.dateTimeReminder.summary.rangeSeparator')} ${endDateStr}`);
+      } else {
+        parts.push(dateStr); // Fallback for single date with no specific type or missing info
+      }
     }
 
-    if (sDate) {
-        const startDateString = format(sDate, "yyyy-MM-dd");
-        if (timeVal && (!eDate || eDate.getTime() === sDate.getTime())) {
-            // Specific time on a single day
-            newTimeInfo = { type: 'datetime', startDate: startDateString, time: timeVal, endDate: null };
-        } else if (!timeVal && (!eDate || eDate.getTime() === sDate.getTime())) {
-            // All day event for a single day
-            newTimeInfo = { type: 'all_day', startDate: startDateString, time: null, endDate: null };
-        } else if (eDate && eDate.getTime() !== sDate.getTime()) {
-            // Date range (endDate must be different from startDate)
-             if (eDate.getTime() < sDate.getTime()) {
-                // If user somehow selected end date before start date, treat as all_day for start date
-                // Or show an error - Zod will catch this specific case if type is 'date_range'
-                 newTimeInfo = { type: 'all_day', startDate: startDateString, time: null, endDate: null };
-                 toast({title: t('error'), description: t('task.form.error.timeInfo.endDateAfterStartDate'), variant: "destructive"})
-            } else {
-                const endDateString = format(eDate, "yyyy-MM-dd");
-                newTimeInfo = { type: 'date_range', startDate: startDateString, endDate: endDateString, time: timeVal };
-            }
-        } else {
-            // Fallback for sDate existing but not fitting other categories (should ideally not be reached if logic above is complete)
-            // e.g. sDate exists, eDate exists and is same as sDate, but timeVal might be null or set.
-            // This is covered by the first two conditions. If timeVal is null -> all_day. If timeVal is set -> datetime.
-            // This else implies sDate exists, and either eDate is null, or eDate is same as sDate.
-            // If eDate is null, and timeVal is null -> all_day. Covered.
-            // If eDate is null, and timeVal is set -> datetime. Covered.
-             newTimeInfo = { type: 'all_day', startDate: startDateString, time: null, endDate: null };
-        }
-    }
-    // This will set the form value and trigger validation.
-    form.setValue('timeInfo', newTimeInfo, { shouldValidate: true, shouldDirty: true, shouldTouch: true });
-    // Trigger validation explicitly to update error messages if any
-    void form.trigger('timeInfo');
-    setIsTimeSectionOpen(false);
-  };
-
-
-  const removeTimeInfo = () => {
-    setTempStartDate(undefined);
-    setTempTime('');
-    setTempEndDate(undefined);
-    form.setValue('timeInfo', { type: 'no_time', startDate: null, endDate: null, time: null }, { shouldValidate: true, shouldDirty: true });
-    setIsTimeSectionOpen(false);
-  };
-
-  const getTimeDisplayValue = () => {
-    const currentTi = form.getValues("timeInfo");
-    if (!currentTi || currentTi.type === 'no_time' || !currentTi.startDate) {
-        // Check for invalid date string explicitly
-        if (currentTi && currentTi.startDate && !isValid(parseISO(currentTi.startDate))) {
-             return t('task.form.timeInfo.selectTimeButton'); // Or show an error state
-        }
-        return t('task.form.timeInfo.selectTimeButton');
-    }
-    // Ensure startDate is valid before parsing
-    let startDate: Date;
-    try {
-        startDate = parseISO(currentTi.startDate);
-        if (!isValid(startDate)) {
-            return t('task.form.timeInfo.selectTimeButton'); // Invalid date stored
-        }
-    } catch (e) {
-        return t('task.form.timeInfo.selectTimeButton'); // Error parsing date
+    // Repeat part
+    if (repeat !== 'none') {
+      const repeatLabel = repeatOptions.find(opt => opt.value === repeat)?.labelKey;
+      parts.push(t('task.form.dateTimeReminder.summary.repeats', { repeat: t(repeatLabel as any) }));
+    } else {
+        parts.push(t('task.form.dateTimeReminder.summary.noRepeat'));
     }
 
-    const locale = currentLocale === 'zh' ? zhCN : enUS;
-
-    if (currentTi.type === 'all_day') return `${t('task.form.timeInfo.type.all_day')} - ${format(startDate, 'PPP', { locale })}`;
-    if (currentTi.type === 'datetime' && currentTi.time) return `${format(startDate, 'PPP', { locale })} ${t('task.display.at')} ${currentTi.time}`;
-    if (currentTi.type === 'datetime') return `${format(startDate, 'PPP', { locale })} (${t('task.form.timeInfo.missingTime')})`;
+    // Reminder part
+    if (reminderInfo.type !== 'none') {
+      const reminderLabel = reminderOptions.find(opt => opt.value === reminderInfo.type)?.labelKey;
+      parts.push(t('task.form.dateTimeReminder.summary.reminds', { reminder: t(reminderLabel as any) }));
+    } else {
+         parts.push(t('task.form.dateTimeReminder.summary.noReminder'));
+    }
     
-    if (currentTi.type === 'date_range' && currentTi.endDate) {
-        let endDate: Date;
-        try {
-            endDate = parseISO(currentTi.endDate);
-            if(!isValid(endDate)) return t('task.form.timeInfo.selectTimeButton'); // Invalid end date
-        } catch(e) {
-            return t('task.form.timeInfo.selectTimeButton'); // Error parsing end date
-        }
-        if (endDate < startDate) return t('task.form.error.timeInfo.endDateAfterStartDate');
-        return `${format(startDate, 'PP', { locale })} - ${format(endDate, 'PP', { locale })}`;
+    // Filter out "No repeat" and "No reminder" if time is not set, to avoid clutter.
+    // Only show these if time *is* set.
+    if (timeInfo.type === 'no_time' || !timeInfo.startDate) {
+        const timePart = parts[0];
+        return timePart; // Only "No date or time set" or the "Add date..." button text
     }
-    return t('task.form.timeInfo.selectTimeButton'); // Fallback
-  };
+
+    return parts.join(t('task.form.dateTimeReminder.summary.connector'));
+  }, [form, t, dateFnsLocale, repeatOptions, reminderOptions]);
+
 
   const handleRemoveLink = async () => {
     const clearedArtifactLink: ArtifactLink = { flashcardId: null };
@@ -387,7 +336,6 @@ export default function TaskForm({
         setIsDeleting(true);
         try {
             await onDelete();
-            // Toast for successful deletion will be handled in TasksClient
         } catch (error) {
             toast({ title: t('error'), description: t('toast.task.error.delete'), variant: "destructive" });
         } finally {
@@ -396,8 +344,14 @@ export default function TaskForm({
     }
   };
 
+  const handleDateTimeReminderSave = (data: { timeInfo: TimeInfo; repeat: RepeatFrequency; reminderInfo: ReminderInfo }) => {
+    form.setValue('timeInfo', data.timeInfo, { shouldValidate: true, shouldDirty: true });
+    form.setValue('repeat', data.repeat, { shouldValidate: true, shouldDirty: true });
+    form.setValue('reminderInfo', data.reminderInfo, { shouldValidate: true, shouldDirty: true });
+  };
 
   return (
+    <>
     <Form {...form}>
       <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4 p-1 h-full flex flex-col">
         <div className="flex-grow space-y-4 overflow-y-auto pr-2">
@@ -416,122 +370,33 @@ export default function TaskForm({
             />
 
             <FormItem>
-              <FormLabel className="text-base flex items-center text-muted-foreground">
-                <Clock className="mr-2 h-4 w-4" />
-                {t('task.form.label.timeInfo')}
-              </FormLabel>
-              {!isTimeSectionOpen && (
-                <Button variant="outline" onClick={() => setIsTimeSectionOpen(true)} className="w-full justify-start font-normal text-sm h-9">
-                  {getTimeDisplayValue()}
+                <FormLabel className="text-base flex items-center text-muted-foreground sr-only">
+                    <Clock className="mr-2 h-4 w-4" />
+                    {t('task.form.label.timeInfo')}
+                </FormLabel>
+                <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() => setIsDateTimeReminderDialogOpen(true)}
+                    className="w-full justify-start text-left font-normal text-sm h-auto py-2 px-3"
+                >
+                    <div className="flex items-center">
+                        <Clock className="mr-2 h-4 w-4 text-muted-foreground flex-shrink-0" />
+                        <span className="flex-grow">
+                            {(watchedTimeInfo.type === 'no_time' && watchedRepeat === 'none' && watchedReminderInfo.type === 'none')
+                                ? t('task.form.dateTimeReminder.summary.addDateTime')
+                                : formatDateTimeReminderSummary()
+                            }
+                        </span>
+                        <Edit3 className="ml-2 h-3 w-3 text-muted-foreground flex-shrink-0"/>
+                    </div>
                 </Button>
-              )}
-              {isTimeSectionOpen && (
-                <div className="p-3 border rounded-md space-y-3 text-sm">
-                  <FormItem>
-                    <FormLabel>{t('task.form.label.startDate')}</FormLabel>
-                     <Popover>
-                      <PopoverTrigger asChild>
-                        <Button
-                          variant={"outline"}
-                          className={cn("w-full justify-start text-left font-normal h-9", !tempStartDate && "text-muted-foreground")}
-                        >
-                          <CalendarIcon className="mr-2 h-4 w-4" />
-                          {tempStartDate ? format(tempStartDate, "PPP", { locale: currentLocale === 'zh' ? zhCN : enUS }) : <span>{t('task.form.placeholder.startDate')}</span>}
-                        </Button>
-                      </PopoverTrigger>
-                      <PopoverContent className="w-auto p-0">
-                        <Calendar mode="single" selected={tempStartDate} onSelect={setTempStartDate} initialFocus />
-                      </PopoverContent>
-                    </Popover>
-                  </FormItem>
-                  <FormItem>
-                    <FormLabel>{t('task.form.label.time')}</FormLabel>
-                    <Input type="time" value={tempTime} onChange={(e) => setTempTime(e.target.value)} className="h-9 text-sm" />
-                  </FormItem>
-                  <FormItem>
-                    <FormLabel>{t('task.form.label.endDate')}</FormLabel>
-                     <Popover>
-                      <PopoverTrigger asChild>
-                        <Button
-                          variant={"outline"}
-                          className={cn("w-full justify-start text-left font-normal h-9", !tempEndDate && "text-muted-foreground")}
-                        >
-                           <CalendarIcon className="mr-2 h-4 w-4" />
-                          {tempEndDate ? format(tempEndDate, "PPP", { locale: currentLocale === 'zh' ? zhCN : enUS }) : <span>{t('task.form.placeholder.endDate')}</span>}
-                        </Button>
-                      </PopoverTrigger>
-                      <PopoverContent className="w-auto p-0">
-                        <Calendar
-                            mode="single"
-                            selected={tempEndDate}
-                            onSelect={setTempEndDate}
-                            disabled={(date) => tempStartDate ? date < tempStartDate : false}
-                            initialFocus
-                        />
-                      </PopoverContent>
-                    </Popover>
-                  </FormItem>
-                  <div className="flex justify-end gap-2 pt-2">
-                    <Button type="button" variant="ghost" onClick={removeTimeInfo} size="sm">
-                      <Trash2 className="mr-1 h-3 w-3"/> {t('task.form.timeInfo.removeTimeButton')}
-                    </Button>
-                    <Button type="button" onClick={handleSetTimeInfo} size="sm">
-                      {t('task.form.timeInfo.setTimeButton')}
-                    </Button>
-                  </div>
-                </div>
-              )}
-              <FormMessage>{form.formState.errors.timeInfo?.root?.message && t(form.formState.errors.timeInfo.root.message as any)}</FormMessage>
-              <FormMessage>{form.formState.errors.timeInfo?.startDate?.message && t(form.formState.errors.timeInfo.startDate.message as any)}</FormMessage>
-              <FormMessage>{form.formState.errors.timeInfo?.endDate?.message && t(form.formState.errors.timeInfo.endDate.message as any)}</FormMessage>
-              <FormMessage>{form.formState.errors.timeInfo?.time?.message && t(form.formState.errors.timeInfo.time.message as any)}</FormMessage>
+                <FormMessage>{form.formState.errors.timeInfo?.root?.message && t(form.formState.errors.timeInfo.root.message as any)}</FormMessage>
+                <FormMessage>{form.formState.errors.timeInfo?.startDate?.message && t(form.formState.errors.timeInfo.startDate.message as any)}</FormMessage>
+                <FormMessage>{form.formState.errors.timeInfo?.endDate?.message && t(form.formState.errors.timeInfo.endDate.message as any)}</FormMessage>
+                <FormMessage>{form.formState.errors.timeInfo?.time?.message && t(form.formState.errors.timeInfo.time.message as any)}</FormMessage>
             </FormItem>
 
-            <FormField
-              control={form.control}
-              name="repeat"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel className="text-base flex items-center text-muted-foreground"><RotateCcw className="mr-2 h-4 w-4" />{t('task.form.label.repeat')}</FormLabel>
-                  <Select onValueChange={field.onChange} defaultValue={field.value || 'none'}>
-                    <FormControl>
-                      <SelectTrigger className="h-9 text-sm"><SelectValue placeholder={t('task.form.label.repeat')} /></SelectTrigger>
-                    </FormControl>
-                    <SelectContent>
-                      {repeatOptions.map(option => (
-                        <SelectItem key={option.value} value={option.value}>
-                          {t(option.labelKey as any)}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-
-            <FormField
-              control={form.control}
-              name="reminderInfo.type"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel className="text-base flex items-center text-muted-foreground"><Bell className="mr-2 h-4 w-4" />{t('task.form.label.reminder')}</FormLabel>
-                  <Select onValueChange={field.onChange} defaultValue={field.value || 'none'}>
-                    <FormControl>
-                      <SelectTrigger className="h-9 text-sm"><SelectValue placeholder={t('task.form.label.reminder')} /></SelectTrigger>
-                    </FormControl>
-                    <SelectContent>
-                      {reminderOptions.map(option => (
-                        <SelectItem key={option.value} value={option.value}>
-                          {t(option.labelKey as any)}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
 
             <FormItem>
                 <FormLabel className="text-base flex items-center text-muted-foreground">
@@ -670,6 +535,16 @@ export default function TaskForm({
             </div>
         </div>
       </form>
+    </Form>
+
+    <TaskDateTimeReminderDialog
+        isOpen={isDateTimeReminderDialogOpen}
+        onOpenChange={setIsDateTimeReminderDialogOpen}
+        initialTimeInfo={form.getValues('timeInfo')}
+        initialRepeat={form.getValues('repeat')}
+        initialReminderInfo={form.getValues('reminderInfo')}
+        onSave={handleDateTimeReminderSave}
+    />
 
       {editingFlashcardData && (
         <Dialog open={isEditFlashcardDialogOpen} onOpenChange={(open) => {
@@ -701,8 +576,7 @@ export default function TaskForm({
         isLoadingDecks={isLoadingDecks}
         t={t}
       />
-
-    </Form>
+    </>
   );
 }
 interface SelectFlashcardDialogProps {
@@ -794,5 +668,3 @@ function SelectFlashcardDialog({
   );
 }
     
-
-

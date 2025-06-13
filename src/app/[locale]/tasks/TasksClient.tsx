@@ -6,20 +6,20 @@ import { useFlashcards } from '@/contexts/FlashcardsContext';
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
-import { PlusCircle, Loader2, Info, ShieldAlert, PlayCircle, Zap, AlertTriangle, CalendarRange, Hourglass } from 'lucide-react'; // Added Hourglass
+import { PlusCircle, Loader2, Info, ShieldAlert, PlayCircle, Zap, AlertTriangle, CalendarRange, Hourglass } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { useI18n, useCurrentLocale } from '@/lib/i18n/client';
-import type { Task, TimeInfo, TaskStatus, RepeatFrequency, ReminderType } from '@/types';
-import type { default as enLocale } from '@/lib/i18n/locales/en';
+import type { Task, TimeInfo, TaskStatus, RepeatFrequency } from '@/types';
 import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
 import TaskForm, { type TaskFormData } from '@/components/TaskForm';
 import { usePomodoro } from '@/contexts/PomodoroContext';
-import { format, parseISO, differenceInCalendarDays, isToday, isTomorrow, isValid, isSameYear, startOfDay, addDays } from 'date-fns';
+import { format, parseISO, differenceInCalendarDays, isToday, isTomorrow, isValid, isSameYear, startOfDay, addDays, startOfWeek, endOfWeek, areIntervalsOverlapping } from 'date-fns';
 import { cn } from '@/lib/utils';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import TaskDurationPie from '@/components/TaskDurationPie';
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
-type TranslationKeys = keyof typeof enLocale;
+type TranslationKeys = keyof typeof import('@/lib/i18n/locales/en').default;
 
 interface FormattedTimeInfo {
   visibleLabel: string;
@@ -27,15 +27,17 @@ interface FormattedTimeInfo {
   timeStatus: 'upcoming' | 'active' | 'overdue' | 'none';
 }
 
+type TaskFilter = 'all' | 'today' | 'threeDays' | 'week';
+
 export default function TasksClient() {
   const { user, loading: authLoading } = useAuth();
-  const { 
-    tasks, 
-    isLoadingTasks, 
-    isLoading: contextOverallLoading, 
-    isSeeding, 
-    getTaskById, 
-    updateTask: updateTaskInContext, 
+  const {
+    tasks,
+    isLoadingTasks,
+    isLoading: contextOverallLoading,
+    isSeeding,
+    getTaskById,
+    updateTask: updateTaskInContext,
     addTask: addTaskInContext,
     deleteTask: deleteTaskInContext
   } = useFlashcards();
@@ -49,6 +51,7 @@ export default function TasksClient() {
   const [isSubmittingForm, setIsSubmittingForm] = useState(false);
   const [selectedTaskId, setSelectedTaskId] = useState<string | null>(null);
   const [isCreatingNewTask, setIsCreatingNewTask] = useState(false);
+  const [activeFilter, setActiveFilter] = useState<TaskFilter>('all');
 
   const defaultNewTaskData = useMemo(() => ({
     title: '',
@@ -108,51 +111,49 @@ export default function TasksClient() {
       const yearFormat = (includeYearIfDifferent && !isSameYear(date, todayForComparison)) ? 'yyyy/MM/dd' : 'MM/dd';
       return format(date, yearFormat);
     };
-    
+
     let visibleLabel = '';
     let tooltipLabel = '';
     let timeStatus: FormattedTimeInfo['timeStatus'] = 'none';
     const daysToStart = differenceInCalendarDays(parsedStartDate, todayForComparison);
 
-    // Determine visibleLabel
     if (isToday(parsedStartDate)) {
       visibleLabel = t('task.display.label.today');
     } else if (isTomorrow(parsedStartDate)) {
       visibleLabel = t('task.display.label.tomorrowShort');
     } else {
-      visibleLabel = formatDateDisplay(parsedStartDate, false); // Show MM/DD for visible, year in tooltip
+      visibleLabel = formatDateDisplay(parsedStartDate, false);
     }
 
-    // Determine tooltipLabel and timeStatus
     if (timeInfo.type === 'date_range' && timeInfo.endDate) {
       let parsedEndDate: Date;
       try {
         parsedEndDate = startOfDay(parseISO(timeInfo.endDate));
-        if (!isValid(parsedEndDate) || parsedEndDate < parsedStartDate) { 
+        if (!isValid(parsedEndDate) || parsedEndDate < parsedStartDate) {
            tooltipLabel = `${formatDateDisplay(parsedStartDate, true)} (${t('task.display.overdue')})`;
-           timeStatus = daysToStart < 0 ? 'overdue' : 'upcoming'; 
+           timeStatus = daysToStart < 0 ? 'overdue' : 'active';
         } else {
           const duration = differenceInCalendarDays(parsedEndDate, parsedStartDate) + 1;
           const fullStartDateStr = formatDateDisplay(parsedStartDate, true);
           const fullEndDateStr = formatDateDisplay(parsedEndDate, true);
 
-          if (todayForComparison > parsedEndDate) { 
+          if (todayForComparison > parsedEndDate) {
             tooltipLabel = `${fullStartDateStr} - ${fullEndDateStr} (${t('task.display.ended')})`;
             timeStatus = 'overdue';
-          } else if (todayForComparison >= parsedStartDate && todayForComparison <= parsedEndDate) { 
+          } else if (todayForComparison >= parsedStartDate && todayForComparison <= parsedEndDate) {
             tooltipLabel = `${fullStartDateStr} - ${fullEndDateStr} (${t('task.display.durationDays', { count: duration })})`;
             timeStatus = 'active';
-          } else if (todayForComparison < parsedStartDate) { 
+          } else if (todayForComparison < parsedStartDate) {
              tooltipLabel = `${fullStartDateStr} - ${fullEndDateStr} (${t('task.display.inXDays', { count: daysToStart })})`;
              timeStatus = 'upcoming';
-          } else { 
+          } else {
              tooltipLabel = `${fullStartDateStr} - ${fullEndDateStr} (${t('task.display.endsInXDays', {count: differenceInCalendarDays(parsedEndDate, todayForComparison) + 1 })})`;
              timeStatus = 'active';
           }
         }
-      } catch (e) { 
+      } catch (e) {
           tooltipLabel = `${formatDateDisplay(parsedStartDate, true)} (${t('task.display.overdue')})`;
-          timeStatus = 'overdue'; 
+          timeStatus = 'overdue';
       }
     } else if (timeInfo.type === 'datetime' || timeInfo.type === 'all_day' || (timeInfo.type === 'date_range' && !timeInfo.endDate) ) {
       const fullStartDateStr = formatDateDisplay(parsedStartDate, true);
@@ -162,36 +163,36 @@ export default function TasksClient() {
       } else if (daysToStart > 0) {
         tooltipLabel = `${fullStartDateStr} (${t('task.display.inXDays', { count: daysToStart })})`;
         timeStatus = 'upcoming';
-      } else { 
+      } else {
         tooltipLabel = `${fullStartDateStr} (${t('task.display.overdue')})`;
         timeStatus = 'overdue';
       }
       if (timeInfo.type === 'datetime' && timeInfo.time) {
         tooltipLabel += ` ${t('task.display.at')} ${timeInfo.time}`;
       }
-    } else if (timeInfo.type === 'no_time' && timeInfo.startDate) { 
-      tooltipLabel = formatDateDisplay(parsedStartDate, true); 
+    } else if (timeInfo.type === 'no_time' && timeInfo.startDate) {
+      tooltipLabel = formatDateDisplay(parsedStartDate, true);
       if (isToday(parsedStartDate)) timeStatus = 'active';
       else if (daysToStart > 0) timeStatus = 'upcoming';
       else timeStatus = 'overdue';
-    } else { 
+    } else {
        tooltipLabel = t('task.display.noTime');
-       visibleLabel = ''; 
+       visibleLabel = '';
        timeStatus = 'none';
     }
-    
+
     return { visibleLabel, tooltipLabel, timeStatus };
 
   }, [t]);
 
   const handleStartPomodoroForTask = (taskTitle: string) => {
-    if (!user) { 
+    if (!user) {
         toast({ title: t('error'), description: t('auth.pleaseSignIn'), variant: "destructive" });
         return;
     }
     const pomodoroState = pomodoroContext.sessionState;
     const startFn = pomodoroContext.startPomodoro;
-    
+
     const duration = pomodoroState?.userPreferredDurationMinutes || 25;
 
     startFn(duration, taskTitle);
@@ -201,7 +202,7 @@ export default function TasksClient() {
 
   const effectiveLoading = authLoading || isLoadingTasks || (contextOverallLoading && user) || (isSeeding && user);
 
-  if (authLoading) { 
+  if (authLoading) {
     return (
       <div className="flex justify-center items-center mt-8 h-[calc(100vh-var(--header-height,8rem)-4rem)]">
         <Loader2 className="h-8 w-8 animate-spin text-primary" />
@@ -209,7 +210,7 @@ export default function TasksClient() {
     );
   }
 
-  if (!user) { 
+  if (!user) {
     return (
        <Alert variant="destructive" className="mt-8 max-w-md mx-auto">
           <ShieldAlert className="h-5 w-5" />
@@ -218,7 +219,7 @@ export default function TasksClient() {
         </Alert>
     );
   }
-  
+
   if (effectiveLoading && user) {
      return (
       <div className="flex justify-center items-center mt-8 h-[calc(100vh-var(--header-height,8rem)-4rem)]">
@@ -229,37 +230,89 @@ export default function TasksClient() {
   }
 
   const showEditPanel = selectedTaskId !== null || isCreatingNewTask;
-  
-  const sortedTasks = [...tasks].sort((a, b) => {
-    if (a.status === 'completed' && b.status !== 'completed') return 1;
-    if (a.status !== 'completed' && b.status === 'completed') return -1;
-    
-    const aDate = a.timeInfo?.startDate && isValid(parseISO(a.timeInfo.startDate)) ? parseISO(a.timeInfo.startDate) : null;
-    const bDate = b.timeInfo?.startDate && isValid(parseISO(b.timeInfo.startDate)) ? parseISO(b.timeInfo.startDate) : null;
 
-    if (aDate && bDate) {
-        if (aDate < bDate) return -1;
-        if (aDate > bDate) return 1;
-    } else if (aDate) { 
-        return -1; 
-    } else if (bDate) { 
-        return 1;
-    }
-    return (b.createdAt && a.createdAt) ? (new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()) : 0;
-  });
+  const filteredAndSortedTasks = useMemo(() => {
+    const today = startOfDay(new Date());
+
+    const filterFn = (task: Task): boolean => {
+      if (activeFilter === 'all') return true;
+
+      const { timeInfo } = task;
+      if (!timeInfo?.startDate || !isValid(parseISO(timeInfo.startDate))) {
+        return activeFilter === 'all'; // Only show tasks without valid dates in 'all'
+      }
+      const taskStartDate = startOfDay(parseISO(timeInfo.startDate));
+
+      if (activeFilter === 'today') {
+        if (timeInfo.type === 'date_range' && timeInfo.endDate && isValid(parseISO(timeInfo.endDate))) {
+          const taskEndDate = startOfDay(parseISO(timeInfo.endDate));
+          return areIntervalsOverlapping(
+            { start: taskStartDate, end: taskEndDate },
+            { start: today, end: today }
+          );
+        }
+        return isToday(taskStartDate);
+      }
+
+      if (activeFilter === 'threeDays') {
+        const threeDaysEnd = addDays(today, 2);
+        if (timeInfo.type === 'date_range' && timeInfo.endDate && isValid(parseISO(timeInfo.endDate))) {
+          const taskEndDate = startOfDay(parseISO(timeInfo.endDate));
+          return areIntervalsOverlapping(
+            { start: taskStartDate, end: taskEndDate },
+            { start: today, end: threeDaysEnd }
+          );
+        }
+        return taskStartDate >= today && taskStartDate <= threeDaysEnd;
+      }
+
+      if (activeFilter === 'week') {
+        const startOfCurrentWeek = startOfWeek(today, { weekStartsOn: 1 }); // Monday
+        const endOfCurrentWeek = endOfWeek(today, { weekStartsOn: 1 }); // Sunday
+        if (timeInfo.type === 'date_range' && timeInfo.endDate && isValid(parseISO(timeInfo.endDate))) {
+          const taskEndDate = startOfDay(parseISO(timeInfo.endDate));
+           return areIntervalsOverlapping(
+            { start: taskStartDate, end: taskEndDate },
+            { start: startOfCurrentWeek, end: endOfCurrentWeek }
+          );
+        }
+        return taskStartDate >= startOfCurrentWeek && taskStartDate <= endOfCurrentWeek;
+      }
+      return true; // Should not reach here
+    };
+
+    return [...tasks].filter(filterFn).sort((a, b) => {
+      if (a.status === 'completed' && b.status !== 'completed') return 1;
+      if (a.status !== 'completed' && b.status === 'completed') return -1;
+
+      const aDate = a.timeInfo?.startDate && isValid(parseISO(a.timeInfo.startDate)) ? parseISO(a.timeInfo.startDate) : null;
+      const bDate = b.timeInfo?.startDate && isValid(parseISO(b.timeInfo.startDate)) ? parseISO(b.timeInfo.startDate) : null;
+
+      if (aDate && bDate) {
+          if (aDate < bDate) return -1;
+          if (aDate > bDate) return 1;
+      } else if (aDate) {
+          return -1;
+      } else if (bDate) {
+          return 1;
+      }
+      return (b.createdAt && a.createdAt) ? (new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()) : 0;
+    });
+  }, [tasks, activeFilter]);
+
 
   const handleMainFormSubmit = async (data: TaskFormData) => {
     setIsSubmittingForm(true);
     try {
       if (isCreatingNewTask) {
-        await addTaskInContext(data); 
+        await addTaskInContext(data);
         toast({ title: t('success'), description: t('toast.task.created') });
-        setIsCreatingNewTask(false); 
+        setIsCreatingNewTask(false);
       } else if (selectedTask) {
         await updateTaskInContext(selectedTask.id, data);
         toast({ title: t('success'), description: t('toast.task.updated') });
       }
-      setSelectedTaskId(null); 
+      setSelectedTaskId(null);
     } catch (error) {
       toast({ title: t('error'), description: t('toast.task.error.save'), variant: "destructive" });
     } finally {
@@ -293,20 +346,29 @@ export default function TasksClient() {
   };
 
   return (
-    <div className="flex h-[calc(100vh-var(--header-height,4rem)-4rem)]"> 
+    <div className="flex h-[calc(100vh-var(--header-height,4rem)-4rem)]">
       <div className={cn(
         "transition-all duration-300 ease-in-out overflow-y-auto flex flex-col",
         showEditPanel ? "hidden md:flex md:w-1/2 md:pr-2" : "w-full pr-0"
       )}>
-        <div className={cn("flex justify-between items-center mb-6", showEditPanel ? "px-1 md:px-0" : "px-1")}>
-          <h1 className="text-2xl font-semibold tracking-tight">{t('tasks.title')}</h1>
-          <Button onClick={handleCreateNewTask} size="sm">
+        <div className={cn("flex flex-col sm:flex-row justify-between items-center mb-4 gap-2", showEditPanel ? "px-1 md:px-0" : "px-1")}>
+          <h1 className="text-2xl font-semibold tracking-tight order-1 sm:order-none">{t('tasks.title')}</h1>
+          <Button onClick={handleCreateNewTask} size="sm" className="order-none sm:order-1 w-full sm:w-auto">
             <PlusCircle className="mr-2 h-4 w-4" /> {t('tasks.button.create')}
           </Button>
         </div>
 
-        {sortedTasks.length === 0 && !effectiveLoading && (
-          <Alert className={cn("mt-8 border-primary/50 text-primary bg-primary/5", showEditPanel ? "mx-1 md:mx-0" : "mx-1")}>
+        <Tabs defaultValue="all" onValueChange={(value) => setActiveFilter(value as TaskFilter)} className="mb-4 px-1">
+          <TabsList className="grid w-full grid-cols-2 sm:grid-cols-4 h-auto">
+            <TabsTrigger value="all" className="py-1.5 sm:py-2">{t('tasks.filter.all')}</TabsTrigger>
+            <TabsTrigger value="today" className="py-1.5 sm:py-2">{t('tasks.filter.today')}</TabsTrigger>
+            <TabsTrigger value="threeDays" className="py-1.5 sm:py-2">{t('tasks.filter.threeDays')}</TabsTrigger>
+            <TabsTrigger value="week" className="py-1.5 sm:py-2">{t('tasks.filter.week')}</TabsTrigger>
+          </TabsList>
+        </Tabs>
+
+        {filteredAndSortedTasks.length === 0 && !effectiveLoading && (
+          <Alert className={cn("mt-4 border-primary/50 text-primary bg-primary/5", showEditPanel ? "mx-1 md:mx-0" : "mx-1")}>
             <Info className="h-5 w-5 text-primary" />
             <AlertTitle className="font-semibold text-primary">{t('tasks.list.empty.title')}</AlertTitle>
             <AlertDescription>
@@ -316,7 +378,7 @@ export default function TasksClient() {
         )}
 
         <ul className={cn("space-y-1 flex-grow", showEditPanel ? "px-1 md:px-0" : "px-1")}>
-          {sortedTasks.map((task) => {
+          {filteredAndSortedTasks.map((task) => {
             const { visibleLabel, tooltipLabel, timeStatus } = formatTimeLabel(task.timeInfo);
             let statusIcon: React.ReactNode = null;
             let statusIconTooltipContent: React.ReactNode | null = null;
@@ -335,7 +397,7 @@ export default function TasksClient() {
                             hourglassStyle = { color: '#2ECC71' };
                         } else if (daysToStart > 7 && daysToStart <= 30) {
                             hourglassStyle = { color: '#808000' };
-                        } else { // daysToStart > 30 or daysToStart < 0 (already overdue, but timeStatus is upcoming so this path for daysToStart < 0 is unlikely)
+                        } else {
                             hourglassFinalClassName = cn(hourglassBaseClassName, 'text-muted-foreground');
                         }
                         statusIcon = <Hourglass className={hourglassFinalClassName} style={hourglassStyle} />;
@@ -348,21 +410,21 @@ export default function TasksClient() {
                         const totalDaysInRange = differenceInCalendarDays(eDate, sDate) + 1;
                         let daysRemainingIncludingToday = differenceInCalendarDays(eDate, todayForComparison) + 1;
                         let currentRemainingPercentage = 0;
-                        if (todayForComparison > eDate) { 
+                        if (todayForComparison > eDate) {
                             currentRemainingPercentage = 0;
-                        } else if (todayForComparison < sDate) { 
+                        } else if (todayForComparison < sDate) {
                             currentRemainingPercentage = 100;
-                        } else { 
+                        } else {
                            if (totalDaysInRange > 0) {
                              currentRemainingPercentage = (daysRemainingIncludingToday / totalDaysInRange) * 100;
                            }
                         }
                         currentRemainingPercentage = Math.max(0, Math.min(currentRemainingPercentage, 100));
-                        
+
                         statusIcon = <TaskDurationPie remainingPercentage={currentRemainingPercentage} variant="active" size={16} className="mx-1 flex-shrink-0" />;
                         statusIconTooltipContent = <p>{t('task.display.status.activeRange')}</p>;
                     }
-                } else if (timeStatus === 'active') { 
+                } else if (timeStatus === 'active') {
                      statusIcon = <Zap className="h-4 w-4 text-green-500 mx-1 flex-shrink-0" />;
                      statusIconTooltipContent = <p>{t('task.display.status.active')}</p>;
                 } else if (timeStatus === 'overdue') {
@@ -379,12 +441,12 @@ export default function TasksClient() {
                       selectedTaskId === task.id && "bg-muted shadow-md"
                   )}
               >
-                <div className="flex items-center flex-grow min-w-0 mr-2"> 
+                <div className="flex items-center flex-grow min-w-0 mr-2">
                    <Checkbox
                       id={`task-${task.id}`}
                       checked={task.status === 'completed'}
                       onCheckedChange={() => handleToggleTaskCompletion(task)}
-                      className="mr-2 flex-shrink-0" 
+                      className="mr-2 flex-shrink-0"
                       aria-label={t('task.item.toggleCompletionAria', {title: task.title})}
                     />
                   <div className="min-w-0 cursor-pointer flex-grow" onClick={() => handleEditTask(task.id)}>
@@ -408,7 +470,7 @@ export default function TasksClient() {
                   {visibleLabel && (
                       <Tooltip delayDuration={300}>
                         <TooltipTrigger asChild>
-                          <span 
+                          <span
                             className="text-xs text-muted-foreground mr-1 cursor-pointer"
                             onClick={(e) => { e.stopPropagation(); handleEditTask(task.id);}}
                           >
@@ -420,7 +482,7 @@ export default function TasksClient() {
                         </TooltipContent>
                       </Tooltip>
                     )}
-                  
+
                   {task.timeInfo?.type === 'date_range' && task.status !== 'completed' && (
                     <CalendarRange className="h-4 w-4 text-muted-foreground mx-1 flex-shrink-0" />
                   )}
@@ -457,7 +519,7 @@ export default function TasksClient() {
       {showEditPanel && (
         <div className={cn(
             "w-full md:w-1/2 md:border-l md:pl-4 py-4 overflow-y-auto",
-            "flex flex-col" 
+            "flex flex-col"
           )}>
            <TaskForm
             key={selectedTaskId || 'new-task'}
@@ -475,19 +537,3 @@ export default function TasksClient() {
   );
 }
     
-
-    
-
-
-
-
-
-
-
-
-
-
-
-
-
-

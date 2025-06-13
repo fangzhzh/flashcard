@@ -230,8 +230,6 @@ export default {
   'review.button.progress.mastered': 'Mastered',
   'review.processing': 'Processing...',
   'review.speakContent': 'Speak content',
-  'toast.progress.saved': 'Progress Saved',
-  'toast.progress.saved.description': 'Card marked as "{performance}". Next review on {nextReviewDate}.',
   'toast.progress.error': 'Could not save progress: {errorMessage}. Please try again.',
 
   // Pomodoro Page & Context
@@ -417,6 +415,10 @@ export default {
   'task.display.status.overdue': 'Overdue',
   'task.pomodoroStartedFor': 'Pomodoro started for task: {title}',
   'task.currentTaskLabel': 'Current Task:',
+  'tasks.filter.all': 'All',
+  'tasks.filter.today': 'Today',
+  'tasks.filter.threeDays': 'Next 3 Days',
+  'tasks.filter.week': 'This Week',
 
 
   // Notifications (General)
@@ -434,5 +436,3 @@ export default {
 } as const;
 
     
-
-

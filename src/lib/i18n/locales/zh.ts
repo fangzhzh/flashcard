@@ -230,8 +230,6 @@ export default {
   'review.button.progress.mastered': '已掌握',
   'review.processing': '处理中...',
   'review.speakContent': '朗读内容',
-  'toast.progress.saved': '进度已保存',
-  'toast.progress.saved.description': '卡片已标记为“{performance}”。下次复习时间：{nextReviewDate}。',
   'toast.progress.error': '无法保存进度：{errorMessage}。请稍后再试。',
 
   // Pomodoro Page & Context
@@ -417,6 +415,10 @@ export default {
   'task.display.status.overdue': '已过期',
   'task.pomodoroStartedFor': '任务番茄钟已启动: {title}',
   'task.currentTaskLabel': '当前任务:',
+  'tasks.filter.all': '全部',
+  'tasks.filter.today': '今天',
+  'tasks.filter.threeDays': '未来3天',
+  'tasks.filter.week': '本周',
 
 
   // Notifications (General)
@@ -434,5 +436,3 @@ export default {
 } as const;
 
     
-
-

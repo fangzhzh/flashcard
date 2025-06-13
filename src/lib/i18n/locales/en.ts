@@ -415,7 +415,7 @@ export default {
   'task.display.status.overdue': 'Overdue',
   'task.pomodoroStartedFor': 'Pomodoro started for task: {title}',
   'task.currentTaskLabel': 'Current Task:',
-  'tasks.filter.all': 'All Tasks',
+  'tasks.filter.all': 'All',
   'tasks.filter.today': 'Today',
   'tasks.filter.threeDays': '3 Days',
   'tasks.filter.thisWeek': 'Week',

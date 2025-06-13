@@ -6,7 +6,7 @@ import { useFlashcards } from '@/contexts/FlashcardsContext';
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
-import { ClipboardPlus, Loader2, Info, ShieldAlert, PlayCircle, Zap, AlertTriangle, CalendarRange, Hourglass } from 'lucide-react';
+import { Loader2, Info, ShieldAlert, PlayCircle, Zap, AlertTriangle, CalendarRange, Hourglass, ListChecks } from 'lucide-react'; // Changed ClipboardPlus to ListChecks
 import { useToast } from '@/hooks/use-toast';
 import { useI18n, useCurrentLocale } from '@/lib/i18n/client';
 import type { Task, TimeInfo, TaskStatus, RepeatFrequency, ReminderType } from '@/types';
@@ -346,14 +346,17 @@ export default function TasksClient() {
 
   return (
     <>
-    <div className="flex h-[calc(100vh-var(--header-height,4rem)-4rem)]">
+    <div className="flex h-[calc(100vh-var(--header-height,4rem)-4rem)]"> {/* Adjusted height calculation */}
       <div className={cn(
         "transition-all duration-300 ease-in-out overflow-y-auto flex flex-col",
         showEditPanel ? "hidden md:flex md:w-1/2 md:pr-2" : "w-full pr-0"
       )}>
-        <Tabs defaultValue="all" onValueChange={(value) => setActiveFilter(value as TaskFilter)} className="mb-4 px-1">
-          <TabsList className="grid w-full grid-cols-5 h-auto">
-            <TabsTrigger value="all" className="py-1.5 sm:py-2 text-xs sm:text-sm">{t('tasks.filter.all')}</TabsTrigger>
+        <Tabs
+          value={activeFilter === 'all' ? undefined : activeFilter}
+          onValueChange={(value) => setActiveFilter(value ? value as TaskFilter : 'all')}
+          className="mb-4 px-1"
+        >
+          <TabsList className="grid w-full grid-cols-4 h-auto"> {/* Changed to grid-cols-4 */}
             <TabsTrigger value="today" className="py-1.5 sm:py-2 text-xs sm:text-sm">{t('tasks.filter.today')}</TabsTrigger>
             <TabsTrigger value="threeDays" className="py-1.5 sm:py-2 text-xs sm:text-sm">{t('tasks.filter.threeDays')}</TabsTrigger>
             <TabsTrigger value="thisWeek" className="py-1.5 sm:py-2 text-xs sm:text-sm">{t('tasks.filter.thisWeek')}</TabsTrigger>
@@ -534,7 +537,7 @@ export default function TasksClient() {
             onClick={handleCreateNewTask}
             title={t('tasks.button.create')}
         >
-            <ClipboardPlus className="h-7 w-7" />
+            <ListChecks className="h-7 w-7" />
         </Button>
       )}
     </>

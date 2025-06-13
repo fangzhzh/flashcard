@@ -7,7 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Play, Pause, RotateCcw, Settings2, Eraser, Loader2, ShieldAlert, Coffee, SkipForward, ClipboardPlus } from 'lucide-react';
+import { Play, Pause, RotateCcw, Settings2, Eraser, Loader2, ShieldAlert, Coffee, SkipForward, ListChecks } from 'lucide-react'; // Changed ClipboardPlus to ListChecks
 import { useI18n, useCurrentLocale } from '@/lib/i18n/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { usePomodoro } from '@/contexts/PomodoroContext';
@@ -215,9 +215,10 @@ export default function PomodoroClient() {
             className="fixed bottom-[6.5rem] right-6 z-40 rounded-full h-14 w-14 p-0 shadow-lg"
             title={t('tasks.button.create')}
         >
-            <ClipboardPlus className="h-7 w-7" />
+            <ListChecks className="h-7 w-7" />
         </Button>
       </Link>
     </div>
   );
 }
+

@@ -418,7 +418,8 @@ export default {
   'tasks.filter.all': '全部',
   'tasks.filter.today': '今天',
   'tasks.filter.threeDays': '未来3天',
-  'tasks.filter.week': '本周',
+  'tasks.filter.thisWeek': '本周',
+  'tasks.filter.nextWeek': '下周',
 
 
   // Notifications (General)

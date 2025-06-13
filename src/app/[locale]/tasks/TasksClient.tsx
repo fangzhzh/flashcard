@@ -27,7 +27,7 @@ interface FormattedTimeInfo {
   timeStatus: 'upcoming' | 'active' | 'overdue' | 'none';
 }
 
-type TaskFilter = 'all' | 'today' | 'threeDays' | 'week';
+type TaskFilter = 'all' | 'today' | 'threeDays' | 'thisWeek' | 'nextWeek';
 
 export default function TasksClient() {
   // --- ALL HOOKS MUST BE CALLED UNCONDITIONALLY AT THE TOP ---
@@ -163,52 +163,47 @@ export default function TasksClient() {
 
   const filteredAndSortedTasks = useMemo(() => {
     const today = startOfDay(new Date());
+    const weekStartsOn = 1; // Monday
 
     const filterFn = (task: Task): boolean => {
       if (activeFilter === 'all') return true;
 
       const { timeInfo } = task;
       if (!timeInfo?.startDate || !isValid(parseISO(timeInfo.startDate))) {
-        return activeFilter === 'all'; 
+        return activeFilter === 'all'; // Only show in 'all' if no valid start date
       }
       const taskStartDate = startOfDay(parseISO(timeInfo.startDate));
+      const taskEndDate = timeInfo.endDate && isValid(parseISO(timeInfo.endDate)) ? startOfDay(parseISO(timeInfo.endDate)) : taskStartDate;
 
-      if (activeFilter === 'today') {
-        if (timeInfo.type === 'date_range' && timeInfo.endDate && isValid(parseISO(timeInfo.endDate))) {
-          const taskEndDate = startOfDay(parseISO(timeInfo.endDate));
-          return areIntervalsOverlapping(
-            { start: taskStartDate, end: taskEndDate },
-            { start: today, end: today }
-          );
-        }
-        return isToday(taskStartDate);
+      const filterInterval = {
+        start: today,
+        end: today
+      };
+
+      switch (activeFilter) {
+        case 'today':
+          // Interval remains today
+          break;
+        case 'threeDays':
+          filterInterval.end = addDays(today, 2);
+          break;
+        case 'thisWeek':
+          filterInterval.start = startOfWeek(today, { weekStartsOn });
+          filterInterval.end = endOfWeek(today, { weekStartsOn });
+          break;
+        case 'nextWeek':
+          filterInterval.start = startOfWeek(addDays(today, 7), { weekStartsOn });
+          filterInterval.end = endOfWeek(addDays(today, 7), { weekStartsOn });
+          break;
+        default:
+          return true;
       }
 
-      if (activeFilter === 'threeDays') {
-        const threeDaysEnd = addDays(today, 2);
-        if (timeInfo.type === 'date_range' && timeInfo.endDate && isValid(parseISO(timeInfo.endDate))) {
-          const taskEndDate = startOfDay(parseISO(timeInfo.endDate));
-          return areIntervalsOverlapping(
-            { start: taskStartDate, end: taskEndDate },
-            { start: today, end: threeDaysEnd }
-          );
-        }
-        return taskStartDate >= today && taskStartDate <= threeDaysEnd;
-      }
-
-      if (activeFilter === 'week') {
-        const startOfCurrentWeek = startOfWeek(today, { weekStartsOn: 1 }); 
-        const endOfCurrentWeek = endOfWeek(today, { weekStartsOn: 1 }); 
-        if (timeInfo.type === 'date_range' && timeInfo.endDate && isValid(parseISO(timeInfo.endDate))) {
-          const taskEndDate = startOfDay(parseISO(timeInfo.endDate));
-           return areIntervalsOverlapping(
-            { start: taskStartDate, end: taskEndDate },
-            { start: startOfCurrentWeek, end: endOfCurrentWeek }
-          );
-        }
-        return taskStartDate >= startOfCurrentWeek && taskStartDate <= endOfCurrentWeek;
-      }
-      return true; 
+      // Check if the task's date range overlaps with the filter's interval
+      return areIntervalsOverlapping(
+        { start: taskStartDate, end: taskEndDate },
+        filterInterval
+      );
     };
 
     return [...tasks].filter(filterFn).sort((a, b) => {
@@ -289,7 +284,7 @@ export default function TasksClient() {
   };
 
   const handleStartPomodoroForTask = (taskTitle: string) => {
-    if (!user) { // Should not happen due to checks above, but good practice
+    if (!user) { 
         toast({ title: t('error'), description: t('auth.pleaseSignIn'), variant: "destructive" });
         return;
     }
@@ -300,7 +295,7 @@ export default function TasksClient() {
 
     startFn(duration, taskTitle);
     toast({ title: t('pomodoro.button.start'), description: t('task.pomodoroStartedFor', { title: taskTitle }) });
-    router.push(`/${currentLocale}/timer`); // Redirect to timer page
+    router.push(`/${currentLocale}/timer`); 
   };
   
   const handleMainFormSubmit = async (data: TaskFormData) => {
@@ -357,11 +352,12 @@ export default function TasksClient() {
         showEditPanel ? "hidden md:flex md:w-1/2 md:pr-2" : "w-full pr-0"
       )}>
         <Tabs defaultValue="all" onValueChange={(value) => setActiveFilter(value as TaskFilter)} className="mb-4 px-1">
-          <TabsList className="grid w-full grid-cols-4 h-auto">
-            <TabsTrigger value="all" className="py-1.5 sm:py-2">{t('tasks.filter.all')}</TabsTrigger>
-            <TabsTrigger value="today" className="py-1.5 sm:py-2">{t('tasks.filter.today')}</TabsTrigger>
-            <TabsTrigger value="threeDays" className="py-1.5 sm:py-2">{t('tasks.filter.threeDays')}</TabsTrigger>
-            <TabsTrigger value="week" className="py-1.5 sm:py-2">{t('tasks.filter.week')}</TabsTrigger>
+          <TabsList className="grid w-full grid-cols-5 h-auto">
+            <TabsTrigger value="all" className="py-1.5 sm:py-2 text-xs sm:text-sm">{t('tasks.filter.all')}</TabsTrigger>
+            <TabsTrigger value="today" className="py-1.5 sm:py-2 text-xs sm:text-sm">{t('tasks.filter.today')}</TabsTrigger>
+            <TabsTrigger value="threeDays" className="py-1.5 sm:py-2 text-xs sm:text-sm">{t('tasks.filter.threeDays')}</TabsTrigger>
+            <TabsTrigger value="thisWeek" className="py-1.5 sm:py-2 text-xs sm:text-sm">{t('tasks.filter.thisWeek')}</TabsTrigger>
+            <TabsTrigger value="nextWeek" className="py-1.5 sm:py-2 text-xs sm:text-sm">{t('tasks.filter.nextWeek')}</TabsTrigger>
           </TabsList>
         </Tabs>
 
@@ -487,7 +483,7 @@ export default function TasksClient() {
                   {statusIcon && statusIconTooltipContent && (
                      <Tooltip delayDuration={300}>
                         <TooltipTrigger asChild>
-                            <div>{/* Extra div to satisfy TooltipTrigger asChild with complex icon components */}
+                            <div> {/* Extra div to satisfy TooltipTrigger asChild with complex icon components */}
                                 {statusIcon}
                             </div>
                         </TooltipTrigger>

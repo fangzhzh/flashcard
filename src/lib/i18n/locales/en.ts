@@ -418,7 +418,8 @@ export default {
   'tasks.filter.all': 'All',
   'tasks.filter.today': 'Today',
   'tasks.filter.threeDays': 'Next 3 Days',
-  'tasks.filter.week': 'This Week',
+  'tasks.filter.thisWeek': 'This Week',
+  'tasks.filter.nextWeek': 'Next Week',
 
 
   // Notifications (General)

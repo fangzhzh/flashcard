@@ -2,12 +2,12 @@
 "use client";
 
 import { useState, useEffect } from 'react';
-import Link from 'next/link';
+// Link and ClipboardPlus are no longer needed here
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Play, Pause, RotateCcw, Settings2, Eraser, Coffee, SkipForward, ClipboardPlus } from 'lucide-react';
+import { Play, Pause, RotateCcw, Settings2, Eraser, Coffee, SkipForward } from 'lucide-react'; // Removed ClipboardPlus
 import { useI18n, useCurrentLocale } from '@/lib/i18n/client';
 import { usePomodoroLocal } from '@/contexts/PomodoroLocalContext';
 import { cn } from '@/lib/utils';
@@ -17,7 +17,7 @@ const DEFAULT_POMODORO_MINUTES_DISPLAY = 25;
 
 export default function PomodoroLocalClient() {
   const t = useI18n();
-  const currentLocale = useCurrentLocale();
+  const currentLocale = useCurrentLocale(); // currentLocale is not used, but kept for consistency with other client components
   const {
     sessionState,
     timeLeftSeconds,
@@ -184,15 +184,7 @@ export default function PomodoroLocalClient() {
             </CardContent>
           </Card>
         )}
-        <Link href={`/${currentLocale}/tasks/new`} passHref>
-            <Button
-                variant="default"
-                className="fixed bottom-[6.5rem] right-6 z-40 rounded-full h-14 w-14 p-0 shadow-lg"
-                title={t('tasks.button.create')}
-            >
-                <ClipboardPlus className="h-7 w-7" />
-            </Button>
-        </Link>
+        {/* Removed the Link and Button for "Create Task" FAB for local client */}
       </div>
       <BreakOptionsDialog
         isOpen={isBreakDialogOpen}

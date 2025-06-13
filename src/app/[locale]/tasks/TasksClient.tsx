@@ -10,6 +10,7 @@ import { PlusCircle, Loader2, Info, ShieldAlert, PlayCircle, Hourglass, Zap, Ale
 import { useToast } from '@/hooks/use-toast';
 import { useI18n, useCurrentLocale } from '@/lib/i18n/client';
 import type { Task, TimeInfo, TaskStatus, RepeatFrequency, ReminderType } from '@/types';
+import type { default as enLocale } from '@/lib/i18n/locales/en';
 import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
 import TaskForm, { type TaskFormData } from '@/components/TaskForm';
 import { usePomodoro } from '@/contexts/PomodoroContext';
@@ -18,12 +19,15 @@ import { cn } from '@/lib/utils';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import TaskDurationPie from '@/components/TaskDurationPie';
 
+type TranslationKeys = keyof typeof enLocale;
 
 interface FormattedTimeInfo {
   visibleLabel: string;
   tooltipLabel: string;
   timeStatus: 'upcoming' | 'active' | 'overdue' | 'none';
 }
+
+const LOOK_AHEAD_DAYS_FOR_UPCOMING_PIE = 30;
 
 export default function TasksClient() {
   const { user, loading: authLoading } = useAuth();
@@ -128,7 +132,7 @@ export default function TasksClient() {
         parsedEndDate = startOfDay(parseISO(timeInfo.endDate));
         if (!isValid(parsedEndDate) || parsedEndDate < parsedStartDate) { 
            tooltipLabel = `${formatDateDisplay(parsedStartDate, true)} (${t('task.display.overdue')})`;
-           timeStatus = daysToStart < 0 ? 'overdue' : 'upcoming'; // If end date invalid, rely on start date for status
+           timeStatus = daysToStart < 0 ? 'overdue' : 'upcoming'; 
         } else {
           const duration = differenceInCalendarDays(parsedEndDate, parsedStartDate) + 1;
           const fullStartDateStr = formatDateDisplay(parsedStartDate, true);
@@ -290,7 +294,6 @@ export default function TasksClient() {
     }
   };
 
-
   return (
     <div className="flex h-[calc(100vh-var(--header-height,4rem)-4rem)]"> 
       <div className={cn(
@@ -317,85 +320,59 @@ export default function TasksClient() {
         <ul className={cn("space-y-1 flex-grow", showEditPanel ? "px-1 md:px-0" : "px-1")}>
           {sortedTasks.map((task) => {
             const { visibleLabel, tooltipLabel, timeStatus } = formatTimeLabel(task.timeInfo);
-            let statusIcon = null;
+            let statusIcon: React.ReactNode = null;
+            let statusIconTooltipContent: React.ReactNode | null = null;
+            const todayForComparison = startOfDay(new Date());
 
             if (task.status !== 'completed') {
                 if (timeStatus === 'active' && task.timeInfo?.type === 'date_range' && task.timeInfo.startDate && task.timeInfo.endDate) {
                     const sDate = parseISO(task.timeInfo.startDate);
                     const eDate = parseISO(task.timeInfo.endDate);
-                    const today = startOfDay(new Date());
-
                     if (isValid(sDate) && isValid(eDate) && eDate >= sDate) {
                         const totalDaysInRange = differenceInCalendarDays(eDate, sDate) + 1;
-                        let daysRemainingIncludingToday = differenceInCalendarDays(eDate, today) + 1;
-                        
+                        let daysRemainingIncludingToday = differenceInCalendarDays(eDate, todayForComparison) + 1;
                         let currentRemainingPercentage = 0;
-                        if (today > eDate) { // Overdue (already past end date)
+                        if (todayForComparison > eDate) {
                             currentRemainingPercentage = 0;
-                             statusIcon = ( // Fallback to overdue icon if pie calculation leads to 0 and it's truly overdue by date.
-                                <Tooltip delayDuration={300}>
-                                    <TooltipTrigger asChild>
-                                        <AlertTriangle className="h-4 w-4 text-yellow-500 mx-1 flex-shrink-0" />
-                                    </TooltipTrigger>
-                                    <TooltipContent><p>{t('task.display.status.overdue')}</p></TooltipContent>
-                                </Tooltip>
-                            );
-                        } else if (today < sDate) { // Upcoming
+                        } else if (todayForComparison < sDate) { // Should not happen if timeStatus is 'active' for range
                             currentRemainingPercentage = 100;
-                             statusIcon = (
-                                <Tooltip delayDuration={300}>
-                                    <TooltipTrigger asChild>
-                                        <Hourglass className="h-4 w-4 text-muted-foreground mx-1 flex-shrink-0" />
-                                    </TooltipTrigger>
-                                    <TooltipContent><p>{t('task.display.status.upcoming')}</p></TooltipContent>
-                                </Tooltip>
-                            );
-                        } else { // Active within range
+                        } else {
                            if (totalDaysInRange > 0) {
                              currentRemainingPercentage = (daysRemainingIncludingToday / totalDaysInRange) * 100;
                            }
-                           currentRemainingPercentage = Math.max(0, Math.min(currentRemainingPercentage, 100));
-                           if (currentRemainingPercentage > 0) {
-                             statusIcon = <TaskDurationPie remainingPercentage={currentRemainingPercentage} size={16} className="mx-1 flex-shrink-0" />;
-                           } else { // If remaining is 0, but today is eDate, show as almost done, or if truly overdue show overdue
-                                statusIcon = (
-                                    <Tooltip delayDuration={300}>
-                                        <TooltipTrigger asChild>
-                                            <AlertTriangle className="h-4 w-4 text-yellow-500 mx-1 flex-shrink-0" />
-                                        </TooltipTrigger>
-                                        <TooltipContent><p>{t('task.display.status.overdue')}</p></TooltipContent>
-                                    </Tooltip>
-                                );
-                           }
+                        }
+                        currentRemainingPercentage = Math.max(0, Math.min(currentRemainingPercentage, 100));
+                        if (currentRemainingPercentage > 0 || isToday(eDate)) { // Show pie if any duration left or ends today
+                            statusIcon = <TaskDurationPie remainingPercentage={currentRemainingPercentage} size={16} className="mx-1 flex-shrink-0" />;
+                            statusIconTooltipContent = <p>{t('task.display.status.activeRange')}</p>;
+                        } else { // Fallback to overdue if calculation leads to 0 and it's truly overdue by date.
+                            statusIcon = <AlertTriangle className="h-4 w-4 text-yellow-500 mx-1 flex-shrink-0" />;
+                            statusIconTooltipContent = <p>{t('task.display.status.overdue')}</p>;
                         }
                     }
                 } else if (timeStatus === 'upcoming') {
-                    statusIcon = (
-                        <Tooltip delayDuration={300}>
-                            <TooltipTrigger asChild>
-                                <Hourglass className="h-4 w-4 text-muted-foreground mx-1 flex-shrink-0" />
-                            </TooltipTrigger>
-                            <TooltipContent><p>{t('task.display.status.upcoming')}</p></TooltipContent>
-                        </Tooltip>
-                    );
-                } else if (timeStatus === 'active') { // Non-date-range active tasks
-                     statusIcon = (
-                        <Tooltip delayDuration={300}>
-                            <TooltipTrigger asChild>
-                                <Zap className="h-4 w-4 text-green-500 mx-1 flex-shrink-0" />
-                            </TooltipTrigger>
-                            <TooltipContent><p>{t('task.display.status.active')}</p></TooltipContent>
-                        </Tooltip>
-                    );
+                    const sDate = task.timeInfo?.startDate && isValid(parseISO(task.timeInfo.startDate)) ? parseISO(task.timeInfo.startDate) : null;
+                    if (sDate) {
+                        const daysToStart = differenceInCalendarDays(sDate, todayForComparison);
+                        if (daysToStart > 0) {
+                            const daysToConsider = Math.min(daysToStart, LOOK_AHEAD_DAYS_FOR_UPCOMING_PIE);
+                            const remainingPercentageForUpcomingPie = (daysToConsider / LOOK_AHEAD_DAYS_FOR_UPCOMING_PIE) * 100;
+                            statusIcon = <TaskDurationPie remainingPercentage={Math.max(0, Math.min(remainingPercentageForUpcomingPie, 100))} size={16} className="mx-1 flex-shrink-0" />;
+                            statusIconTooltipContent = <p>{t('task.display.status.upcomingPie', { count: LOOK_AHEAD_DAYS_FOR_UPCOMING_PIE })}</p>;
+                        } else { // Should be caught by timeStatus, but as fallback
+                             statusIcon = <Hourglass className="h-4 w-4 text-muted-foreground mx-1 flex-shrink-0" />;
+                             statusIconTooltipContent = <p>{t('task.display.status.upcoming')}</p>;
+                        }
+                    } else {
+                        statusIcon = <Hourglass className="h-4 w-4 text-muted-foreground mx-1 flex-shrink-0" />;
+                        statusIconTooltipContent = <p>{t('task.display.status.upcoming')}</p>;
+                    }
+                } else if (timeStatus === 'active') { 
+                     statusIcon = <Zap className="h-4 w-4 text-green-500 mx-1 flex-shrink-0" />;
+                     statusIconTooltipContent = <p>{t('task.display.status.active')}</p>;
                 } else if (timeStatus === 'overdue') {
-                    statusIcon = (
-                        <Tooltip delayDuration={300}>
-                            <TooltipTrigger asChild>
-                                <AlertTriangle className="h-4 w-4 text-yellow-500 mx-1 flex-shrink-0" />
-                            </TooltipTrigger>
-                            <TooltipContent><p>{t('task.display.status.overdue')}</p></TooltipContent>
-                        </Tooltip>
-                    );
+                    statusIcon = <AlertTriangle className="h-4 w-4 text-yellow-500 mx-1 flex-shrink-0" />;
+                    statusIconTooltipContent = <p>{t('task.display.status.overdue')}</p>;
                 }
             }
 
@@ -411,9 +388,7 @@ export default function TasksClient() {
                    <Checkbox
                       id={`task-${task.id}`}
                       checked={task.status === 'completed'}
-                      onCheckedChange={(checked) => {
-                          handleToggleTaskCompletion(task);
-                      }}
+                      onCheckedChange={() => handleToggleTaskCompletion(task)}
                       className="mr-2 flex-shrink-0" 
                       aria-label={t('task.item.toggleCompletionAria', {title: task.title})}
                     />
@@ -435,7 +410,7 @@ export default function TasksClient() {
                   </div>
                 </div>
                 <div className="flex items-center flex-shrink-0 ml-auto">
-                  {visibleLabel ? (
+                  {visibleLabel && (
                       <Tooltip delayDuration={300}>
                         <TooltipTrigger asChild>
                           <span 
@@ -449,16 +424,22 @@ export default function TasksClient() {
                           <p>{tooltipLabel}</p>
                         </TooltipContent>
                       </Tooltip>
-                    ) : (
-                       <span className="text-xs text-muted-foreground mr-2 cursor-pointer" onClick={() => handleEditTask(task.id)}>
-                       </span>
                     )}
                   
                   {task.timeInfo?.type === 'date_range' && task.status !== 'completed' && (
                     <CalendarRange className="h-4 w-4 text-muted-foreground mx-1 flex-shrink-0" />
                   )}
 
-                  {statusIcon}
+                  {statusIcon && statusIconTooltipContent && (
+                     <Tooltip delayDuration={300}>
+                        <TooltipTrigger asChild>
+                            <div>{/* Extra div to satisfy TooltipTrigger asChild with complex icon components */}
+                                {statusIcon}
+                            </div>
+                        </TooltipTrigger>
+                        <TooltipContent>{statusIconTooltipContent}</TooltipContent>
+                    </Tooltip>
+                  )}
 
                   <Button
                     variant="ghost"
@@ -501,6 +482,7 @@ export default function TasksClient() {
     
 
     
+
 
 
 

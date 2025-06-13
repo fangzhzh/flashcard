@@ -412,7 +412,9 @@ export default {
   'task.display.to': '到',
   'task.display.noTime': '无特定时间',
   'task.display.status.upcoming': '即将开始',
+  'task.display.status.upcomingPie': '开始倒计时 ({count} 天内)',
   'task.display.status.active': '进行中',
+  'task.display.status.activeRange': '进行中 (日期范围)',
   'task.display.status.overdue': '已过期',
   'task.pomodoroStartedFor': '任务番茄钟已启动: {title}',
   'task.currentTaskLabel': '当前任务:',
@@ -433,3 +435,4 @@ export default {
 } as const;
 
     
+

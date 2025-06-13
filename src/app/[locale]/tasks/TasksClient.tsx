@@ -6,7 +6,7 @@ import { useFlashcards } from '@/contexts/FlashcardsContext';
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
-import { Loader2, Info, ShieldAlert, PlayCircle, Zap, AlertTriangle, CalendarRange, Hourglass, ListChecks } from 'lucide-react'; // Changed ClipboardPlus to ListChecks
+import { Loader2, Info, ShieldAlert, PlayCircle, Zap, AlertTriangle, CalendarRange, Hourglass, ListChecks } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { useI18n, useCurrentLocale } from '@/lib/i18n/client';
 import type { Task, TimeInfo, TaskStatus, RepeatFrequency, ReminderType } from '@/types';
@@ -27,7 +27,7 @@ interface FormattedTimeInfo {
   timeStatus: 'upcoming' | 'active' | 'overdue' | 'none';
 }
 
-type TaskFilter = 'all' | 'today' | 'threeDays' | 'thisWeek' | 'nextWeek';
+type TaskFilter = 'today' | 'threeDays' | 'thisWeek' | 'nextWeek';
 
 export default function TasksClient() {
   // --- ALL HOOKS MUST BE CALLED UNCONDITIONALLY AT THE TOP ---
@@ -52,7 +52,8 @@ export default function TasksClient() {
   const [isSubmittingForm, setIsSubmittingForm] = useState(false);
   const [selectedTaskId, setSelectedTaskId] = useState<string | null>(null);
   const [isCreatingNewTask, setIsCreatingNewTask] = useState(false);
-  const [activeFilter, setActiveFilter] = useState<TaskFilter>('all');
+  const [activeFilter, setActiveFilter] = useState<TaskFilter | 'all'>('all');
+
 
   const defaultNewTaskData = useMemo(() => ({
     title: '',
@@ -353,10 +354,17 @@ export default function TasksClient() {
       )}>
         <Tabs
           value={activeFilter === 'all' ? undefined : activeFilter}
-          onValueChange={(value) => setActiveFilter(value ? value as TaskFilter : 'all')}
+          onValueChange={(value) => {
+            const newFilter = value as TaskFilter | undefined;
+            if (newFilter && newFilter === activeFilter) {
+              setActiveFilter('all'); // Deselect if clicking active filter
+            } else {
+              setActiveFilter(newFilter || 'all');
+            }
+          }}
           className="mb-4 px-1"
         >
-          <TabsList className="grid w-full grid-cols-4 h-auto"> {/* Changed to grid-cols-4 */}
+          <TabsList className="grid w-full grid-cols-4 h-auto">
             <TabsTrigger value="today" className="py-1.5 sm:py-2 text-xs sm:text-sm">{t('tasks.filter.today')}</TabsTrigger>
             <TabsTrigger value="threeDays" className="py-1.5 sm:py-2 text-xs sm:text-sm">{t('tasks.filter.threeDays')}</TabsTrigger>
             <TabsTrigger value="thisWeek" className="py-1.5 sm:py-2 text-xs sm:text-sm">{t('tasks.filter.thisWeek')}</TabsTrigger>
@@ -479,7 +487,7 @@ export default function TasksClient() {
                       </Tooltip>
                     )}
 
-                  {task.timeInfo?.type === 'date_range' && task.status !== 'completed' && (
+                  {task.timeInfo?.type === 'date_range' && task.status !== 'completed' && timeStatus !== 'active' && (
                     <CalendarRange className="h-4 w-4 text-muted-foreground mx-1 flex-shrink-0" />
                   )}
 

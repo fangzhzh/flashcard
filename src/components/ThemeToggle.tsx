@@ -1,3 +1,4 @@
+
 "use client";
 
 import * as React from "react";
@@ -11,40 +12,28 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { useI18n } from "@/lib/i18n/client";
 
-
-const getInitialTheme = (): string => {
+// Helper function to safely get stored preference on client
+const getStoredThemePreference = (): string => {
   if (typeof window !== "undefined") {
     const storedTheme = localStorage.getItem("theme");
-    if (storedTheme && (storedTheme === "light" || storedTheme === "dark" || storedTheme === "system")) {
+    if (storedTheme === "light" || storedTheme === "dark" || storedTheme === "system") {
       return storedTheme;
     }
-    // For "system", we determine initial actual theme but store "system"
-    if (storedTheme === "system" || !storedTheme) {
-         return window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
-    }
   }
-  return "light"; 
+  return "system"; // Default preference if nothing stored or invalid
 };
 
-const getStoredPreference = (): string => {
-    if (typeof window !== "undefined") {
-        const storedTheme = localStorage.getItem("theme");
-        if (storedTheme === "light" || storedTheme === "dark" || storedTheme === "system") {
-            return storedTheme;
-        }
-    }
-    return "system"; // Default preference if nothing stored or invalid
-}
-
-
 export function ThemeToggle() {
-  const [theme, setThemeState] = React.useState<string>("light"); // actual theme (light/dark)
-  const [themePreference, setThemePreferenceState] = React.useState<string>("system"); // user preference (light/dark/system)
+  // Initialize with a default non-browser-dependent value
+  const [theme, setThemeState] = React.useState<string>("light"); 
+  const [themePreference, setThemePreferenceState] = React.useState<string>("system");
   const t = useI18n();
 
+  // Effect to set initial theme based on localStorage and system preference (runs only on client)
   React.useEffect(() => {
-    const initialPreference = getStoredPreference();
+    const initialPreference = getStoredThemePreference();
     setThemePreferenceState(initialPreference);
+
     if (initialPreference === "system") {
       setThemeState(window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light");
     } else {
@@ -52,38 +41,45 @@ export function ThemeToggle() {
     }
   }, []);
 
+  // Effect to apply the theme to the document and save preference to localStorage
   React.useEffect(() => {
     const root = window.document.documentElement;
     root.classList.remove("light", "dark");
     
-    let currentTheme = theme;
+    let currentThemeToApply = theme;
+    // If preference is system, derive actual theme from media query
     if (themePreference === "system") {
-        currentTheme = window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
+        currentThemeToApply = window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
     }
-    root.classList.add(currentTheme);
-    localStorage.setItem("theme", themePreference); // Store the preference
-  }, [theme, themePreference]);
+    
+    root.classList.add(currentThemeToApply);
+    localStorage.setItem("theme", themePreference);
+  }, [theme, themePreference]); // Rerun when actual theme or preference changes
 
 
-  // Listener for system theme changes
+  // Listener for system theme changes when "system" preference is selected
   React.useEffect(() => {
-    if (themePreference === "system") {
-        const mediaQuery = window.matchMedia("(prefers-color-scheme: dark)");
-        const handleChange = () => {
-            setThemeState(mediaQuery.matches ? "dark" : "light");
-        };
-        mediaQuery.addEventListener("change", handleChange);
-        return () => mediaQuery.removeEventListener("change", handleChange);
+    if (themePreference !== "system") {
+      return; // Only listen if system preference is active
     }
-  }, [themePreference]);
+    const mediaQuery = window.matchMedia("(prefers-color-scheme: dark)");
+    const handleChange = () => {
+        // This will trigger the above useEffect to apply the new theme
+        setThemeState(mediaQuery.matches ? "dark" : "light");
+    };
+    mediaQuery.addEventListener("change", handleChange);
+    return () => mediaQuery.removeEventListener("change", handleChange);
+  }, [themePreference]); // Re-attach listener if themePreference changes to/from "system"
 
 
-  const setTheme = (newThemePreference: string) => {
-    setThemePreferenceState(newThemePreference);
+  const handleSetThemePreference = (newThemePreference: string) => {
+    setThemePreferenceState(newThemePreference); // Update the stored preference
     if (newThemePreference === "system") {
-        setThemeState(window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light");
+      // If switching to system, immediately update theme based on current system setting
+      setThemeState(window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light");
     } else {
-        setThemeState(newThemePreference);
+      // If switching to light/dark directly, set that as the active theme
+      setThemeState(newThemePreference);
     }
   };
 
@@ -97,13 +93,13 @@ export function ThemeToggle() {
         </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end">
-        <DropdownMenuItem onClick={() => setTheme("light")}>
+        <DropdownMenuItem onClick={() => handleSetThemePreference("light")}>
           {t('theme.light')}
         </DropdownMenuItem>
-        <DropdownMenuItem onClick={() => setTheme("dark")}>
+        <DropdownMenuItem onClick={() => handleSetThemePreference("dark")}>
           {t('theme.dark')}
         </DropdownMenuItem>
-        <DropdownMenuItem onClick={() => setTheme("system")}>
+        <DropdownMenuItem onClick={() => handleSetThemePreference("system")}>
           {t('theme.system')}
         </DropdownMenuItem>
       </DropdownMenuContent>

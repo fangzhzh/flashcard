@@ -1,5 +1,5 @@
-# Firebase Studio
+# flashflow
+一个有人关怀的工具
 
-This is a NextJS starter in Firebase Studio.
+task, gtd, internalized 
 
-To get started, take a look at src/app/page.tsx.

@@ -99,11 +99,7 @@ export default function FlashcardListClient() {
           {deckIdFromParams && currentDeck && <Library className="mr-3 h-7 w-7 text-primary/80 flex-shrink-0" />}
           {pageTitle}
         </h1>
-        <Link href={createCardLink} passHref>
-          <Button className="w-full sm:w-auto text-base py-3">
-            <PlusCircle className="mr-2 h-5 w-5" /> {t('flashcards.button.create')}
-          </Button>
-        </Link>
+        {/* Removed Create new card button from here */}
       </div>
 
       {filteredFlashcards.length === 0 ? (
@@ -130,6 +126,16 @@ export default function FlashcardListClient() {
           ))}
         </div>
       )}
+
+      <Link href={createCardLink} passHref>
+        <Button
+          variant="default"
+          className="fixed bottom-[6.5rem] right-6 z-40 rounded-full h-14 w-14 p-0 shadow-lg"
+          title={t('flashcards.button.create')}
+        >
+          <PlusCircle className="h-7 w-7" />
+        </Button>
+      </Link>
     </>
   );
 }

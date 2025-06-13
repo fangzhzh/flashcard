@@ -132,9 +132,7 @@ export default function DecksClient() {
     <>
       <div className="flex justify-between items-center mb-8 gap-4">
         <h1 className="text-3xl font-bold tracking-tight">{t('decks.title')}</h1>
-        <Button onClick={openNewDeckDialog} className="text-base py-3">
-          <PlusCircle className="mr-2 h-5 w-5" /> {t('decks.button.create')}
-        </Button>
+        {/* Removed Button onClick={openNewDeckDialog} from here */}
       </div>
 
       {decks.length === 0 && !isLoadingDecks && (
@@ -245,8 +243,15 @@ export default function DecksClient() {
           </form>
         </DialogContent>
       </Dialog>
+
+      <Button
+        variant="default"
+        className="fixed bottom-[6.5rem] right-6 z-40 rounded-full h-14 w-14 p-0 shadow-lg"
+        onClick={openNewDeckDialog}
+        title={t('decks.button.create')}
+      >
+        <PlusCircle className="h-7 w-7" />
+      </Button>
     </>
   );
 }
-
-    

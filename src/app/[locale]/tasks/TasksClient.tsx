@@ -6,7 +6,7 @@ import { useFlashcards } from '@/contexts/FlashcardsContext';
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
-import { Loader2, Info, ShieldAlert, PlayCircle, Zap, AlertTriangle, CalendarRange, Hourglass, ListChecks } from 'lucide-react';
+import { Loader2, Info, ShieldAlert, PlayCircle, Zap, AlertTriangle, CalendarRange, Hourglass, ListChecks, PlusCircle } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { useI18n, useCurrentLocale } from '@/lib/i18n/client';
 import type { Task, TimeInfo, TaskStatus, RepeatFrequency, ReminderType } from '@/types';
@@ -351,7 +351,7 @@ export default function TasksClient() {
           onValueChange={(value) => setActiveFilter(value as TaskFilter | 'all')}
           className="mb-4 px-1"
         >
-          <TabsList className="grid w-full grid-cols-5 h-auto"> {/* Changed to grid-cols-5 */}
+          <TabsList className="grid w-full grid-cols-5 h-auto">
             <TabsTrigger value="all" className="py-1.5 sm:py-2 text-xs sm:text-sm">{t('tasks.filter.all')}</TabsTrigger>
             <TabsTrigger value="today" className="py-1.5 sm:py-2 text-xs sm:text-sm">{t('tasks.filter.today')}</TabsTrigger>
             <TabsTrigger value="threeDays" className="py-1.5 sm:py-2 text-xs sm:text-sm">{t('tasks.filter.threeDays')}</TabsTrigger>
@@ -529,7 +529,7 @@ export default function TasksClient() {
       {!showEditPanel && (
           <Button
             variant="default"
-            className="fixed bottom-6 right-6 z-50 rounded-full h-14 w-14 p-0 shadow-lg"
+            className="fixed bottom-[6.5rem] right-6 z-40 rounded-full h-14 w-14 p-0 shadow-lg"
             onClick={handleCreateNewTask}
             title={t('tasks.button.create')}
         >

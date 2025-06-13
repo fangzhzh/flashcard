@@ -16,6 +16,7 @@ import { usePomodoro } from '@/contexts/PomodoroContext';
 import { format, parseISO, differenceInCalendarDays, isToday, isTomorrow, isValid, isSameYear, startOfDay } from 'date-fns';
 import { cn } from '@/lib/utils';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import TaskDurationPie from '@/components/TaskDurationPie';
 
 
 interface FormattedTimeInfo {
@@ -142,17 +143,16 @@ export default function TasksClient() {
           } else if (todayForComparison < parsedStartDate) { 
              tooltipLabel = `${fullStartDateStr} - ${fullEndDateStr} (${t('task.display.inXDays', { count: daysToStart })})`;
              timeStatus = 'upcoming';
-          } else { // Should ideally not be reached if above logic is complete for valid ranges
+          } else { 
              tooltipLabel = `${fullStartDateStr} - ${fullEndDateStr} (${t('task.display.endsInXDays', {count: differenceInCalendarDays(parsedEndDate, todayForComparison) + 1 })})`;
              timeStatus = 'active';
           }
         }
       } catch (e) { 
           tooltipLabel = `${formatDateDisplay(parsedStartDate, true)} (${t('task.display.overdue')})`;
-          timeStatus = 'overdue'; // Fallback if end date parsing fails
+          timeStatus = 'overdue'; 
       }
     } else if (timeInfo.type === 'datetime' || timeInfo.type === 'all_day' || (timeInfo.type === 'date_range' && !timeInfo.endDate) ) {
-      // Treat date_range without endDate as a single day event for status purposes
       const fullStartDateStr = formatDateDisplay(parsedStartDate, true);
       if (isToday(parsedStartDate)) {
         tooltipLabel = t('task.display.today');
@@ -168,13 +168,11 @@ export default function TasksClient() {
         tooltipLabel += ` ${t('task.display.at')} ${timeInfo.time}`;
       }
     } else if (timeInfo.type === 'no_time' && timeInfo.startDate) { 
-      // This case might be rare if 'no_time' implies startDate is null, but if startDate can exist with no_time type:
       tooltipLabel = formatDateDisplay(parsedStartDate, true); 
       if (isToday(parsedStartDate)) timeStatus = 'active';
       else if (daysToStart > 0) timeStatus = 'upcoming';
       else timeStatus = 'overdue';
     } else { 
-       // No valid startDate or type that implies a date
        tooltipLabel = t('task.display.noTime');
        visibleLabel = ''; 
        timeStatus = 'none';
@@ -319,6 +317,88 @@ export default function TasksClient() {
         <ul className={cn("space-y-1 flex-grow", showEditPanel ? "px-1 md:px-0" : "px-1")}>
           {sortedTasks.map((task) => {
             const { visibleLabel, tooltipLabel, timeStatus } = formatTimeLabel(task.timeInfo);
+            let statusIcon = null;
+
+            if (task.status !== 'completed') {
+                if (timeStatus === 'active' && task.timeInfo?.type === 'date_range' && task.timeInfo.startDate && task.timeInfo.endDate) {
+                    const sDate = parseISO(task.timeInfo.startDate);
+                    const eDate = parseISO(task.timeInfo.endDate);
+                    const today = startOfDay(new Date());
+
+                    if (isValid(sDate) && isValid(eDate) && eDate >= sDate) {
+                        const totalDaysInRange = differenceInCalendarDays(eDate, sDate) + 1;
+                        let daysRemainingIncludingToday = differenceInCalendarDays(eDate, today) + 1;
+                        
+                        let currentRemainingPercentage = 0;
+                        if (today > eDate) { // Overdue (already past end date)
+                            currentRemainingPercentage = 0;
+                             statusIcon = ( // Fallback to overdue icon if pie calculation leads to 0 and it's truly overdue by date.
+                                <Tooltip delayDuration={300}>
+                                    <TooltipTrigger asChild>
+                                        <AlertTriangle className="h-4 w-4 text-yellow-500 mx-1 flex-shrink-0" />
+                                    </TooltipTrigger>
+                                    <TooltipContent><p>{t('task.display.status.overdue')}</p></TooltipContent>
+                                </Tooltip>
+                            );
+                        } else if (today < sDate) { // Upcoming
+                            currentRemainingPercentage = 100;
+                             statusIcon = (
+                                <Tooltip delayDuration={300}>
+                                    <TooltipTrigger asChild>
+                                        <Hourglass className="h-4 w-4 text-muted-foreground mx-1 flex-shrink-0" />
+                                    </TooltipTrigger>
+                                    <TooltipContent><p>{t('task.display.status.upcoming')}</p></TooltipContent>
+                                </Tooltip>
+                            );
+                        } else { // Active within range
+                           if (totalDaysInRange > 0) {
+                             currentRemainingPercentage = (daysRemainingIncludingToday / totalDaysInRange) * 100;
+                           }
+                           currentRemainingPercentage = Math.max(0, Math.min(currentRemainingPercentage, 100));
+                           if (currentRemainingPercentage > 0) {
+                             statusIcon = <TaskDurationPie remainingPercentage={currentRemainingPercentage} size={16} className="mx-1 flex-shrink-0" />;
+                           } else { // If remaining is 0, but today is eDate, show as almost done, or if truly overdue show overdue
+                                statusIcon = (
+                                    <Tooltip delayDuration={300}>
+                                        <TooltipTrigger asChild>
+                                            <AlertTriangle className="h-4 w-4 text-yellow-500 mx-1 flex-shrink-0" />
+                                        </TooltipTrigger>
+                                        <TooltipContent><p>{t('task.display.status.overdue')}</p></TooltipContent>
+                                    </Tooltip>
+                                );
+                           }
+                        }
+                    }
+                } else if (timeStatus === 'upcoming') {
+                    statusIcon = (
+                        <Tooltip delayDuration={300}>
+                            <TooltipTrigger asChild>
+                                <Hourglass className="h-4 w-4 text-muted-foreground mx-1 flex-shrink-0" />
+                            </TooltipTrigger>
+                            <TooltipContent><p>{t('task.display.status.upcoming')}</p></TooltipContent>
+                        </Tooltip>
+                    );
+                } else if (timeStatus === 'active') { // Non-date-range active tasks
+                     statusIcon = (
+                        <Tooltip delayDuration={300}>
+                            <TooltipTrigger asChild>
+                                <Zap className="h-4 w-4 text-green-500 mx-1 flex-shrink-0" />
+                            </TooltipTrigger>
+                            <TooltipContent><p>{t('task.display.status.active')}</p></TooltipContent>
+                        </Tooltip>
+                    );
+                } else if (timeStatus === 'overdue') {
+                    statusIcon = (
+                        <Tooltip delayDuration={300}>
+                            <TooltipTrigger asChild>
+                                <AlertTriangle className="h-4 w-4 text-yellow-500 mx-1 flex-shrink-0" />
+                            </TooltipTrigger>
+                            <TooltipContent><p>{t('task.display.status.overdue')}</p></TooltipContent>
+                        </Tooltip>
+                    );
+                }
+            }
+
             return (
             <TooltipProvider key={task.id}>
               <li
@@ -332,7 +412,6 @@ export default function TasksClient() {
                       id={`task-${task.id}`}
                       checked={task.status === 'completed'}
                       onCheckedChange={(checked) => {
-                          event?.stopPropagation(); 
                           handleToggleTaskCompletion(task);
                       }}
                       className="mr-2 flex-shrink-0" 
@@ -372,46 +451,19 @@ export default function TasksClient() {
                       </Tooltip>
                     ) : (
                        <span className="text-xs text-muted-foreground mr-2 cursor-pointer" onClick={() => handleEditTask(task.id)}>
-                          {/* Placeholder or empty if no time */}
                        </span>
                     )}
                   
                   {task.timeInfo?.type === 'date_range' && task.status !== 'completed' && (
-                    <CalendarRange className="h-3.5 w-3.5 text-muted-foreground mx-1 flex-shrink-0" />
+                    <CalendarRange className="h-4 w-4 text-muted-foreground mx-1 flex-shrink-0" />
                   )}
 
-                  {visibleLabel && timeStatus !== 'none' && task.status !== 'completed' && (
-                    <>
-                      {timeStatus === 'upcoming' && 
-                        <Tooltip delayDuration={300}>
-                            <TooltipTrigger asChild>
-                                <Hourglass className="h-3.5 w-3.5 text-muted-foreground mx-1 flex-shrink-0" />
-                            </TooltipTrigger>
-                            <TooltipContent><p>{t('task.display.status.upcoming')}</p></TooltipContent>
-                        </Tooltip>
-                      }
-                      {timeStatus === 'active' && 
-                        <Tooltip delayDuration={300}>
-                            <TooltipTrigger asChild>
-                                <Zap className="h-3.5 w-3.5 text-green-500 mx-1 flex-shrink-0" />
-                            </TooltipTrigger>
-                            <TooltipContent><p>{t('task.display.status.active')}</p></TooltipContent>
-                        </Tooltip>
-                      }
-                      {timeStatus === 'overdue' && 
-                        <Tooltip delayDuration={300}>
-                            <TooltipTrigger asChild>
-                                <AlertTriangle className="h-3.5 w-3.5 text-yellow-500 mx-1 flex-shrink-0" />
-                            </TooltipTrigger>
-                            <TooltipContent><p>{t('task.display.status.overdue')}</p></TooltipContent>
-                        </Tooltip>
-                      }
-                    </>
-                  )}
+                  {statusIcon}
+
                   <Button
                     variant="ghost"
                     size="icon"
-                    className="transition-opacity h-8 w-8 flex-shrink-0"
+                    className="h-8 w-8 flex-shrink-0"
                     onClick={(e) => { e.stopPropagation(); handleStartPomodoroForTask(task.title); }}
                     title={t('task.item.startPomodoro')}
                     disabled={task.status === 'completed'}
@@ -449,6 +501,7 @@ export default function TasksClient() {
     
 
     
+
 
 
 

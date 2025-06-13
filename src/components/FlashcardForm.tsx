@@ -75,7 +75,7 @@ export default function FlashcardForm({
                 <FormItem>
                   <FormLabel className="text-lg">{t('flashcard.form.label.front')}</FormLabel>
                   <FormControl>
-                    <Textarea placeholder={t('flashcard.form.placeholder.front')} {...field} className="min-h-[100px] text-base" />
+                    <Textarea placeholder={t('flashcard.form.placeholder.front')} {...field} className="min-h-[150px] text-base" />
                   </FormControl>
                   <FormMessage>{form.formState.errors.front && t(form.formState.errors.front.message as any, { maxLength: 100000 })}</FormMessage>
                 </FormItem>
@@ -88,7 +88,7 @@ export default function FlashcardForm({
                 <FormItem>
                   <FormLabel className="text-lg">{t('flashcard.form.label.back')}</FormLabel>
                   <FormControl>
-                    <Textarea placeholder={t('flashcard.form.placeholder.back')} {...field} className="min-h-[150px] text-base" />
+                    <Textarea placeholder={t('flashcard.form.placeholder.back')} {...field} className="min-h-[250px] text-base" />
                   </FormControl>
                   <FormMessage>{form.formState.errors.back && t(form.formState.errors.back.message as any, { maxLength: 200000 })}</FormMessage>
                 </FormItem>

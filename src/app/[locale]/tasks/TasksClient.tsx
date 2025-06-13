@@ -327,13 +327,18 @@ export default function TasksClient() {
                     const sDate = parseISO(task.timeInfo.startDate);
                     if (isValid(sDate)) {
                         const daysToStart = differenceInCalendarDays(sDate, todayForComparison);
-                        let hourglassColorClass = 'text-muted-foreground'; // Default for > 30 days
+                        let hourglassStyle: React.CSSProperties = {};
+                        let hourglassBaseClassName = 'h-4 w-4 mx-1 flex-shrink-0';
+                        let hourglassFinalClassName = hourglassBaseClassName;
+
                         if (daysToStart >= 0 && daysToStart <= 7) {
-                            hourglassColorClass = 'text-green-600';
+                            hourglassStyle = { color: '#2ECC71' };
                         } else if (daysToStart > 7 && daysToStart <= 30) {
-                            hourglassColorClass = 'text-green-400';
+                            hourglassStyle = { color: '#808000' };
+                        } else { // daysToStart > 30 or daysToStart < 0 (already overdue, but timeStatus is upcoming so this path for daysToStart < 0 is unlikely)
+                            hourglassFinalClassName = cn(hourglassBaseClassName, 'text-muted-foreground');
                         }
-                        statusIcon = <Hourglass className={cn('h-4 w-4 mx-1 flex-shrink-0', hourglassColorClass)} />;
+                        statusIcon = <Hourglass className={hourglassFinalClassName} style={hourglassStyle} />;
                         statusIconTooltipContent = <p>{t('task.display.status.upcoming')}</p>;
                     }
                 } else if (timeStatus === 'active' && task.timeInfo?.type === 'date_range' && task.timeInfo.startDate && task.timeInfo.endDate) {
@@ -472,6 +477,7 @@ export default function TasksClient() {
     
 
     
+
 
 
 

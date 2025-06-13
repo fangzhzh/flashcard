@@ -44,12 +44,12 @@ const timeInfoSchema = z.object({
   endDate: z.string().nullable().optional(),
   time: z.string().regex(/^([01]\d|2[0-3]):([0-5]\d)$/, 'task.form.error.timeInfo.invalidTime').nullable().optional(),
 }).refine(data => {
-  if (data.type === 'date_range' && data.startDate && data.endDate) {
-    return new Date(data.endDate) >= new Date(data.startDate);
-  }
   if (data.type === 'datetime' && !data.startDate) return false;
   if (data.type === 'all_day' && !data.startDate) return false;
   if (data.type === 'date_range' && (!data.startDate || !data.endDate)) return false;
+  if (data.type === 'date_range' && data.startDate && data.endDate) {
+    return new Date(data.endDate) >= new Date(data.startDate);
+  }
   return true;
 }, (data) => {
     if (data.type === 'date_range' && data.startDate && data.endDate && new Date(data.endDate) < new Date(data.startDate)) {
@@ -59,9 +59,9 @@ const timeInfoSchema = z.object({
         return { message: 'task.form.error.timeInfo.startDateRequired', path: ["startDate"] };
     }
     if (data.type === 'date_range' && (!data.startDate || !data.endDate)) {
-        return { message: 'task.form.error.timeInfo.dateRangeFieldsRequired', path: ["startDate"] };
+        return { message: 'task.form.error.timeInfo.dateRangeFieldsRequired', path: ["startDate"] }; // Or a more general path
     }
-    return { message: 'Invalid time configuration' };
+    return { message: 'Invalid time configuration' }; // Generic fallback
 });
 
 const reminderInfoSchema = z.object({
@@ -71,7 +71,7 @@ const reminderInfoSchema = z.object({
 const taskSchema = z.object({
   title: z.string().min(1, 'toast.task.error.titleRequired'),
   description: z.string().optional().nullable(),
-  repeat: z.enum(['none', 'daily', 'weekly', 'monthly', 'annually', 'weekday', 'weekend']).default('none'),
+  repeat: z.enum(['none', 'daily', 'weekday', 'weekend', 'weekly', 'monthly', 'annually']).default('none'),
   timeInfo: timeInfoSchema,
   artifactLink: artifactLinkSchema.default({ flashcardId: null }),
   reminderInfo: reminderInfoSchema.default({ type: 'none' }),
@@ -151,35 +151,31 @@ export default function TaskForm({
 
 
   React.useEffect(() => {
-    const dataForReset = initialData || {
-      title: '',
-      description: '',
-      repeat: 'none' as RepeatFrequency,
-      timeInfo: { type: 'no_time' as 'no_time', startDate: null, endDate: null, time: null },
-      artifactLink: { flashcardId: null as string | null },
-      reminderInfo: { type: 'none' as ReminderType },
+    const dataForReset: TaskFormData = {
+      title: initialData?.title || '',
+      description: initialData?.description || '',
+      repeat: initialData?.repeat || 'none',
+      timeInfo: initialData?.timeInfo || { type: 'no_time', startDate: null, endDate: null, time: null },
+      artifactLink: initialData?.artifactLink || { flashcardId: null },
+      reminderInfo: initialData?.reminderInfo || { type: 'none' },
     };
   
-    form.reset({
-      title: dataForReset.title || '',
-      description: dataForReset.description || '',
-      repeat: dataForReset.repeat || 'none',
-      timeInfo: dataForReset.timeInfo || { type: 'no_time', startDate: null, endDate: null, time: null },
-      artifactLink: dataForReset.artifactLink || { flashcardId: null },
-      reminderInfo: dataForReset.reminderInfo || { type: 'none' },
-    });
+    form.reset(dataForReset);
   
-    const currentTI = dataForReset.timeInfo || { type: 'no_time' };
+    const currentTI = dataForReset.timeInfo;
     setTempStartDate(currentTI.startDate && isValid(parseISO(currentTI.startDate)) ? parseISO(currentTI.startDate) : undefined);
     setTempTime(currentTI.time || '');
     setTempEndDate(currentTI.endDate && isValid(parseISO(currentTI.endDate)) ? parseISO(currentTI.endDate) : undefined);
     
     const shouldOpenTimeSection = currentTI.type !== 'no_time' && !!currentTI.startDate;
-    if (isTimeSectionOpen !== shouldOpenTimeSection) { 
+    // Only set isTimeSectionOpen if it's different, to avoid potential loops if it were a dep of this effect
+    if (isTimeSectionOpen !== shouldOpenTimeSection) {
         setIsTimeSectionOpen(shouldOpenTimeSection);
     }
-  
-  }, [initialData, form.reset]);
+  // It's important that form.reset is NOT in the dependency array, as it has a stable reference.
+  // We only want to reset when initialData actually changes.
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [initialData]);
 
 
   const repeatOptions: { value: RepeatFrequency; labelKey: string }[] = [
@@ -204,44 +200,96 @@ export default function TaskForm({
   ];
 
   const handleSetTimeInfo = () => {
-    const startDateStr = tempStartDate ? format(tempStartDate, "yyyy-MM-dd") : null;
-    const endDateStr = tempEndDate ? format(tempEndDate, "yyyy-MM-dd") : null;
-    const timeStr = tempTime || null;
+    let newTimeInfo: TimeInfo = { type: 'no_time', startDate: null, endDate: null, time: null };
+    let sDate = tempStartDate;
+    const eDate = tempEndDate;
+    const timeVal = tempTime || null;
 
-    if (startDateStr && timeStr && !endDateStr) {
-      form.setValue('timeInfo', { type: 'datetime', startDate: startDateStr, time: timeStr, endDate: null });
-    } else if (startDateStr && !timeStr && !endDateStr) {
-      form.setValue('timeInfo', { type: 'all_day', startDate: startDateStr, time: null, endDate: null });
-    } else if (startDateStr && endDateStr) {
-       form.setValue('timeInfo', { type: 'date_range', startDate: startDateStr, endDate: endDateStr, time: timeStr });
-    } else {
-      form.setValue('timeInfo', { type: 'no_time', startDate: null, endDate: null, time: null });
+    if (eDate && !sDate) { // If only end date is picked, assume it's for that day.
+        sDate = eDate;
     }
+
+    if (sDate) {
+        const startDateString = format(sDate, "yyyy-MM-dd");
+        if (timeVal && (!eDate || eDate.getTime() === sDate.getTime())) {
+            // Specific time on a single day
+            newTimeInfo = { type: 'datetime', startDate: startDateString, time: timeVal, endDate: null };
+        } else if (!timeVal && (!eDate || eDate.getTime() === sDate.getTime())) {
+            // All day event for a single day
+            newTimeInfo = { type: 'all_day', startDate: startDateString, time: null, endDate: null };
+        } else if (eDate && eDate.getTime() !== sDate.getTime()) {
+            // Date range (endDate must be different from startDate)
+             if (eDate.getTime() < sDate.getTime()) {
+                // If user somehow selected end date before start date, treat as all_day for start date
+                // Or show an error - Zod will catch this specific case if type is 'date_range'
+                 newTimeInfo = { type: 'all_day', startDate: startDateString, time: null, endDate: null };
+                 toast({title: t('error'), description: t('task.form.error.timeInfo.endDateAfterStartDate'), variant: "destructive"})
+            } else {
+                const endDateString = format(eDate, "yyyy-MM-dd");
+                newTimeInfo = { type: 'date_range', startDate: startDateString, endDate: endDateString, time: timeVal };
+            }
+        } else {
+            // Fallback for sDate existing but not fitting other categories (should ideally not be reached if logic above is complete)
+            // e.g. sDate exists, eDate exists and is same as sDate, but timeVal might be null or set.
+            // This is covered by the first two conditions. If timeVal is null -> all_day. If timeVal is set -> datetime.
+            // This else implies sDate exists, and either eDate is null, or eDate is same as sDate.
+            // If eDate is null, and timeVal is null -> all_day. Covered.
+            // If eDate is null, and timeVal is set -> datetime. Covered.
+             newTimeInfo = { type: 'all_day', startDate: startDateString, time: null, endDate: null };
+        }
+    }
+    // This will set the form value and trigger validation.
+    form.setValue('timeInfo', newTimeInfo, { shouldValidate: true, shouldDirty: true, shouldTouch: true });
+    // Trigger validation explicitly to update error messages if any
+    void form.trigger('timeInfo');
     setIsTimeSectionOpen(false);
   };
+
 
   const removeTimeInfo = () => {
     setTempStartDate(undefined);
     setTempTime('');
     setTempEndDate(undefined);
-    form.setValue('timeInfo', { type: 'no_time', startDate: null, endDate: null, time: null });
+    form.setValue('timeInfo', { type: 'no_time', startDate: null, endDate: null, time: null }, { shouldValidate: true, shouldDirty: true });
     setIsTimeSectionOpen(false);
   };
 
   const getTimeDisplayValue = () => {
     const currentTi = form.getValues("timeInfo");
-    if (!currentTi || currentTi.type === 'no_time' || !currentTi.startDate || !isValid(parseISO(currentTi.startDate))) {
+    if (!currentTi || currentTi.type === 'no_time' || !currentTi.startDate) {
+        // Check for invalid date string explicitly
+        if (currentTi && currentTi.startDate && !isValid(parseISO(currentTi.startDate))) {
+             return t('task.form.timeInfo.selectTimeButton'); // Or show an error state
+        }
         return t('task.form.timeInfo.selectTimeButton');
     }
-    const startDate = parseISO(currentTi.startDate);
-    if (currentTi.type === 'all_day') return `${t('task.form.timeInfo.type.all_day')} - ${format(startDate, 'PPP')}`;
-    if (currentTi.type === 'datetime' && currentTi.time) return `${format(startDate, 'PPP')} ${t('task.display.at')} ${currentTi.time}`;
-    if (currentTi.type === 'datetime') return `${format(startDate, 'PPP')} (${t('task.form.timeInfo.missingTime')})`;
-    if (currentTi.type === 'date_range' && currentTi.endDate && isValid(parseISO(currentTi.endDate))) {
-        const endDate = parseISO(currentTi.endDate);
-        return `${format(startDate, 'PP')} - ${format(endDate, 'PP')}`;
+    // Ensure startDate is valid before parsing
+    let startDate: Date;
+    try {
+        startDate = parseISO(currentTi.startDate);
+        if (!isValid(startDate)) {
+            return t('task.form.timeInfo.selectTimeButton'); // Invalid date stored
+        }
+    } catch (e) {
+        return t('task.form.timeInfo.selectTimeButton'); // Error parsing date
     }
-    return t('task.form.timeInfo.selectTimeButton');
+
+    if (currentTi.type === 'all_day') return `${t('task.form.timeInfo.type.all_day')} - ${format(startDate, 'PPP', { locale: currentLocale === 'zh' ? require('date-fns/locale/zh-CN') : require('date-fns/locale/en-US') })}`;
+    if (currentTi.type === 'datetime' && currentTi.time) return `${format(startDate, 'PPP', { locale: currentLocale === 'zh' ? require('date-fns/locale/zh-CN') : require('date-fns/locale/en-US') })} ${t('task.display.at')} ${currentTi.time}`;
+    if (currentTi.type === 'datetime') return `${format(startDate, 'PPP', { locale: currentLocale === 'zh' ? require('date-fns/locale/zh-CN') : require('date-fns/locale/en-US') })} (${t('task.form.timeInfo.missingTime')})`;
+    
+    if (currentTi.type === 'date_range' && currentTi.endDate) {
+        let endDate: Date;
+        try {
+            endDate = parseISO(currentTi.endDate);
+            if(!isValid(endDate)) return t('task.form.timeInfo.selectTimeButton'); // Invalid end date
+        } catch(e) {
+            return t('task.form.timeInfo.selectTimeButton'); // Error parsing end date
+        }
+        if (endDate < startDate) return t('task.form.error.timeInfo.endDateAfterStartDate');
+        return `${format(startDate, 'PP', { locale: currentLocale === 'zh' ? require('date-fns/locale/zh-CN') : require('date-fns/locale/en-US') })} - ${format(endDate, 'PP', { locale: currentLocale === 'zh' ? require('date-fns/locale/zh-CN') : require('date-fns/locale/en-US') })}`;
+    }
+    return t('task.form.timeInfo.selectTimeButton'); // Fallback
   };
 
   const handleRemoveLink = async () => {
@@ -385,7 +433,7 @@ export default function TaskForm({
                           className={cn("w-full justify-start text-left font-normal h-9", !tempStartDate && "text-muted-foreground")}
                         >
                           <CalendarIcon className="mr-2 h-4 w-4" />
-                          {tempStartDate ? format(tempStartDate, "PPP") : <span>{t('task.form.placeholder.startDate')}</span>}
+                          {tempStartDate ? format(tempStartDate, "PPP", { locale: currentLocale === 'zh' ? require('date-fns/locale/zh-CN') : require('date-fns/locale/en-US') }) : <span>{t('task.form.placeholder.startDate')}</span>}
                         </Button>
                       </PopoverTrigger>
                       <PopoverContent className="w-auto p-0">
@@ -406,7 +454,7 @@ export default function TaskForm({
                           className={cn("w-full justify-start text-left font-normal h-9", !tempEndDate && "text-muted-foreground")}
                         >
                            <CalendarIcon className="mr-2 h-4 w-4" />
-                          {tempEndDate ? format(tempEndDate, "PPP") : <span>{t('task.form.placeholder.endDate')}</span>}
+                          {tempEndDate ? format(tempEndDate, "PPP", { locale: currentLocale === 'zh' ? require('date-fns/locale/zh-CN') : require('date-fns/locale/en-US') }) : <span>{t('task.form.placeholder.endDate')}</span>}
                         </Button>
                       </PopoverTrigger>
                       <PopoverContent className="w-auto p-0">
@@ -743,3 +791,4 @@ function SelectFlashcardDialog({
   );
 }
     
+

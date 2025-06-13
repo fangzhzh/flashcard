@@ -417,9 +417,9 @@ export default {
   'task.currentTaskLabel': '当前任务:',
   'tasks.filter.all': '所有任务',
   'tasks.filter.today': '今天',
-  'tasks.filter.threeDays': '未来3天',
+  'tasks.filter.threeDays': '3天内',
   'tasks.filter.thisWeek': '本周',
-  'tasks.filter.nextWeek': '下周',
+  'tasks.filter.twoWeeks': '2周内',
 
   // New keys for Task Date/Time/Reminder Dialog
   'task.form.dateTimeReminder.editButton': '配置时间与重复...',

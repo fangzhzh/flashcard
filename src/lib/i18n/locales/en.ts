@@ -417,9 +417,9 @@ export default {
   'task.currentTaskLabel': 'Current Task:',
   'tasks.filter.all': 'All Tasks',
   'tasks.filter.today': 'Today',
-  'tasks.filter.threeDays': 'Next 3 Days',
-  'tasks.filter.thisWeek': 'This Week',
-  'tasks.filter.nextWeek': 'Next Week',
+  'tasks.filter.threeDays': '3 Days',
+  'tasks.filter.thisWeek': 'Week',
+  'tasks.filter.twoWeeks': '2 Weeks',
 
   // New keys for Task Date/Time/Reminder Dialog
   'task.form.dateTimeReminder.editButton': 'Configure Time & Repeat...',

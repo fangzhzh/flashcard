@@ -58,17 +58,15 @@ export default function Header() {
                   key={item.href}
                   href={item.href}
                   className={cn(
-                    "relative text-sm font-medium transition-colors hover:text-primary px-1 py-1 md:px-3 rounded-md", 
+                    "relative text-sm font-medium transition-colors hover:text-primary px-2 py-1 rounded-md flex items-center gap-1.5", 
                     (basePathname === item.href || (item.href !== '/' && basePathname.startsWith(item.href)))
                       ? "text-primary bg-primary/10"
                       : "text-muted-foreground"
                   )}
                   title={t(item.labelKey as any)}
                 >
-                  <div className="flex items-center"> 
-                    <item.icon className="inline-block h-5 w-5 md:hidden" />
-                    <span className="hidden md:inline-block">{t(item.labelKey as any)}</span>
-                  </div>
+                  <item.icon className="h-5 w-5 flex-shrink-0" />
+                  <span className="hidden md:inline-block">{t(item.labelKey as any)}</span>
                   {item.labelKey === 'nav.flashcards' && user && !flashcardsLoading && dueTodayCount > 0 && (
                     <Badge
                       variant="destructive"

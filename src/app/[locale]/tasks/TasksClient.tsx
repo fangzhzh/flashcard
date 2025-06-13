@@ -27,7 +27,7 @@ interface FormattedTimeInfo {
   timeStatus: 'upcoming' | 'active' | 'overdue' | 'none';
 }
 
-type TaskFilter = 'today' | 'threeDays' | 'thisWeek' | 'nextWeek';
+type TaskFilter = 'all' | 'today' | 'threeDays' | 'thisWeek' | 'twoWeeks';
 
 export default function TasksClient() {
   // --- ALL HOOKS MUST BE CALLED UNCONDITIONALLY AT THE TOP ---
@@ -52,7 +52,7 @@ export default function TasksClient() {
   const [isSubmittingForm, setIsSubmittingForm] = useState(false);
   const [selectedTaskId, setSelectedTaskId] = useState<string | null>(null);
   const [isCreatingNewTask, setIsCreatingNewTask] = useState(false);
-  const [activeFilter, setActiveFilter] = useState<TaskFilter | 'all'>('all');
+  const [activeFilter, setActiveFilter] = useState<TaskFilter>('all');
 
 
   const defaultNewTaskData = useMemo(() => ({
@@ -192,9 +192,9 @@ export default function TasksClient() {
           filterInterval.start = startOfWeek(today, { weekStartsOn });
           filterInterval.end = endOfWeek(today, { weekStartsOn });
           break;
-        case 'nextWeek':
+        case 'twoWeeks': // New: covers next two full calendar weeks
           filterInterval.start = startOfWeek(addDays(today, 7), { weekStartsOn });
-          filterInterval.end = endOfWeek(addDays(today, 7), { weekStartsOn });
+          filterInterval.end = endOfWeek(addDays(today, 13), { weekStartsOn });
           break;
         default:
           return true;
@@ -348,7 +348,7 @@ export default function TasksClient() {
       )}>
         <Tabs
           value={activeFilter}
-          onValueChange={(value) => setActiveFilter(value as TaskFilter | 'all')}
+          onValueChange={(value) => setActiveFilter(value as TaskFilter)}
           className="mb-4 px-1"
         >
           <TabsList className="grid w-full grid-cols-5 h-auto">
@@ -356,7 +356,7 @@ export default function TasksClient() {
             <TabsTrigger value="today" className="py-1.5 sm:py-2 text-xs sm:text-sm">{t('tasks.filter.today')}</TabsTrigger>
             <TabsTrigger value="threeDays" className="py-1.5 sm:py-2 text-xs sm:text-sm">{t('tasks.filter.threeDays')}</TabsTrigger>
             <TabsTrigger value="thisWeek" className="py-1.5 sm:py-2 text-xs sm:text-sm">{t('tasks.filter.thisWeek')}</TabsTrigger>
-            <TabsTrigger value="nextWeek" className="py-1.5 sm:py-2 text-xs sm:text-sm">{t('tasks.filter.nextWeek')}</TabsTrigger>
+            <TabsTrigger value="twoWeeks" className="py-1.5 sm:py-2 text-xs sm:text-sm">{t('tasks.filter.twoWeeks')}</TabsTrigger>
           </TabsList>
         </Tabs>
 

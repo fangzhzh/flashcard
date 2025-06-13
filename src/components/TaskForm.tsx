@@ -9,10 +9,10 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import type { Task, RepeatFrequency, TimeInfo, ArtifactLink, ReminderInfo, Flashcard as FlashcardType, Deck } from '@/types';
-import { Save, CalendarIcon, Link2, RotateCcw, Clock, Bell, Trash2, X, Loader2, FilePlus, ListChecks, Search, Edit3 } from 'lucide-react';
+import { Save, CalendarIcon, Link2, RotateCcw, Clock, Bell, Trash2, X, Loader2, FilePlus, ListChecks, Search, Edit3, Repeat } from 'lucide-react';
 import { useI18n, useCurrentLocale } from '@/lib/i18n/client';
 import { cn } from '@/lib/utils';
-import { format, parseISO, isValid, isToday, isTomorrow, formatRelative, isSameDay } from 'date-fns';
+import { format, parseISO, isValid, isToday, isTomorrow } from 'date-fns';
 import { zhCN, enUS } from 'date-fns/locale';
 import { useFlashcards } from '@/contexts/FlashcardsContext';
 import FlashcardForm from '@/components/FlashcardForm';
@@ -164,10 +164,9 @@ export default function TaskForm({
       reminderInfo: initialData?.reminderInfo || { type: 'none' },
     };
     form.reset(dataForReset);
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [initialData]);
+  }, [initialData, form]);
 
-  const repeatOptions: { value: RepeatFrequency; labelKey: string }[] = [
+  const repeatOptions: { value: RepeatFrequency; labelKey: string }[] = React.useMemo(() => [
     { value: 'none', labelKey: 'task.form.repeat.none' },
     { value: 'daily', labelKey: 'task.form.repeat.daily' },
     { value: 'weekday', labelKey: 'task.form.repeat.weekday' },
@@ -175,9 +174,9 @@ export default function TaskForm({
     { value: 'weekly', labelKey: 'task.form.repeat.weekly' },
     { value: 'monthly', labelKey: 'task.form.repeat.monthly' },
     { value: 'annually', labelKey: 'task.form.repeat.annually' },
-  ];
+  ], []);
 
-  const reminderOptions: { value: ReminderType; labelKey: string }[] = [
+  const reminderOptions: { value: ReminderType; labelKey: string }[] = React.useMemo(() => [
     { value: 'none', labelKey: 'task.form.reminder.type.none' },
     { value: 'at_event_time', labelKey: 'task.form.reminder.type.at_event_time' },
     { value: '5_minutes_before', labelKey: 'task.form.reminder.type.5_minutes_before' },
@@ -186,63 +185,51 @@ export default function TaskForm({
     { value: '30_minutes_before', labelKey: 'task.form.reminder.type.30_minutes_before' },
     { value: '1_hour_before', labelKey: 'task.form.reminder.type.1_hour_before' },
     { value: '1_day_before', labelKey: 'task.form.reminder.type.1_day_before' },
-  ];
+  ], []);
   
-  const formatDateTimeReminderSummary = React.useCallback(() => {
-    const { timeInfo, repeat, reminderInfo } = form.getValues();
-    const parts: string[] = [];
+  const formatDateTimeDisplay = React.useCallback(() => {
+    const { timeInfo } = form.getValues();
+    if (timeInfo.type === 'no_time' || !timeInfo.startDate || !isValid(parseISO(timeInfo.startDate))) {
+        return t('task.form.dateTimeReminder.summary.addDateTime');
+    }
+    const startDate = parseISO(timeInfo.startDate);
+    let dateStr = '';
+    if (isToday(startDate)) dateStr = t('task.form.dateTimeReminder.summary.today');
+    else if (isTomorrow(startDate)) dateStr = t('task.form.dateTimeReminder.summary.tomorrow');
+    else dateStr = format(startDate, 'MMM d', { locale: dateFnsLocale });
 
-    // Date and Time part
-    if (timeInfo.type === 'no_time' || !timeInfo.startDate) {
-      parts.push(t('task.form.dateTimeReminder.summary.noTimeSet'));
-    } else {
-      const startDate = parseISO(timeInfo.startDate);
-      let dateStr = '';
-      if (isToday(startDate)) dateStr = t('task.form.dateTimeReminder.summary.today');
-      else if (isTomorrow(startDate)) dateStr = t('task.form.dateTimeReminder.summary.tomorrow');
-      else dateStr = format(startDate, 'MMM d', { locale: dateFnsLocale });
-
-      if (timeInfo.type === 'all_day') {
-        parts.push(`${dateStr} (${t('task.form.dateTimeReminder.summary.allDay')})`);
-      } else if (timeInfo.type === 'datetime' && timeInfo.time) {
-        parts.push(`${dateStr} ${t('task.form.dateTimeReminder.summary.at')} ${timeInfo.time}`);
-      } else if (timeInfo.type === 'date_range' && timeInfo.endDate) {
+    if (timeInfo.type === 'all_day') {
+        return `${dateStr} (${t('task.form.dateTimeReminder.summary.allDay')})`;
+    } else if (timeInfo.type === 'datetime' && timeInfo.time) {
+        return `${dateStr} ${t('task.form.dateTimeReminder.summary.at')} ${timeInfo.time}`;
+    } else if (timeInfo.type === 'date_range' && timeInfo.endDate && isValid(parseISO(timeInfo.endDate))) {
         const endDate = parseISO(timeInfo.endDate);
         let endDateStr = '';
         if (isToday(endDate)) endDateStr = t('task.form.dateTimeReminder.summary.today');
         else if (isTomorrow(endDate)) endDateStr = t('task.form.dateTimeReminder.summary.tomorrow');
         else endDateStr = format(endDate, 'MMM d', { locale: dateFnsLocale });
-        parts.push(`${dateStr} ${t('task.form.dateTimeReminder.summary.rangeSeparator')} ${endDateStr}`);
-      } else {
-        parts.push(dateStr); // Fallback for single date with no specific type or missing info
-      }
+        return `${dateStr} ${t('task.form.dateTimeReminder.summary.rangeSeparator')} ${endDateStr}`;
     }
+    return dateStr; 
+  }, [form, t, dateFnsLocale]);
 
-    // Repeat part
-    if (repeat !== 'none') {
-      const repeatLabel = repeatOptions.find(opt => opt.value === repeat)?.labelKey;
-      parts.push(t('task.form.dateTimeReminder.summary.repeats', { repeat: t(repeatLabel as any) }));
-    } else {
-        parts.push(t('task.form.dateTimeReminder.summary.noRepeat'));
+  const formatRepeatDisplay = React.useCallback(() => {
+    const { repeat } = form.getValues();
+    if (repeat === 'none') {
+        return t('task.form.dateTimeReminder.summary.noRepeat');
     }
+    const repeatLabel = repeatOptions.find(opt => opt.value === repeat)?.labelKey;
+    return t(repeatLabel as any);
+  }, [form, t, repeatOptions]);
 
-    // Reminder part
-    if (reminderInfo.type !== 'none') {
-      const reminderLabel = reminderOptions.find(opt => opt.value === reminderInfo.type)?.labelKey;
-      parts.push(t('task.form.dateTimeReminder.summary.reminds', { reminder: t(reminderLabel as any) }));
-    } else {
-         parts.push(t('task.form.dateTimeReminder.summary.noReminder'));
+  const formatReminderDisplay = React.useCallback(() => {
+    const { reminderInfo } = form.getValues();
+    if (reminderInfo.type === 'none') {
+        return t('task.form.dateTimeReminder.summary.noReminder');
     }
-    
-    // Filter out "No repeat" and "No reminder" if time is not set, to avoid clutter.
-    // Only show these if time *is* set.
-    if (timeInfo.type === 'no_time' || !timeInfo.startDate) {
-        const timePart = parts[0];
-        return timePart; // Only "No date or time set" or the "Add date..." button text
-    }
-
-    return parts.join(t('task.form.dateTimeReminder.summary.connector'));
-  }, [form, t, dateFnsLocale, repeatOptions, reminderOptions]);
+    const reminderLabel = reminderOptions.find(opt => opt.value === reminderInfo.type)?.labelKey;
+    return t(reminderLabel as any);
+  }, [form, t, reminderOptions]);
 
 
   const handleRemoveLink = async () => {
@@ -351,6 +338,12 @@ export default function TaskForm({
     form.setValue('reminderInfo', data.reminderInfo, { shouldValidate: true, shouldDirty: true });
   };
 
+  const timeDisplay = formatDateTimeDisplay();
+  const repeatDisplay = formatRepeatDisplay();
+  const reminderDisplay = formatReminderDisplay();
+  const isTimeSet = watchedTimeInfo.type !== 'no_time' && watchedTimeInfo.startDate && isValid(parseISO(watchedTimeInfo.startDate));
+
+
   return (
     <>
     <Form {...form}>
@@ -372,25 +365,37 @@ export default function TaskForm({
 
             <FormItem>
                 <FormLabel className="text-base flex items-center text-muted-foreground sr-only">
-                    <Clock className="mr-2 h-4 w-4" />
                     {t('task.form.label.timeInfo')}
                 </FormLabel>
                 <Button
                     type="button"
                     variant="outline"
                     onClick={() => setIsDateTimeReminderDialogOpen(true)}
-                    className="w-full justify-start text-left font-normal text-sm h-auto py-2 px-3"
+                    className="w-full justify-between text-left font-normal text-sm h-auto py-2 px-3"
                 >
-                    <div className="flex items-center">
-                        <Clock className="mr-2 h-4 w-4 text-muted-foreground flex-shrink-0" />
-                        <span className="flex-grow">
-                            {(watchedTimeInfo.type === 'no_time' && watchedRepeat === 'none' && watchedReminderInfo.type === 'none')
-                                ? t('task.form.dateTimeReminder.summary.addDateTime')
-                                : formatDateTimeReminderSummary()
-                            }
-                        </span>
-                        <Edit3 className="ml-2 h-3 w-3 text-muted-foreground flex-shrink-0"/>
+                    <div className="flex flex-col w-full space-y-1">
+                        <div className="flex items-center justify-between">
+                            <span className="flex items-center">
+                                <Clock className="mr-2 h-4 w-4 text-muted-foreground flex-shrink-0" />
+                                <span className={cn(!isTimeSet && "text-muted-foreground italic")}>
+                                    {timeDisplay}
+                                </span>
+                            </span>
+                            {(isTimeSet || watchedRepeat !== 'none') && (
+                                <span className="flex items-center text-muted-foreground">
+                                    <Repeat className="mr-1.5 h-3.5 w-3.5" />
+                                    {repeatDisplay}
+                                </span>
+                            )}
+                        </div>
+                        {(isTimeSet || watchedReminderInfo.type !== 'none') && (
+                            <div className="flex items-center text-muted-foreground">
+                                <Bell className="mr-2 h-4 w-4" />
+                                <span>{reminderDisplay}</span>
+                            </div>
+                        )}
                     </div>
+                    <Edit3 className="ml-2 h-3 w-3 text-muted-foreground flex-shrink-0 self-center"/>
                 </Button>
                 <FormMessage>{form.formState.errors.timeInfo?.root?.message && t(form.formState.errors.timeInfo.root.message as any)}</FormMessage>
                 <FormMessage>{form.formState.errors.timeInfo?.startDate?.message && t(form.formState.errors.timeInfo.startDate.message as any)}</FormMessage>

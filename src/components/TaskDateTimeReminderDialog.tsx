@@ -1,7 +1,7 @@
 
 "use client";
 import * as React from 'react';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogFooter, DialogDescription } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Calendar } from "@/components/ui/calendar";
 import { Input } from "@/components/ui/input";
@@ -58,7 +58,7 @@ export default function TaskDateTimeReminderDialog({
 
   const [selectedDates, setSelectedDates] = React.useState<DateRange | undefined>(undefined);
   const [startTime, setStartTime] = React.useState<string>('');
-  const [endTime, setEndTime] = React.useState<string>(''); // Though not directly used in TimeInfo for ranges
+  const [endTime, setEndTime] = React.useState<string>(''); 
   const [currentRepeat, setCurrentRepeat] = React.useState<RepeatFrequency>('none');
   const [currentReminder, setCurrentReminder] = React.useState<ReminderType>('none');
 
@@ -74,13 +74,11 @@ export default function TaskDateTimeReminderDialog({
             initialDateRange.to = eDate;
           }
         } else if (initialTimeInfo.type !== 'date_range') {
-             initialDateRange.to = sDate; // For single date selections (all_day, datetime)
+             initialDateRange.to = sDate; 
         }
       }
       setSelectedDates(initialDateRange);
       setStartTime(initialTimeInfo.time || '');
-      // endTime is not part of TimeInfo schema for ranges, so we don't set it from initialTimeInfo directly.
-      // It's more of a UI helper if we were to support time-specific ranges.
       setEndTime(''); 
       setCurrentRepeat(initialRepeat);
       setCurrentReminder(initialReminderInfo.type);
@@ -93,15 +91,13 @@ export default function TaskDateTimeReminderDialog({
     if (selectedDates?.from) {
       const sDateStr = format(selectedDates.from, "yyyy-MM-dd");
       if (selectedDates.to && !isSameDay(selectedDates.from, selectedDates.to) && selectedDates.to > selectedDates.from) {
-        // Date Range
         newTimeInfo = {
           type: 'date_range',
           startDate: sDateStr,
           endDate: format(selectedDates.to, "yyyy-MM-dd"),
-          time: null, // Time is not used for date_range per current schema
+          time: null, 
         };
       } else {
-        // Single Day (All Day or DateTime)
         if (startTime && /^(0[0-9]|1[0-9]|2[0-3]):[0-5][0-9]$/.test(startTime)) {
           newTimeInfo = { type: 'datetime', startDate: sDateStr, time: startTime, endDate: null };
         } else {
@@ -119,20 +115,16 @@ export default function TaskDateTimeReminderDialog({
     setSelectedDates(undefined);
     setStartTime('');
     setEndTime('');
-    // Optionally reset repeat and reminder too, or leave them
-    // setCurrentRepeat('none');
-    // setCurrentReminder('none');
     onSave({ 
         timeInfo: { type: 'no_time', startDate: null, endDate: null, time: null }, 
-        repeat: currentRepeat, // Or 'none' if clearing should reset everything
-        reminderInfo: {type: currentReminder} // Or 'none'
+        repeat: currentRepeat, 
+        reminderInfo: {type: currentReminder} 
     });
     onOpenChange(false);
   };
   
   const handleDateSelect = (range: DateRange | undefined) => {
     if (range?.from && range?.to && range.from > range.to) {
-      // If user selects end date before start date, swap them
       setSelectedDates({ from: range.to, to: range.from });
     } else {
       setSelectedDates(range);
@@ -144,10 +136,12 @@ export default function TaskDateTimeReminderDialog({
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-3xl max-h-[90vh] flex flex-col">
         <DialogHeader>
-          <DialogTitle>{t('task.form.dateTimeReminder.dialog.title')}</DialogTitle>
+          {/* DialogTitle removed as per request */}
+          <DialogDescription className="sr-only">
+            {t('task.form.dateTimeReminder.dialog.title')}
+          </DialogDescription>
         </DialogHeader>
         <div className="flex-grow grid grid-cols-1 md:grid-cols-2 gap-6 overflow-y-auto pr-2">
-          {/* Left: Calendar */}
           <div className="flex flex-col items-center justify-center border-r-0 md:border-r md:pr-6 ">
             <Calendar
               mode="range"
@@ -159,7 +153,6 @@ export default function TaskDateTimeReminderDialog({
             />
           </div>
 
-          {/* Right: Controls */}
           <div className="space-y-4 py-2">
             <div>
               <Label htmlFor="startTime">{t('task.form.dateTimeReminder.dialog.startTimeLabel')}</Label>
@@ -173,19 +166,7 @@ export default function TaskDateTimeReminderDialog({
               />
                <p className="text-xs text-muted-foreground mt-1">{t('task.form.timeInfo.type.datetime')}</p>
             </div>
-             {/* End time input - currently not directly used for TimeInfo ranges but kept for potential future use */}
-            {/* <div>
-              <Label htmlFor="endTime">{t('task.form.dateTimeReminder.dialog.endTimeLabel')}</Label>
-              <Input
-                id="endTime"
-                type="time"
-                value={endTime}
-                onChange={(e) => setEndTime(e.target.value)}
-                className="mt-1 text-sm"
-                disabled={!selectedDates?.to || !selectedDates?.from || selectedDates.to <= selectedDates.from}
-              />
-            </div> */}
-
+            
             <div>
               <Label htmlFor="repeat">{t('task.form.dateTimeReminder.dialog.repeatLabel')}</Label>
               <Select value={currentRepeat} onValueChange={(value) => setCurrentRepeat(value as RepeatFrequency)}>
@@ -232,3 +213,4 @@ export default function TaskDateTimeReminderDialog({
     </Dialog>
   );
 }
+

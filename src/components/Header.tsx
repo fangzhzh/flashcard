@@ -30,8 +30,8 @@ export default function Header() {
   const { getStatistics, isLoading: flashcardsLoading } = useFlashcards(); 
 
   const navItems = [
-    { href: '/timer', labelKey: 'nav.pomodoro', icon: Timer }, // Changed href from / to /timer
     { href: '/tasks', labelKey: 'nav.tasks', icon: ListChecks },
+    { href: '/timer', labelKey: 'nav.pomodoro', icon: Timer }, 
     { href: '/flashcards-hub', labelKey: 'nav.flashcards', icon: LayoutDashboard },
   ];
 
@@ -144,3 +144,4 @@ export default function Header() {
     </header>
   );
 }
+

@@ -14,7 +14,7 @@ import type { default as enLocale } from '@/lib/i18n/locales/en';
 import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
 import TaskForm, { type TaskFormData } from '@/components/TaskForm';
 import { usePomodoro } from '@/contexts/PomodoroContext';
-import { format, parseISO, differenceInCalendarDays, isToday, isTomorrow, isValid, isSameYear, startOfDay } from 'date-fns';
+import { format, parseISO, differenceInCalendarDays, isToday, isTomorrow, isValid, isSameYear, startOfDay, addDays } from 'date-fns';
 import { cn } from '@/lib/utils';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import TaskDurationPie from '@/components/TaskDurationPie';
@@ -26,6 +26,8 @@ interface FormattedTimeInfo {
   tooltipLabel: string;
   timeStatus: 'upcoming' | 'active' | 'overdue' | 'none';
 }
+
+const LOOK_AHEAD_DAYS_FOR_UPCOMING_PIE = 30; // Define a look-ahead window for upcoming tasks
 
 export default function TasksClient() {
   const { user, loading: authLoading } = useAuth();
@@ -323,34 +325,40 @@ export default function TasksClient() {
             const todayForComparison = startOfDay(new Date());
 
             if (task.status !== 'completed') {
-                if (timeStatus === 'active' && task.timeInfo?.type === 'date_range' && task.timeInfo.startDate && task.timeInfo.endDate) {
+                if (timeStatus === 'upcoming' && task.timeInfo?.startDate) {
+                    const sDate = parseISO(task.timeInfo.startDate);
+                    if (isValid(sDate)) {
+                        const daysToStart = differenceInCalendarDays(sDate, todayForComparison);
+                        let upcomingPercentage = 100;
+                        if (daysToStart >= 0 && daysToStart <= LOOK_AHEAD_DAYS_FOR_UPCOMING_PIE) {
+                            upcomingPercentage = (daysToStart / LOOK_AHEAD_DAYS_FOR_UPCOMING_PIE) * 100;
+                        } else if (daysToStart < 0) { // Should be handled by 'overdue', but as a fallback
+                            upcomingPercentage = 0;
+                        }
+                        statusIcon = <TaskDurationPie remainingPercentage={upcomingPercentage} variant="upcoming" size={16} className="mx-1 flex-shrink-0" />;
+                        statusIconTooltipContent = <p>{t('task.display.status.upcoming')}</p>;
+                    }
+                } else if (timeStatus === 'active' && task.timeInfo?.type === 'date_range' && task.timeInfo.startDate && task.timeInfo.endDate) {
                     const sDate = parseISO(task.timeInfo.startDate);
                     const eDate = parseISO(task.timeInfo.endDate);
                     if (isValid(sDate) && isValid(eDate) && eDate >= sDate) {
                         const totalDaysInRange = differenceInCalendarDays(eDate, sDate) + 1;
                         let daysRemainingIncludingToday = differenceInCalendarDays(eDate, todayForComparison) + 1;
                         let currentRemainingPercentage = 0;
-                        if (todayForComparison > eDate) {
+                        if (todayForComparison > eDate) { // Already passed
                             currentRemainingPercentage = 0;
-                        } else if (todayForComparison < sDate) { 
+                        } else if (todayForComparison < sDate) { // Not yet started (should be 'upcoming')
                             currentRemainingPercentage = 100;
-                        } else {
+                        } else { // Active
                            if (totalDaysInRange > 0) {
                              currentRemainingPercentage = (daysRemainingIncludingToday / totalDaysInRange) * 100;
                            }
                         }
                         currentRemainingPercentage = Math.max(0, Math.min(currentRemainingPercentage, 100));
-                        if (currentRemainingPercentage > 0 || isToday(eDate)) { 
-                            statusIcon = <TaskDurationPie remainingPercentage={currentRemainingPercentage} size={16} className="mx-1 flex-shrink-0" />;
-                            statusIconTooltipContent = <p>{t('task.display.status.activeRange')}</p>;
-                        } else { 
-                            statusIcon = <AlertTriangle className="h-4 w-4 text-yellow-500 mx-1 flex-shrink-0" />;
-                            statusIconTooltipContent = <p>{t('task.display.status.overdue')}</p>;
-                        }
+                        
+                        statusIcon = <TaskDurationPie remainingPercentage={currentRemainingPercentage} variant="active" size={16} className="mx-1 flex-shrink-0" />;
+                        statusIconTooltipContent = <p>{t('task.display.status.activeRange')}</p>;
                     }
-                } else if (timeStatus === 'upcoming') {
-                    statusIcon = <Hourglass className="h-4 w-4 text-muted-foreground mx-1 flex-shrink-0" />;
-                    statusIconTooltipContent = <p>{t('task.display.status.upcoming')}</p>;
                 } else if (timeStatus === 'active') { 
                      statusIcon = <Zap className="h-4 w-4 text-green-500 mx-1 flex-shrink-0" />;
                      statusIconTooltipContent = <p>{t('task.display.status.active')}</p>;
@@ -466,6 +474,7 @@ export default function TasksClient() {
     
 
     
+
 
 
 

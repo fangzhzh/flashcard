@@ -7,8 +7,8 @@ import { usePathname } from 'next/navigation';
 import { cn } from '@/lib/utils';
 import { useI18n, useChangeLocale, useCurrentLocale } from '@/lib/i18n/client';
 import { useAuth } from '@/contexts/AuthContext';
-import { useFlashcards } from '@/contexts/FlashcardsContext'; // Import useFlashcards
-import { Badge } from '@/components/ui/badge'; // Import Badge
+import { useFlashcards } from '@/contexts/FlashcardsContext'; 
+import { Badge } from '@/components/ui/badge'; 
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -27,10 +27,10 @@ export default function Header() {
   const currentLocale = useCurrentLocale();
   const pathname = usePathname();
   const { user, signOut, loading: authLoading } = useAuth();
-  const { getStatistics, isLoading: flashcardsLoading } = useFlashcards(); // Get stats and loading state
+  const { getStatistics, isLoading: flashcardsLoading } = useFlashcards(); 
 
   const navItems = [
-    { href: '/', labelKey: 'nav.pomodoro', icon: Timer },
+    { href: '/timer', labelKey: 'nav.pomodoro', icon: Timer }, // Changed href from / to /timer
     { href: '/tasks', labelKey: 'nav.tasks', icon: ListChecks },
     { href: '/flashcards-hub', labelKey: 'nav.flashcards', icon: LayoutDashboard },
   ];
@@ -39,7 +39,7 @@ export default function Header() {
     ? pathname.substring(`/${currentLocale}`.length) || '/'
     : pathname;
 
-  const stats = user ? getStatistics() : { dueToday: 0 }; // Get stats only if user is logged in
+  const stats = user ? getStatistics() : { dueToday: 0 }; 
   const dueTodayCount = stats.dueToday;
 
   return (
@@ -58,14 +58,14 @@ export default function Header() {
                   key={item.href}
                   href={item.href}
                   className={cn(
-                    "relative text-sm font-medium transition-colors hover:text-primary px-1 py-1 md:px-3 rounded-md", // Added relative for badge positioning
+                    "relative text-sm font-medium transition-colors hover:text-primary px-1 py-1 md:px-3 rounded-md", 
                     (basePathname === item.href || (item.href !== '/' && basePathname.startsWith(item.href)))
                       ? "text-primary bg-primary/10"
                       : "text-muted-foreground"
                   )}
                   title={t(item.labelKey as any)}
                 >
-                  <div className="flex items-center"> {/* Wrapper for icon and text to keep them aligned */}
+                  <div className="flex items-center"> 
                     <item.icon className="inline-block h-5 w-5 md:hidden" />
                     <span className="hidden md:inline-block">{t(item.labelKey as any)}</span>
                   </div>

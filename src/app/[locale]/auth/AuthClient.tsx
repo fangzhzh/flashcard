@@ -56,7 +56,7 @@ export default function AuthClient() {
 
   useEffect(() => {
     if (user && !authLoading && !isProcessingLink) {
-        router.push(`/${currentLocale}/`); // Redirect if already logged in and not processing link
+        router.replace(`/${currentLocale}/tasks`); // Redirect to tasks if already logged in
     }
   }, [user, authLoading, isProcessingLink, router, currentLocale]);
 
@@ -71,14 +71,15 @@ export default function AuthClient() {
       if (result) success = true;
     }
     if (success) {
-      router.push(`/${currentLocale}/`);
+      router.replace(`/${currentLocale}/tasks`); // Redirect to tasks on successful login/signup
     }
     setIsSubmitting(false);
   };
 
   const handleEmailLinkSubmit = async (data: EmailLinkFormData) => {
     setIsSubmitting(true);
-    await sendSignInLinkToEmail(data.email);
+    // Note: sendSignInLinkToEmail will handle redirection in AuthContext after link is clicked
+    await sendSignInLinkToEmail(data.email); 
     setEmailLinkSent(true);
     setIsSubmitting(false);
   };
@@ -92,7 +93,7 @@ export default function AuthClient() {
     );
   }
   
-  if (user) { // Should be caught by useEffect, but as a fallback
+  if (user) { 
      return (
       <div className="flex flex-col items-center justify-center mt-12">
         <p>{t('auth.alreadyLoggedInRedirecting')}</p>

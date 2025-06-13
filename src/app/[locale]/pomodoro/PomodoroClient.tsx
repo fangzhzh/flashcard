@@ -1,7 +1,7 @@
 
-// This file is intentionally left blank as its content has been moved to /src/app/[locale]/PomodoroClient.tsx
-// This file can be deleted if your routing/build system doesn't require it.
-// If it's deleted, ensure any imports or references to it are removed or updated.
-export default function DeprecatedPomodoroClient() {
+// This file is intentionally left blank and can be deleted.
+// The main PomodoroClient component is located at /src/app/[locale]/PomodoroClient.tsx
+// and is used by the new /src/app/[locale]/timer/page.tsx
+export default function DeprecatedPomodoroClientWrapper() {
   return null;
 }

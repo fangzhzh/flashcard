@@ -227,39 +227,12 @@ export default function TasksClient() {
   }, [tasks, activeFilter]);
 
   // --- CONDITIONAL RENDERING LOGIC STARTS HERE ---
-  
-  // Primary loading state for authentication
-  if (authLoading) {
-    return (
-      <div className="flex justify-center items-center mt-8 h-[calc(100vh-var(--header-height,8rem)-4rem)]">
-        <Loader2 className="h-8 w-8 animate-spin text-primary" />
-      </div>
-    );
-  }
+  const isLoadingAppData = (authLoading && !user) || // Still authenticating
+                           (!authLoading && user && (isLoadingTasks || contextOverallLoading || isSeeding)); // Authenticated, but app data is loading
 
-  // If not authLoading and no user, show sign-in prompt
-  if (!user) {
-    return (
-       <Alert variant="destructive" className="mt-8 max-w-md mx-auto">
-          <ShieldAlert className="h-5 w-5" />
-          <AlertTitle>{t('error')}</AlertTitle>
-          <AlertDescription>{t('auth.pleaseSignIn')}</AlertDescription>
-        </Alert>
-    );
-  }
+  const showSignInPrompt = !authLoading && !user;
 
-  // User is authenticated, check for app data loading
-  const isLoadingAppData = isLoadingTasks || contextOverallLoading || isSeeding;
-  if (isLoadingAppData) {
-     return (
-      <div className="flex justify-center items-center mt-8 h-[calc(100vh-var(--header-height,8rem)-4rem)]">
-        <Loader2 className="h-8 w-8 animate-spin text-primary" />
-        <p className="ml-2 text-muted-foreground">{t('tasks.list.loading')}</p>
-      </div>
-    );
-  }
-
-  // --- MAIN COMPONENT RENDER ---
+  // Hooks that need to run after initial loading/auth checks
   const handleEditTask = (taskId: string) => {
     setIsCreatingNewTask(false);
     setSelectedTaskId(taskId);
@@ -285,7 +258,7 @@ export default function TasksClient() {
   };
 
   const handleStartPomodoroForTask = (taskTitle: string) => {
-    if (!user) { 
+    if (!user) {
         toast({ title: t('error'), description: t('auth.pleaseSignIn'), variant: "destructive" });
         return;
     }
@@ -296,9 +269,9 @@ export default function TasksClient() {
 
     startFn(duration, taskTitle);
     toast({ title: t('pomodoro.button.start'), description: t('task.pomodoroStartedFor', { title: taskTitle }) });
-    router.push(`/${currentLocale}/timer`); 
+    router.push(`/${currentLocale}/timer`);
   };
-  
+
   const handleMainFormSubmit = async (data: TaskFormData) => {
     setIsSubmittingForm(true);
     try {
@@ -343,6 +316,27 @@ export default function TasksClient() {
     }
   };
 
+
+  // --- MAIN COMPONENT RENDER ---
+  if (showSignInPrompt) {
+    return (
+       <Alert variant="destructive" className="mt-8 max-w-md mx-auto">
+          <ShieldAlert className="h-5 w-5" />
+          <AlertTitle>{t('error')}</AlertTitle>
+          <AlertDescription>{t('auth.pleaseSignIn')}</AlertDescription>
+        </Alert>
+    );
+  }
+  
+  if (isLoadingAppData) {
+     return (
+      <div className="flex justify-center items-center mt-8 h-[calc(100vh-var(--header-height,8rem)-4rem)]">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+        <p className="ml-2 text-muted-foreground">{t('tasks.list.loading')}</p>
+      </div>
+    );
+  }
+
   const showEditPanel = selectedTaskId !== null || isCreatingNewTask;
 
   return (
@@ -353,18 +347,12 @@ export default function TasksClient() {
         showEditPanel ? "hidden md:flex md:w-1/2 md:pr-2" : "w-full pr-0"
       )}>
         <Tabs
-          value={activeFilter === 'all' ? undefined : activeFilter}
-          onValueChange={(value) => {
-            const newFilter = value as TaskFilter | undefined;
-            if (newFilter && newFilter === activeFilter) {
-              setActiveFilter('all'); // Deselect if clicking active filter
-            } else {
-              setActiveFilter(newFilter || 'all');
-            }
-          }}
+          value={activeFilter}
+          onValueChange={(value) => setActiveFilter(value as TaskFilter | 'all')}
           className="mb-4 px-1"
         >
-          <TabsList className="grid w-full grid-cols-4 h-auto">
+          <TabsList className="grid w-full grid-cols-5 h-auto"> {/* Changed to grid-cols-5 */}
+            <TabsTrigger value="all" className="py-1.5 sm:py-2 text-xs sm:text-sm">{t('tasks.filter.all')}</TabsTrigger>
             <TabsTrigger value="today" className="py-1.5 sm:py-2 text-xs sm:text-sm">{t('tasks.filter.today')}</TabsTrigger>
             <TabsTrigger value="threeDays" className="py-1.5 sm:py-2 text-xs sm:text-sm">{t('tasks.filter.threeDays')}</TabsTrigger>
             <TabsTrigger value="thisWeek" className="py-1.5 sm:py-2 text-xs sm:text-sm">{t('tasks.filter.thisWeek')}</TabsTrigger>

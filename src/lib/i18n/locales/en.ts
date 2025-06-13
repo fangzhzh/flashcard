@@ -412,7 +412,6 @@ export default {
   'task.display.to': 'to',
   'task.display.noTime': 'No specific time',
   'task.display.status.upcoming': 'Upcoming',
-  'task.display.status.upcomingPie': 'Time until start (within {count} days)',
   'task.display.status.active': 'Active',
   'task.display.status.activeRange': 'Active (date range)',
   'task.display.status.overdue': 'Overdue',
@@ -435,4 +434,5 @@ export default {
 } as const;
 
     
+
 

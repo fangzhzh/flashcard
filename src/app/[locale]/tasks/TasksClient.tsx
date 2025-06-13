@@ -27,8 +27,6 @@ interface FormattedTimeInfo {
   timeStatus: 'upcoming' | 'active' | 'overdue' | 'none';
 }
 
-const LOOK_AHEAD_DAYS_FOR_UPCOMING_PIE = 30;
-
 export default function TasksClient() {
   const { user, loading: authLoading } = useAuth();
   const { 
@@ -334,7 +332,7 @@ export default function TasksClient() {
                         let currentRemainingPercentage = 0;
                         if (todayForComparison > eDate) {
                             currentRemainingPercentage = 0;
-                        } else if (todayForComparison < sDate) { // Should not happen if timeStatus is 'active' for range
+                        } else if (todayForComparison < sDate) { 
                             currentRemainingPercentage = 100;
                         } else {
                            if (totalDaysInRange > 0) {
@@ -342,31 +340,17 @@ export default function TasksClient() {
                            }
                         }
                         currentRemainingPercentage = Math.max(0, Math.min(currentRemainingPercentage, 100));
-                        if (currentRemainingPercentage > 0 || isToday(eDate)) { // Show pie if any duration left or ends today
+                        if (currentRemainingPercentage > 0 || isToday(eDate)) { 
                             statusIcon = <TaskDurationPie remainingPercentage={currentRemainingPercentage} size={16} className="mx-1 flex-shrink-0" />;
                             statusIconTooltipContent = <p>{t('task.display.status.activeRange')}</p>;
-                        } else { // Fallback to overdue if calculation leads to 0 and it's truly overdue by date.
+                        } else { 
                             statusIcon = <AlertTriangle className="h-4 w-4 text-yellow-500 mx-1 flex-shrink-0" />;
                             statusIconTooltipContent = <p>{t('task.display.status.overdue')}</p>;
                         }
                     }
                 } else if (timeStatus === 'upcoming') {
-                    const sDate = task.timeInfo?.startDate && isValid(parseISO(task.timeInfo.startDate)) ? parseISO(task.timeInfo.startDate) : null;
-                    if (sDate) {
-                        const daysToStart = differenceInCalendarDays(sDate, todayForComparison);
-                        if (daysToStart > 0) {
-                            const daysToConsider = Math.min(daysToStart, LOOK_AHEAD_DAYS_FOR_UPCOMING_PIE);
-                            const remainingPercentageForUpcomingPie = (daysToConsider / LOOK_AHEAD_DAYS_FOR_UPCOMING_PIE) * 100;
-                            statusIcon = <TaskDurationPie remainingPercentage={Math.max(0, Math.min(remainingPercentageForUpcomingPie, 100))} size={16} className="mx-1 flex-shrink-0" />;
-                            statusIconTooltipContent = <p>{t('task.display.status.upcomingPie', { count: LOOK_AHEAD_DAYS_FOR_UPCOMING_PIE })}</p>;
-                        } else { // Should be caught by timeStatus, but as fallback
-                             statusIcon = <Hourglass className="h-4 w-4 text-muted-foreground mx-1 flex-shrink-0" />;
-                             statusIconTooltipContent = <p>{t('task.display.status.upcoming')}</p>;
-                        }
-                    } else {
-                        statusIcon = <Hourglass className="h-4 w-4 text-muted-foreground mx-1 flex-shrink-0" />;
-                        statusIconTooltipContent = <p>{t('task.display.status.upcoming')}</p>;
-                    }
+                    statusIcon = <Hourglass className="h-4 w-4 text-muted-foreground mx-1 flex-shrink-0" />;
+                    statusIconTooltipContent = <p>{t('task.display.status.upcoming')}</p>;
                 } else if (timeStatus === 'active') { 
                      statusIcon = <Zap className="h-4 w-4 text-green-500 mx-1 flex-shrink-0" />;
                      statusIconTooltipContent = <p>{t('task.display.status.active')}</p>;
@@ -482,6 +466,7 @@ export default function TasksClient() {
     
 
     
+
 
 
 

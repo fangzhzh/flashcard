@@ -6,7 +6,7 @@ import { useFlashcards } from '@/contexts/FlashcardsContext';
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
-import { PlusCircle, Loader2, Info, ShieldAlert, PlayCircle, Zap, AlertTriangle, CalendarRange, Hourglass } from 'lucide-react';
+import { ClipboardPlus, Loader2, Info, ShieldAlert, PlayCircle, Zap, AlertTriangle, CalendarRange, Hourglass } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { useI18n, useCurrentLocale } from '@/lib/i18n/client';
 import type { Task, TimeInfo, TaskStatus, RepeatFrequency } from '@/types';
@@ -239,7 +239,7 @@ export default function TasksClient() {
 
       const { timeInfo } = task;
       if (!timeInfo?.startDate || !isValid(parseISO(timeInfo.startDate))) {
-        return activeFilter === 'all'; // Only show tasks without valid dates in 'all'
+        return activeFilter === 'all'; 
       }
       const taskStartDate = startOfDay(parseISO(timeInfo.startDate));
 
@@ -267,8 +267,8 @@ export default function TasksClient() {
       }
 
       if (activeFilter === 'week') {
-        const startOfCurrentWeek = startOfWeek(today, { weekStartsOn: 1 }); // Monday
-        const endOfCurrentWeek = endOfWeek(today, { weekStartsOn: 1 }); // Sunday
+        const startOfCurrentWeek = startOfWeek(today, { weekStartsOn: 1 }); 
+        const endOfCurrentWeek = endOfWeek(today, { weekStartsOn: 1 }); 
         if (timeInfo.type === 'date_range' && timeInfo.endDate && isValid(parseISO(timeInfo.endDate))) {
           const taskEndDate = startOfDay(parseISO(timeInfo.endDate));
            return areIntervalsOverlapping(
@@ -278,7 +278,7 @@ export default function TasksClient() {
         }
         return taskStartDate >= startOfCurrentWeek && taskStartDate <= endOfCurrentWeek;
       }
-      return true; // Should not reach here
+      return true; 
     };
 
     return [...tasks].filter(filterFn).sort((a, b) => {
@@ -352,11 +352,6 @@ export default function TasksClient() {
         "transition-all duration-300 ease-in-out overflow-y-auto flex flex-col",
         showEditPanel ? "hidden md:flex md:w-1/2 md:pr-2" : "w-full pr-0"
       )}>
-        <div className={cn("flex flex-col sm:flex-row justify-between items-center mb-4 gap-2", showEditPanel ? "px-1 md:px-0" : "px-1")}>
-          {/* Title removed here */}
-          {/* Create button removed from here, will be a FAB */}
-        </div>
-
         <Tabs defaultValue="all" onValueChange={(value) => setActiveFilter(value as TaskFilter)} className="mb-4 px-1">
           <TabsList className="grid w-full grid-cols-4 h-auto">
             <TabsTrigger value="all" className="py-1.5 sm:py-2">{t('tasks.filter.all')}</TabsTrigger>
@@ -376,7 +371,7 @@ export default function TasksClient() {
           </Alert>
         )}
 
-        <ul className={cn("space-y-1 flex-grow pb-20", showEditPanel ? "px-1 md:px-0" : "px-1")}> {/* Added pb-20 for FAB */}
+        <ul className={cn("space-y-1 flex-grow pb-20", showEditPanel ? "px-1 md:px-0" : "px-1")}>
           {filteredAndSortedTasks.map((task) => {
             const { visibleLabel, tooltipLabel, timeStatus } = formatTimeLabel(task.timeInfo);
             let statusIcon: React.ReactNode = null;
@@ -539,7 +534,7 @@ export default function TasksClient() {
             onClick={handleCreateNewTask}
             title={t('tasks.button.create')}
         >
-            <PlusCircle className="h-7 w-7" />
+            <ClipboardPlus className="h-7 w-7" />
         </Button>
       )}
     </>

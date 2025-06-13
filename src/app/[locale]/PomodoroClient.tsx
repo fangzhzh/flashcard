@@ -7,7 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Play, Pause, RotateCcw, Settings2, Eraser, Loader2, ShieldAlert, Coffee, SkipForward, PlusCircle } from 'lucide-react';
+import { Play, Pause, RotateCcw, Settings2, Eraser, Loader2, ShieldAlert, Coffee, SkipForward, ClipboardPlus } from 'lucide-react';
 import { useI18n, useCurrentLocale } from '@/lib/i18n/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { usePomodoro } from '@/contexts/PomodoroContext';
@@ -35,8 +35,6 @@ export default function PomodoroClient() {
     skipRest,
   } = usePomodoro();
 
-  // const [localNotes, setLocalNotes] = useState(''); // Removed as notes feature is being replaced
-  // const [isNotesSheetOpen, setIsNotesSheetOpen] = useState(false); // Removed
   const [isSettingsCardVisible, setIsSettingsCardVisible] = useState(false);
 
   const [durationInput, setDurationInput] = useState(
@@ -45,7 +43,6 @@ export default function PomodoroClient() {
 
   useEffect(() => {
     if (sessionState) {
-      // setLocalNotes(sessionState.notes || ''); // Removed
       setDurationInput(
         sessionState.userPreferredDurationMinutes && sessionState.userPreferredDurationMinutes > 0
           ? sessionState.userPreferredDurationMinutes
@@ -53,7 +50,6 @@ export default function PomodoroClient() {
       );
     } else {
       setDurationInput(DEFAULT_POMODORO_MINUTES_DISPLAY);
-      // setLocalNotes(''); // Removed
     }
   }, [sessionState]);
 
@@ -97,13 +93,6 @@ export default function PomodoroClient() {
       setIsSettingsCardVisible(!isSettingsCardVisible);
     }
   };
-
-  // const handleNotesSheetClose = () => { // Removed
-  //   if (sessionState && localNotes !== sessionState.notes) {
-  //       updateNotes(localNotes);
-  //   }
-  //   setIsNotesSheetOpen(false);
-  // }
 
   if (pomodoroLoading) {
     return (
@@ -220,14 +209,13 @@ export default function PomodoroClient() {
         </Card>
       )}
 
-      {/* Removed Notes Sheet and its trigger button */}
       <Link href={`/${currentLocale}/tasks/new`} passHref>
         <Button
             variant="default"
-            className="fixed bottom-[6.5rem] right-6 z-40 rounded-full h-14 w-14 p-0 shadow-lg" // Positioned above Pomodoro Timer FAB
+            className="fixed bottom-[6.5rem] right-6 z-40 rounded-full h-14 w-14 p-0 shadow-lg"
             title={t('tasks.button.create')}
         >
-            <PlusCircle className="h-7 w-7" />
+            <ClipboardPlus className="h-7 w-7" />
         </Button>
       </Link>
     </div>

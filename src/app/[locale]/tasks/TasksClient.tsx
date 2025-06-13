@@ -9,7 +9,7 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { ClipboardPlus, Loader2, Info, ShieldAlert, PlayCircle, Zap, AlertTriangle, CalendarRange, Hourglass } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { useI18n, useCurrentLocale } from '@/lib/i18n/client';
-import type { Task, TimeInfo, TaskStatus, RepeatFrequency } from '@/types';
+import type { Task, TimeInfo, TaskStatus, RepeatFrequency, ReminderType } from '@/types';
 import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
 import TaskForm, { type TaskFormData } from '@/components/TaskForm';
 import { usePomodoro } from '@/contexts/PomodoroContext';
@@ -30,6 +30,7 @@ interface FormattedTimeInfo {
 type TaskFilter = 'all' | 'today' | 'threeDays' | 'week';
 
 export default function TasksClient() {
+  // --- ALL HOOKS MUST BE CALLED UNCONDITIONALLY AT THE TOP ---
   const { user, loading: authLoading } = useAuth();
   const {
     tasks,
@@ -62,37 +63,12 @@ export default function TasksClient() {
     reminderInfo: { type: 'none' as ReminderType },
   }), []);
 
-
-  const handleEditTask = (taskId: string) => {
-    setIsCreatingNewTask(false);
-    setSelectedTaskId(taskId);
-  };
-
-  const handleCreateNewTask = () => {
-    setSelectedTaskId(null);
-    setIsCreatingNewTask(true);
-  };
-
-  const handleCancelEdit = () => {
-    setSelectedTaskId(null);
-    setIsCreatingNewTask(false);
-  };
-
   const selectedTask = useMemo(() => {
     if (selectedTaskId) {
       return getTaskById(selectedTaskId);
     }
     return undefined;
   }, [selectedTaskId, getTaskById]);
-
-  const handleToggleTaskCompletion = async (task: Task) => {
-    const newStatus: TaskStatus = task.status === 'completed' ? 'pending' : 'completed';
-    try {
-      await updateTaskInContext(task.id, { status: newStatus });
-    } catch (error) {
-      toast({ title: t('error'), description: t('toast.task.error.save'), variant: "destructive" });
-    }
-  };
 
   const formatTimeLabel = useCallback((timeInfo?: TimeInfo): FormattedTimeInfo => {
     const defaultReturn: FormattedTimeInfo = { visibleLabel: '', tooltipLabel: t('task.display.noTime'), timeStatus: 'none' };
@@ -185,52 +161,6 @@ export default function TasksClient() {
 
   }, [t]);
 
-  const handleStartPomodoroForTask = (taskTitle: string) => {
-    if (!user) {
-        toast({ title: t('error'), description: t('auth.pleaseSignIn'), variant: "destructive" });
-        return;
-    }
-    const pomodoroState = pomodoroContext.sessionState;
-    const startFn = pomodoroContext.startPomodoro;
-
-    const duration = pomodoroState?.userPreferredDurationMinutes || 25;
-
-    startFn(duration, taskTitle);
-    toast({ title: t('pomodoro.button.start'), description: t('task.pomodoroStartedFor', { title: taskTitle }) });
-    router.push(`/${currentLocale}/`);
-  };
-
-  const effectiveLoading = authLoading || isLoadingTasks || (contextOverallLoading && user) || (isSeeding && user);
-
-  if (authLoading) {
-    return (
-      <div className="flex justify-center items-center mt-8 h-[calc(100vh-var(--header-height,8rem)-4rem)]">
-        <Loader2 className="h-8 w-8 animate-spin text-primary" />
-      </div>
-    );
-  }
-
-  if (!user) {
-    return (
-       <Alert variant="destructive" className="mt-8 max-w-md mx-auto">
-          <ShieldAlert className="h-5 w-5" />
-          <AlertTitle>{t('error')}</AlertTitle>
-          <AlertDescription>{t('auth.pleaseSignIn')}</AlertDescription>
-        </Alert>
-    );
-  }
-
-  if (effectiveLoading && user) {
-     return (
-      <div className="flex justify-center items-center mt-8 h-[calc(100vh-var(--header-height,8rem)-4rem)]">
-        <Loader2 className="h-8 w-8 animate-spin text-primary" />
-        <p className="ml-2 text-muted-foreground">{t('tasks.list.loading')}</p>
-      </div>
-    );
-  }
-
-  const showEditPanel = selectedTaskId !== null || isCreatingNewTask;
-
   const filteredAndSortedTasks = useMemo(() => {
     const today = startOfDay(new Date());
 
@@ -300,7 +230,79 @@ export default function TasksClient() {
     });
   }, [tasks, activeFilter]);
 
+  // --- CONDITIONAL RENDERING LOGIC STARTS HERE ---
+  
+  // Primary loading state for authentication
+  if (authLoading) {
+    return (
+      <div className="flex justify-center items-center mt-8 h-[calc(100vh-var(--header-height,8rem)-4rem)]">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      </div>
+    );
+  }
 
+  // If not authLoading and no user, show sign-in prompt
+  if (!user) {
+    return (
+       <Alert variant="destructive" className="mt-8 max-w-md mx-auto">
+          <ShieldAlert className="h-5 w-5" />
+          <AlertTitle>{t('error')}</AlertTitle>
+          <AlertDescription>{t('auth.pleaseSignIn')}</AlertDescription>
+        </Alert>
+    );
+  }
+
+  // User is authenticated, check for app data loading
+  const isLoadingAppData = isLoadingTasks || contextOverallLoading || isSeeding;
+  if (isLoadingAppData) {
+     return (
+      <div className="flex justify-center items-center mt-8 h-[calc(100vh-var(--header-height,8rem)-4rem)]">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+        <p className="ml-2 text-muted-foreground">{t('tasks.list.loading')}</p>
+      </div>
+    );
+  }
+
+  // --- MAIN COMPONENT RENDER ---
+  const handleEditTask = (taskId: string) => {
+    setIsCreatingNewTask(false);
+    setSelectedTaskId(taskId);
+  };
+
+  const handleCreateNewTask = () => {
+    setSelectedTaskId(null);
+    setIsCreatingNewTask(true);
+  };
+
+  const handleCancelEdit = () => {
+    setSelectedTaskId(null);
+    setIsCreatingNewTask(false);
+  };
+
+  const handleToggleTaskCompletion = async (task: Task) => {
+    const newStatus: TaskStatus = task.status === 'completed' ? 'pending' : 'completed';
+    try {
+      await updateTaskInContext(task.id, { status: newStatus });
+    } catch (error) {
+      toast({ title: t('error'), description: t('toast.task.error.save'), variant: "destructive" });
+    }
+  };
+
+  const handleStartPomodoroForTask = (taskTitle: string) => {
+    if (!user) { // Should not happen due to checks above, but good practice
+        toast({ title: t('error'), description: t('auth.pleaseSignIn'), variant: "destructive" });
+        return;
+    }
+    const pomodoroState = pomodoroContext.sessionState;
+    const startFn = pomodoroContext.startPomodoro;
+
+    const duration = pomodoroState?.userPreferredDurationMinutes || 25;
+
+    startFn(duration, taskTitle);
+    toast({ title: t('pomodoro.button.start'), description: t('task.pomodoroStartedFor', { title: taskTitle }) });
+    router.push(`/${currentLocale}/timer`); // Redirect to timer page
+  };
+  
   const handleMainFormSubmit = async (data: TaskFormData) => {
     setIsSubmittingForm(true);
     try {
@@ -345,6 +347,8 @@ export default function TasksClient() {
     }
   };
 
+  const showEditPanel = selectedTaskId !== null || isCreatingNewTask;
+
   return (
     <>
     <div className="flex h-[calc(100vh-var(--header-height,4rem)-4rem)]">
@@ -361,7 +365,7 @@ export default function TasksClient() {
           </TabsList>
         </Tabs>
 
-        {filteredAndSortedTasks.length === 0 && !effectiveLoading && (
+        {filteredAndSortedTasks.length === 0 && (
           <Alert className={cn("mt-4 border-primary/50 text-primary bg-primary/5", showEditPanel ? "mx-1 md:mx-0" : "mx-1")}>
             <Info className="h-5 w-5 text-primary" />
             <AlertTitle className="font-semibold text-primary">{t('tasks.list.empty.title')}</AlertTitle>
@@ -541,4 +545,3 @@ export default function TasksClient() {
   );
 }
     
-

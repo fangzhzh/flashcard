@@ -359,7 +359,7 @@ export default function ReviewModeClient() {
       <h1 className="text-2xl font-semibold tracking-tight mb-6 text-center">{pageTitle}</h1>
       <p className="text-muted-foreground mb-4">{t('review.cardProgress', { currentIndex: currentCardIndex + 1, totalCards: reviewQueue.length })}</p>      
       <Card className="w-full max-w-3xl min-h-[350px] flex flex-col shadow-xl transition-all duration-500 ease-in-out transform hover:scale-[1.01]">
-        <CardHeader className="flex-grow flex items-center justify-center p-6">
+        <CardHeader className="flex-grow flex items-center justify-center p-4 sm:p-6">
           <div className="flex items-start w-full">
             <div className="flex-grow">
               <div className="markdown-content whitespace-pre-wrap">
@@ -383,14 +383,14 @@ export default function ReviewModeClient() {
             </Button>
           </div>
         </CardHeader>
-        <CardContent className="p-6 border-t"> 
+        <CardContent className="p-4 sm:p-6 border-t"> 
           <Button onClick={handleFlip} variant="outline" className="w-full text-lg py-6 mb-6" disabled={isSubmittingProgress}>
             <RefreshCw className={`mr-2 h-5 w-5 ${isFlipped ? 'animate-pulse' : ''}`} />
             {isFlipped ? t('review.button.flip.showQuestion') : t('review.button.flip.showAnswer')}
           </Button>
         </CardContent>
         {isFlipped && (
-          <CardFooter className="grid grid-cols-3 gap-3 p-6 border-t">
+          <CardFooter className="grid grid-cols-3 gap-3 p-4 sm:p-6 border-t">
             {progressOptions.map(opt => (
               <Button
                 key={opt.rating}
@@ -411,4 +411,5 @@ export default function ReviewModeClient() {
 }
 
     
+
 

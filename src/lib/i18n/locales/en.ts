@@ -413,7 +413,8 @@ export default {
   'task.display.status.active': 'Active',
   'task.display.status.activeRange': 'Active (date range)',
   'task.display.status.overdue': 'Overdue',
-  'task.display.totalDurationDays': '{count, plural, =1 {# day total} other {# days total}}',
+  'task.display.totalDurationDay': '({count} day total)',
+  'task.display.totalDurationDaysPlural': '({count} days total)',
   'task.pomodoroStartedFor': 'Pomodoro started for task: {title}',
   'task.currentTaskLabel': 'Current Task:',
   'tasks.filter.all': 'All',
@@ -443,6 +444,7 @@ export default {
   'task.form.dateTimeReminder.summary.noRepeat': 'No repeat',
   'task.form.dateTimeReminder.summary.noReminder': 'No reminder',
   'task.form.dateTimeReminder.summary.connector': ', ',
+
 
   'notifications.enabled.title': 'Notifications Enabled',
   'notifications.enabled.description': 'You will now receive notifications for Pomodoro sessions.',

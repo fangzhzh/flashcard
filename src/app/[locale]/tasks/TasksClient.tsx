@@ -386,7 +386,6 @@ export default function TasksClient() {
                         statusIconTooltipContent = <p>{t('task.display.status.upcoming')}</p>;
                         
                         if (task.timeInfo.type === 'date_range' && task.timeInfo.endDate && isValid(parseISO(task.timeInfo.endDate))) {
-                             // Add CalendarRange icon for upcoming date ranges only if not completed and not active
                             if (task.status !== 'completed' && timeStatus === 'upcoming') {
                                 statusIcon = (
                                     <>
@@ -429,7 +428,14 @@ export default function TasksClient() {
                         };
                         const startDateStr = formatDateForTooltip(sDate);
                         const endDateStr = formatDateForTooltip(eDate);
-                        statusIconTooltipContent = `${startDateStr} - ${endDateStr} (${t('task.display.totalDurationDays', { count: totalDaysInRange })})`;
+                        
+                        let durationDetails = '';
+                        if (totalDaysInRange === 1) {
+                            durationDetails = t('task.display.totalDurationDay', { count: totalDaysInRange });
+                        } else {
+                            durationDetails = t('task.display.totalDurationDaysPlural', { count: totalDaysInRange });
+                        }
+                        statusIconTooltipContent = `${startDateStr} - ${endDateStr} ${durationDetails}`;
 
                     }
                 } else if (timeStatus === 'active') {
@@ -438,9 +444,6 @@ export default function TasksClient() {
                 } else if (timeStatus === 'overdue') {
                     statusIcon = <AlertTriangle className="h-4 w-4 text-yellow-500 mx-1 flex-shrink-0" />;
                     statusIconTooltipContent = <p>{t('task.display.status.overdue')}</p>;
-                     if (task.timeInfo.type === 'date_range' && task.timeInfo.endDate && isValid(parseISO(task.timeInfo.endDate))) {
-                        // No CalendarRange for overdue date ranges
-                     }
                 }
             }
 

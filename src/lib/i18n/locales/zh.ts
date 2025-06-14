@@ -413,7 +413,8 @@ export default {
   'task.display.status.active': '进行中',
   'task.display.status.activeRange': '进行中 (日期范围)',
   'task.display.status.overdue': '已过期',
-  'task.display.totalDurationDays': '共 {count, plural, =1 {# 天} other {# 天}}',
+  'task.display.totalDurationDay': '(共 {count} 天)',
+  'task.display.totalDurationDaysPlural': '(共 {count} 天)',
   'task.pomodoroStartedFor': '任务番茄钟已启动: {title}',
   'task.currentTaskLabel': '当前任务:',
   'tasks.filter.all': '全部',
@@ -443,6 +444,7 @@ export default {
   'task.form.dateTimeReminder.summary.noRepeat': '不重复',
   'task.form.dateTimeReminder.summary.noReminder': '无提醒',
   'task.form.dateTimeReminder.summary.connector': '，',
+
 
   'notifications.enabled.title': '通知已启用',
   'notifications.enabled.description': '您现在将收到番茄钟会话的通知。',

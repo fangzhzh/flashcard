@@ -27,9 +27,9 @@ const TaskDurationPie: React.FC<TaskDurationPieProps> = ({
 
   const strokeColor = variant === 'upcoming'
     ? 'hsl(var(--accent))'
-    : '#00FF00'; // Changed to green for active variant
+    : 'hsl(var(--primary))'; // Use primary theme color for active variant
 
-  const textColor = '#000000'; // Changed to black for high contrast
+  const textColor = '#000000'; // Black for high contrast
 
   let durationText = '';
   if (totalDurationDays !== undefined && totalDurationDays > 0) {
@@ -90,3 +90,4 @@ const TaskDurationPie: React.FC<TaskDurationPieProps> = ({
 };
 
 export default TaskDurationPie;
+

@@ -246,7 +246,7 @@ export default function DecksClient() {
 
       <Button
         variant="default"
-        className="fixed bottom-[6.5rem] right-6 z-40 rounded-full h-14 w-14 p-0 shadow-lg"
+        className="fixed bottom-6 right-6 z-40 rounded-full h-14 w-14 p-0 shadow-lg"
         onClick={openNewDeckDialog}
         title={t('decks.button.create')}
       >

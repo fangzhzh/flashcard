@@ -212,7 +212,7 @@ export default function PomodoroClient() {
       <Link href={`/${currentLocale}/tasks/new`} passHref>
         <Button
             variant="default"
-            className="fixed bottom-[6.5rem] right-6 z-40 rounded-full h-14 w-14 p-0 shadow-lg"
+            className="fixed bottom-6 right-6 z-40 rounded-full h-14 w-14 p-0 shadow-lg"
             title={t('tasks.button.create')}
         >
             <ListChecks className="h-7 w-7" />

@@ -46,6 +46,12 @@ export default function FloatingPomodoroTimer() {
       isMainPomodoroPage = pathname === `/${currentLocale}`;
     }
 
+    // Also check for the /timer page for logged-in users
+    if (pathname === `/${currentLocale}/timer`) {
+        isMainPomodoroPage = true;
+    }
+
+
     if (isMainPomodoroPage) {
       setIsVisible(false);
       return;
@@ -68,7 +74,7 @@ export default function FloatingPomodoroTimer() {
       <Button
         variant="default"
         className={cn(
-          "fixed bottom-6 right-6 z-50 rounded-full h-16 w-16 p-0 shadow-xl transition-all flex items-center justify-center",
+          "fixed bottom-[6.5rem] right-6 z-50 rounded-full h-16 w-16 p-0 shadow-xl transition-all flex items-center justify-center",
           "hover:scale-105 focus:scale-105",
           "bg-accent text-accent-foreground hover:bg-accent/90"
         )}
@@ -97,7 +103,7 @@ export default function FloatingPomodoroTimer() {
     <Button
       variant={isActive ? "default" : "outline"} 
       className={cn(
-        "fixed bottom-6 right-6 z-50 rounded-full h-16 w-16 p-0 shadow-xl transition-all flex items-center justify-center",
+        "fixed bottom-[6.5rem] right-6 z-50 rounded-full h-16 w-16 p-0 shadow-xl transition-all flex items-center justify-center",
         "hover:scale-105 focus:scale-105",
         isPaused && "bg-accent text-accent-foreground hover:bg-accent/90"
       )}

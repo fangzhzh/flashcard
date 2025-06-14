@@ -603,7 +603,7 @@ function TasksClientContent() {
                     }
                 }
                 const displayTitle = isMobile && task.title.length > 60 ? task.title.substring(0, 57) + "..." : task.title;
-                const displayDescription = task.description && isMobile && task.description.length > 100 ? task.description.substring(0, 97) + "..." : task.description;
+                const displayDescription = task.description && isMobile && task.description.length > 60 ? task.description.substring(0, 57) + "..." : task.description;
 
 
                 return (

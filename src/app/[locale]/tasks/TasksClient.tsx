@@ -500,14 +500,14 @@ function TasksClientContent() {
             <Tabs
               value={activeDateFilter}
               onValueChange={(value) => setActiveDateFilter(value as TaskDateFilter)}
-              className="h-7"
+              className="h-6"
             >
               <TabsList className="grid grid-cols-5 h-full">
-                <TabsTrigger value="all" className="py-1.5 text-xs">{t('tasks.filter.all')}</TabsTrigger>
-                <TabsTrigger value="today" className="py-1.5 text-xs">{t('tasks.filter.today')}</TabsTrigger>
-                <TabsTrigger value="threeDays" className="py-1.5 text-xs">{t('tasks.filter.threeDays')}</TabsTrigger>
-                <TabsTrigger value="thisWeek" className="py-1.5 text-xs">{t('tasks.filter.thisWeek')}</TabsTrigger>
-                <TabsTrigger value="twoWeeks" className="py-1.5 text-xs">{t('tasks.filter.twoWeeks')}</TabsTrigger>
+                <TabsTrigger value="all" className="py-0.5 text-xs">{t('tasks.filter.all')}</TabsTrigger>
+                <TabsTrigger value="today" className="py-0.5 text-xs">{t('tasks.filter.today')}</TabsTrigger>
+                <TabsTrigger value="threeDays" className="py-0.5 text-xs">{t('tasks.filter.threeDays')}</TabsTrigger>
+                <TabsTrigger value="thisWeek" className="py-0.5 text-xs">{t('tasks.filter.thisWeek')}</TabsTrigger>
+                <TabsTrigger value="twoWeeks" className="py-0.5 text-xs">{t('tasks.filter.twoWeeks')}</TabsTrigger>
               </TabsList>
             </Tabs>
           </div>
@@ -519,7 +519,7 @@ function TasksClientContent() {
               value={activeDateFilter}
               onValueChange={(value) => setActiveDateFilter(value as TaskDateFilter)}
             >
-              <TabsList className="grid w-full grid-cols-3 h-7 gap-1"> 
+              <TabsList className="grid w-full grid-cols-3 h-8 gap-1"> 
                 <TabsTrigger value="all" className="py-1.5 text-xs">{t('tasks.filter.all')}</TabsTrigger>
                 <TabsTrigger value="today" className="py-1.5 text-xs">{t('tasks.filter.today')}</TabsTrigger>
                 <TabsTrigger value="threeDays" className="py-1.5 text-xs">{t('tasks.filter.threeDays')}</TabsTrigger>

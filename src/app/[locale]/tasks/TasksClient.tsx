@@ -1,4 +1,3 @@
-
 "use client";
 import React, { useState, useMemo, useCallback, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
@@ -73,6 +72,8 @@ export default function TasksClient() {
   const today = startOfDay(new Date());
 
   const pomodoroContext = usePomodoro();
+  const { setOpen: setSidebarOpen, isMobile: sidebarIsMobile } = useSidebar();
+
 
   const [isSubmittingForm, setIsSubmittingForm] = useState(false);
   const [selectedTaskId, setSelectedTaskId] = useState<string | null>(null);
@@ -400,8 +401,22 @@ export default function TasksClient() {
   const showEditPanel = selectedTaskId !== null || isCreatingNewTask;
 
   return (
-    <SidebarProvider defaultOpen={false}> {/* Ensures sidebar starts collapsed */}
-      <Sidebar collapsible="icon" side="left" variant="sidebar"> {/* Ensures it collapses to icons */}
+    <>
+      <Sidebar
+        collapsible="icon"
+        side="left"
+        variant="sidebar"
+        onMouseEnter={() => {
+          if (!sidebarIsMobile) {
+            setSidebarOpen(true);
+          }
+        }}
+        onMouseLeave={() => {
+          if (!sidebarIsMobile) {
+            setSidebarOpen(false);
+          }
+        }}
+      >
         <div className="flex flex-col h-full pt-16 overflow-hidden"> {/* Offset wrapper for main header */}
           <SidebarHeader className="p-2 flex-shrink-0">
             {/* Sidebar header content if any, or can be removed if not needed */}
@@ -658,6 +673,17 @@ export default function TasksClient() {
           </Button>
         )}
       </SidebarInset>
+    </>
+  );
+}
+
+// Separate SidebarProvider wrapper component to use the useSidebar hook
+function TasksClientWrapper() {
+  return (
+    <SidebarProvider defaultOpen={false}>
+      <TasksClient />
     </SidebarProvider>
   );
 }
+
+export { TasksClientWrapper as TasksClient }; // Export the wrapper

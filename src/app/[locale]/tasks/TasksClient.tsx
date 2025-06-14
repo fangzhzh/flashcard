@@ -476,7 +476,7 @@ function TasksClientContent() {
             <SidebarFooter className="flex-shrink-0" />
           </React.Fragment>
         ) : (
-          <div className={cn("flex flex-col h-full overflow-hidden pt-16")}>
+          <div className={cn("flex flex-col h-full overflow-hidden")}> {/* Removed pt-16 */}
             <SidebarHeader className="flex-shrink-0 p-2">
             </SidebarHeader>
             <SidebarContent className="pt-1"> 
@@ -767,5 +767,6 @@ export default function TasksClient() {
     
 
     
+
 
 

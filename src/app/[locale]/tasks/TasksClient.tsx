@@ -476,7 +476,7 @@ function TasksClientContent() {
             <SidebarFooter className="flex-shrink-0" />
           </React.Fragment>
         ) : (
-           <div className={cn("flex flex-col", !isMobile && "h-full overflow-hidden")}>
+           <div className={cn("flex flex-col", "h-full overflow-hidden")}>
             <SidebarHeader className="flex-shrink-0 p-2">
             </SidebarHeader>
             <SidebarContent className="pt-1"> 
@@ -522,14 +522,14 @@ function TasksClientContent() {
             <Tabs
               value={activeDateFilter}
               onValueChange={(value) => setActiveDateFilter(value as TaskDateFilter)}
-              className="h-6"
+              className="h-auto" 
             >
-              <TabsList className="grid grid-cols-5 h-full">
-                <TabsTrigger value="all" className="py-0.5 text-xs">{t('tasks.filter.all')}</TabsTrigger>
-                <TabsTrigger value="today" className="py-0.5 text-xs">{t('tasks.filter.today')}</TabsTrigger>
-                <TabsTrigger value="threeDays" className="py-0.5 text-xs">{t('tasks.filter.threeDays')}</TabsTrigger>
-                <TabsTrigger value="thisWeek" className="py-0.5 text-xs">{t('tasks.filter.thisWeek')}</TabsTrigger>
-                <TabsTrigger value="twoWeeks" className="py-0.5 text-xs">{t('tasks.filter.twoWeeks')}</TabsTrigger>
+              <TabsList className="flex flex-wrap w-full justify-start items-center h-auto rounded-md bg-muted p-1 text-muted-foreground gap-1">
+                <TabsTrigger value="all" className="py-1.5 text-xs px-2.5">{t('tasks.filter.all')}</TabsTrigger>
+                <TabsTrigger value="today" className="py-1.5 text-xs px-2.5">{t('tasks.filter.today')}</TabsTrigger>
+                <TabsTrigger value="threeDays" className="py-1.5 text-xs px-2.5">{t('tasks.filter.threeDays')}</TabsTrigger>
+                <TabsTrigger value="thisWeek" className="py-1.5 text-xs px-2.5">{t('tasks.filter.thisWeek')}</TabsTrigger>
+                <TabsTrigger value="twoWeeks" className="py-1.5 text-xs px-2.5">{t('tasks.filter.twoWeeks')}</TabsTrigger>
               </TabsList>
             </Tabs>
           </div>
@@ -556,7 +556,7 @@ function TasksClientContent() {
           {/* Task List Area Wrapper */}
           <div
             className={cn(
-              "p-1 md:pr-0", // Removed h-full and overflow-y-auto
+              "p-1 md:pr-0",
               showEditPanel ? "hidden md:block md:w-1/2" : "w-full"
             )}
           >
@@ -726,7 +726,7 @@ function TasksClientContent() {
           {/* Edit Panel Area Wrapper */}
           {showEditPanel && (
             <div className={cn(
-                "bg-card flex flex-col shadow-md", // Removed h-full
+                "bg-card flex flex-col shadow-md", 
                 "w-full md:w-1/2 md:border-l" 
             )}>
               <TaskForm
@@ -767,6 +767,7 @@ export default function TasksClient() {
     
 
     
+
 
 
 

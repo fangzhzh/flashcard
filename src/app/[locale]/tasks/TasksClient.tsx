@@ -403,7 +403,7 @@ function TasksClientContent() {
   const showEditPanel = selectedTaskId !== null || isCreatingNewTask;
 
   return (
-    <div className="flex h-[calc(100vh-4rem)]"> {/* Root div for TasksClientContent */}
+    <div className="flex h-[calc(100vh-4rem)]">
       <Sidebar
         collapsible="icon"
         side="left"
@@ -419,9 +419,8 @@ function TasksClientContent() {
           }
         }}
       >
-        <div className="flex flex-col h-full pt-16 overflow-hidden"> {/* Offset wrapper for main header */}
+        <div className="flex flex-col h-full pt-16 overflow-hidden">
           <SidebarHeader className="p-2 flex-shrink-0">
-            {/* Sidebar header content if any, or can be removed if not needed */}
           </SidebarHeader>
           <SidebarContent> 
             <SidebarMenu>
@@ -443,17 +442,16 @@ function TasksClientContent() {
             </SidebarMenu>
           </SidebarContent>
           <SidebarFooter className="flex-shrink-0">
-            {/* Sidebar footer content if any */}
           </SidebarFooter>
         </div>
       </Sidebar>
 
-      <SidebarInset className="flex flex-1 flex-col overflow-hidden"> {/* Ensure SidebarInset manages its overflow and takes space */}
-        <header className="flex-shrink-0 flex items-center justify-between p-2 md:p-3 border-b sticky top-0 bg-background z-10"> {/* flex-shrink-0 and sticky top-0 (relative to SidebarInset) */}
-          <div className="flex items-center gap-2">
+      <SidebarInset className="flex flex-1 flex-col overflow-hidden">
+        <header className="flex-shrink-0 flex items-center justify-between p-2 md:p-3 border-b sticky top-0 bg-background z-10">
+          <div className="flex items-center"> 
             <SidebarTrigger className="md:hidden" /> 
-            <SidebarTrigger className="hidden md:inline-flex" /> {/* Desktop trigger */}
-            <h1 className="text-xl md:text-2xl font-semibold tracking-tight">{t('tasks.title')}</h1>
+            <SidebarTrigger className="hidden md:inline-flex" />
+            {/* Title removed as per request */}
           </div>
           <div className="hidden sm:block"> 
              <Tabs
@@ -472,7 +470,7 @@ function TasksClientContent() {
           </div>
         </header>
 
-        <div className="sm:hidden p-2 border-b flex-shrink-0"> {/* flex-shrink-0 */}
+        <div className="sm:hidden p-2 border-b flex-shrink-0">
             <Tabs
               value={activeDateFilter}
               onValueChange={(value) => setActiveDateFilter(value as TaskDateFilter)}
@@ -488,9 +486,9 @@ function TasksClientContent() {
         </div>
 
 
-        <div className="flex flex-grow overflow-auto"> {/* This div handles scrolling for its children */}
+        <div className="flex flex-grow overflow-auto">
           <div className={cn(
-            "transition-all duration-300 ease-in-out flex flex-col flex-grow", // Removed overflow-y-auto
+            "transition-all duration-300 ease-in-out flex flex-col flex-grow", 
             showEditPanel ? "w-full md:w-1/2 md:pr-2" : "w-full pr-0" 
           )}>
 
@@ -504,7 +502,7 @@ function TasksClientContent() {
               </Alert>
             )}
 
-            <ul className={cn("space-y-1 flex-grow pb-20 px-1 overflow-y-auto")}> {/* List itself can scroll if needed */}
+            <ul className={cn("space-y-1 flex-grow pb-20 px-1 overflow-y-auto")}>
               {filteredAndSortedTasks.map((task) => {
                 const { visibleLabel, tooltipLabel, timeStatus } = formatTimeLabel(task.timeInfo);
                 let statusIcon: React.ReactNode = null;
@@ -648,8 +646,8 @@ function TasksClientContent() {
 
           {showEditPanel && (
             <div className={cn(
-                "w-full md:w-1/2 md:border-l md:pl-4 py-4", // Removed overflow-y-auto
-                "flex flex-col" // TaskForm will fill this
+                "w-full md:w-1/2 md:border-l md:pl-4 py-4",
+                "flex flex-col" 
               )}>
                <TaskForm
                 key={selectedTaskId || 'new-task'} 

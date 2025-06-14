@@ -448,8 +448,8 @@ function TasksClientContent() {
         side="left"
         variant="sidebar"
       >
-        {isMobile ? (
-          <>
+        {isMobile||true ? (
+          <div>
             <SidebarHeader className="flex-shrink-0 p-2" />
             <SidebarContent className="pt-1">
               <SidebarMenu>
@@ -474,7 +474,7 @@ function TasksClientContent() {
               </SidebarMenu>
             </SidebarContent>
             <SidebarFooter className="flex-shrink-0" />
-          </>
+          </div>
         ) : (
           <div className={cn("flex flex-col h-full overflow-hidden pt-16")}>
             <SidebarHeader className="flex-shrink-0 p-2">

@@ -1,3 +1,4 @@
+
 "use client";
 import React, { useState, useMemo, useCallback, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
@@ -52,7 +53,8 @@ interface TaskTypeFilterOption {
   count: number;
 }
 
-export default function TasksClient() {
+// This component contains the main UI and logic for the tasks page
+function TasksClientContent() {
   const { user, loading: authLoading } = useAuth();
   const {
     tasks,
@@ -677,13 +679,12 @@ export default function TasksClient() {
   );
 }
 
-// Separate SidebarProvider wrapper component to use the useSidebar hook
-function TasksClientWrapper() {
+// This is the component that TasksPage will import and render.
+// It provides the SidebarContext.
+export default function TasksClient() {
   return (
     <SidebarProvider defaultOpen={false}>
-      <TasksClient />
+      <TasksClientContent />
     </SidebarProvider>
   );
 }
-
-export { TasksClientWrapper as TasksClient }; // Export the wrapper

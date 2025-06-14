@@ -1,6 +1,6 @@
 
 import PageContainer from '@/components/PageContainer';
-import TasksClient from './TasksClient';
+import TasksClient from './TasksClient'; // Changed to default import
 import { Suspense } from 'react';
 import { Loader2 } from 'lucide-react';
 import { getI18n } from '@/lib/i18n/server';
@@ -19,7 +19,7 @@ export default async function TasksPage() {
   return (
     <PageContainer>
       <Suspense fallback={<TasksLoadingFallback />}>
-        <TasksClient />
+        <TasksClient /> {/* This now correctly renders the wrapper with the provider */}
       </Suspense>
     </PageContainer>
   );

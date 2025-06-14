@@ -448,38 +448,67 @@ function TasksClientContent() {
         side="left"
         variant="sidebar"
       >
-        <div className={cn("flex flex-col", !isMobile && "h-full overflow-hidden pt-16")}>
-          <SidebarHeader className="flex-shrink-0 p-2">
-          </SidebarHeader>
-          <SidebarContent className="pt-1"> 
-            <SidebarMenu>
-              {taskTypeFilterOptions.map(typeOpt => (
-                <SidebarMenuItem key={typeOpt.value}>
-                  <SidebarMenuButton
-                    onClick={() => setActiveTaskTypeFilter(typeOpt.value as TaskType | 'all')}
-                    isActive={activeTaskTypeFilter === typeOpt.value}
-                    tooltip={{ children: t(typeOpt.labelKey), side: 'right', align: 'center' }}
-                    className={cn(
-                        "justify-start",
-                        draggedOverType === typeOpt.value && typeOpt.value !== 'all' && "ring-2 ring-primary ring-offset-1"
-                    )}
-                    onDragOver={typeOpt.value !== 'all' ? handleDragOver : undefined}
-                    onDrop={typeOpt.value !== 'all' ? (e) => handleDropOnType(e, typeOpt.value as TaskType) : undefined}
-                    onDragEnter={typeOpt.value !== 'all' ? (e) => handleDragEnterType(e, typeOpt.value as TaskType | 'all') : undefined}
-                    onDragLeave={typeOpt.value !== 'all' ? handleDragLeaveType : undefined}
-                  >
-                    <typeOpt.icon />
-                    <span className="flex-grow">{t(typeOpt.labelKey)}</span>
-                    <span className="text-xs text-muted-foreground ml-auto pr-1">{typeOpt.count}</span>
-                  </SidebarMenuButton>
-                </SidebarMenuItem>
-              ))}
-              <SidebarSeparator className="my-2" />
-            </SidebarMenu>
-          </SidebarContent>
-          <SidebarFooter className="flex-shrink-0">
-          </SidebarFooter>
-        </div>
+        {isMobile ? (
+          <>
+            <SidebarHeader className="flex-shrink-0 p-2" />
+            <SidebarContent className="pt-1">
+              <SidebarMenu>
+                {taskTypeFilterOptions.map(typeOpt => (
+                  <SidebarMenuItem key={typeOpt.value}>
+                    <SidebarMenuButton
+                      onClick={() => setActiveTaskTypeFilter(typeOpt.value as TaskType | 'all')}
+                      isActive={activeTaskTypeFilter === typeOpt.value}
+                      tooltip={{ children: t(typeOpt.labelKey), side: 'right', align: 'center' }}
+                      className={cn(
+                          "justify-start",
+                          draggedOverType === typeOpt.value && typeOpt.value !== 'all' && "ring-2 ring-primary ring-offset-1"
+                      )}
+                    >
+                      <typeOpt.icon />
+                      <span className="flex-grow">{t(typeOpt.labelKey)}</span>
+                      <span className="text-xs text-muted-foreground ml-auto pr-1">{typeOpt.count}</span>
+                    </SidebarMenuButton>
+                  </SidebarMenuItem>
+                ))}
+                <SidebarSeparator className="my-2" />
+              </SidebarMenu>
+            </SidebarContent>
+            <SidebarFooter className="flex-shrink-0" />
+          </>
+        ) : (
+          <div className={cn("flex flex-col h-full overflow-hidden pt-16")}>
+            <SidebarHeader className="flex-shrink-0 p-2">
+            </SidebarHeader>
+            <SidebarContent className="pt-1"> 
+              <SidebarMenu>
+                {taskTypeFilterOptions.map(typeOpt => (
+                  <SidebarMenuItem key={typeOpt.value}>
+                    <SidebarMenuButton
+                      onClick={() => setActiveTaskTypeFilter(typeOpt.value as TaskType | 'all')}
+                      isActive={activeTaskTypeFilter === typeOpt.value}
+                      tooltip={{ children: t(typeOpt.labelKey), side: 'right', align: 'center' }}
+                      className={cn(
+                          "justify-start",
+                          draggedOverType === typeOpt.value && typeOpt.value !== 'all' && "ring-2 ring-primary ring-offset-1"
+                      )}
+                      onDragOver={typeOpt.value !== 'all' ? handleDragOver : undefined}
+                      onDrop={typeOpt.value !== 'all' ? (e) => handleDropOnType(e, typeOpt.value as TaskType) : undefined}
+                      onDragEnter={typeOpt.value !== 'all' ? (e) => handleDragEnterType(e, typeOpt.value as TaskType | 'all') : undefined}
+                      onDragLeave={typeOpt.value !== 'all' ? handleDragLeaveType : undefined}
+                    >
+                      <typeOpt.icon />
+                      <span className="flex-grow">{t(typeOpt.labelKey)}</span>
+                      <span className="text-xs text-muted-foreground ml-auto pr-1">{typeOpt.count}</span>
+                    </SidebarMenuButton>
+                  </SidebarMenuItem>
+                ))}
+                <SidebarSeparator className="my-2" />
+              </SidebarMenu>
+            </SidebarContent>
+            <SidebarFooter className="flex-shrink-0">
+            </SidebarFooter>
+          </div>
+        )}
       </Sidebar>
 
       <SidebarInset className="flex flex-1 flex-col overflow-hidden">
@@ -709,7 +738,7 @@ function TasksClientContent() {
       
       <Button
         variant="default"
-        className="fixed bottom-6 right-6 z-40 rounded-full h-14 w-14 p-0 shadow-lg"
+        className="fixed bottom-[6.5rem] right-6 z-40 rounded-full h-14 w-14 p-0 shadow-lg"
         onClick={handleCreateNewTask}
         title={t('tasks.button.create')}
       >
@@ -730,3 +759,4 @@ export default function TasksClient() {
     
 
     
+

@@ -84,6 +84,9 @@ function TasksClientContent() {
 
   const [taskCounts, setTaskCounts] = useState({ innie: 0, outie: 0, blackout: 0, all: 0 });
 
+  const { toggleSidebar: mainToggleSidebar } = useSidebar();
+
+
   useEffect(() => {
     if (tasks) {
       const counts = { innie: 0, outie: 0, blackout: 0, all: tasks.length };
@@ -400,7 +403,7 @@ function TasksClientContent() {
   const showEditPanel = selectedTaskId !== null || isCreatingNewTask;
 
   return (
-    <>
+    <div className="flex h-[calc(100vh-4rem)]"> {/* Overall container for tasks section */}
       <Sidebar
         collapsible="icon"
         side="left"
@@ -434,13 +437,13 @@ function TasksClientContent() {
       </Sidebar>
 
       <SidebarInset className="flex flex-1 flex-col overflow-hidden">
-        <header className="flex-shrink-0 flex items-center justify-start p-2 md:px-3 border-b sticky top-0 bg-background z-10 h-9 gap-2">
-          <div className="flex items-center gap-1">
+        <header className="flex-shrink-0 flex items-center justify-start p-2 md:px-3 border-b sticky top-0 bg-background z-10 h-9 gap-1">
+          <div className="flex items-center">
             <SidebarTrigger className="md:hidden h-6 w-6" />
             <SidebarTrigger className="hidden md:inline-flex h-6 w-6" />
           </div>
           {/* Desktop Date Filters */}
-          <div className="hidden sm:block">
+          <div className="hidden sm:block ml-1">
             <Tabs
               value={activeDateFilter}
               onValueChange={(value) => setActiveDateFilter(value as TaskDateFilter)}
@@ -463,7 +466,7 @@ function TasksClientContent() {
               value={activeDateFilter}
               onValueChange={(value) => setActiveDateFilter(value as TaskDateFilter)}
             >
-              <TabsList className="grid w-full grid-cols-3 h-auto gap-1"> 
+              <TabsList className="grid w-full grid-cols-3 h-7 gap-1"> 
                 <TabsTrigger value="all" className="py-1.5 text-xs">{t('tasks.filter.all')}</TabsTrigger>
                 <TabsTrigger value="today" className="py-1.5 text-xs">{t('tasks.filter.today')}</TabsTrigger>
                 <TabsTrigger value="threeDays" className="py-1.5 text-xs">{t('tasks.filter.threeDays')}</TabsTrigger>
@@ -474,7 +477,7 @@ function TasksClientContent() {
         </div>
 
         {/* Content area: list + optional panel */}
-        <div className="flex flex-1 overflow-hidden">
+        <div className="flex flex-1 overflow-hidden"> {/* Parent flex container for list and edit panel */}
           {/* Task List Area */}
           <div className="flex-1 overflow-y-auto p-1 pr-0">
             {filteredAndSortedTasks.length === 0 && !showEditPanel && (
@@ -629,7 +632,7 @@ function TasksClientContent() {
           </div>
           {/* Edit Panel Area */}
           {showEditPanel && (
-            <div className="w-full md:w-96 border-l bg-card flex flex-col h-full shadow-md">
+            <div className="w-[25rem] h-[75%] border-l bg-card flex flex-col shadow-md">
               <TaskForm
                 key={selectedTaskId || 'new-task'} 
                 mode={isCreatingNewTask ? 'create' : 'edit'}
@@ -653,7 +656,7 @@ function TasksClientContent() {
       >
         <ListChecks className="h-7 w-7" /> 
       </Button>
-    </>
+    </div>
   );
 }
 
@@ -665,4 +668,3 @@ export default function TasksClient() {
     </SidebarProvider>
   );
 }
-

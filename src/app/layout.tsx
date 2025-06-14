@@ -27,8 +27,8 @@ export default function RootLayout({
         <link rel="icon" href="/favicon.ico" sizes="any" />
       </head>
       <body className={`${inter.variable} antialiased`}>
-        <div className="flex min-h-screen flex-col overflow-x-hidden">
-          <main className="flex-1">{children}</main>
+        <div className="h-screen flex flex-col overflow-x-hidden"> {/* Changed min-h-screen to h-screen */}
+          <main className="flex-1 flex flex-col overflow-hidden">{children}</main> {/* Added flex flex-col overflow-hidden */}
         </div>
         <Toaster />
       </body>

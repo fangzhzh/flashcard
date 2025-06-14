@@ -35,11 +35,13 @@ export default function LocaleLayout({
       <AuthProvider>
         <FlashcardsProvider>
           <PomodoroProvider>
-            <>
-              <Header />
-              {children}
-              <FloatingPomodoroTimer /> {/* Add the floating timer here */}
-            </>
+            <div className="flex flex-col h-full"> {/* Root div takes full height */}
+              <Header /> {/* Header takes its natural height, effectively flex-shrink-0 */}
+              <div className="flex-1 overflow-hidden"> {/* This area takes remaining space and clips overflow */}
+                {children}
+              </div>
+              <FloatingPomodoroTimer />
+            </div>
           </PomodoroProvider>
         </FlashcardsProvider>
       </AuthProvider>

@@ -398,6 +398,7 @@ export default {
   'toast.task.linkRemovedAndTaskUpdated': 'Link removed and task updated.',
   'toast.task.error.flashcardLinkFailed': 'Failed to create or link new flashcard.',
   'toast.task.error.intermediateSaveFailed': 'Failed to update task with new link. Please try saving the entire task.',
+  'toast.task.typeChanged': 'Task type changed to {type}.',
   'task.display.today': 'Today',
   'task.display.tomorrow': 'Tomorrow',
   'task.display.label.today': 'Today',

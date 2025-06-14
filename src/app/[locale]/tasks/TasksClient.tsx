@@ -82,6 +82,7 @@ function TasksClientContent() {
   const [isCreatingNewTask, setIsCreatingNewTask] = useState(false);
   const [activeDateFilter, setActiveDateFilter] = useState<TaskDateFilter>('all');
   const [activeTaskTypeFilter, setActiveTaskTypeFilter] = useState<TaskType | 'all'>('all');
+  const [draggedOverType, setDraggedOverType] = useState<TaskType | null>(null);
 
   const [taskCounts, setTaskCounts] = useState({ innie: 0, outie: 0, blackout: 0, all: 0 });
 
@@ -379,6 +380,45 @@ function TasksClientContent() {
     { value: 'blackout', labelKey: 'task.type.blackout', icon: Coffee, count: taskCounts.blackout },
   ], [t, taskCounts]);
 
+  // Drag and Drop Handlers
+  const handleDragStart = (event: React.DragEvent<HTMLLIElement>, taskId: string) => {
+    event.dataTransfer.setData("application/task-id", taskId);
+    event.dataTransfer.effectAllowed = "move";
+  };
+
+  const handleDragOver = (event: React.DragEvent<HTMLButtonElement>) => {
+    event.preventDefault();
+    event.dataTransfer.dropEffect = "move";
+  };
+
+  const handleDragEnterType = (event: React.DragEvent<HTMLButtonElement>, type: TaskType | 'all') => {
+    event.preventDefault();
+    if (type !== 'all') {
+      setDraggedOverType(type as TaskType);
+    }
+  };
+
+  const handleDragLeaveType = (event: React.DragEvent<HTMLButtonElement>) => {
+    event.preventDefault();
+    setDraggedOverType(null);
+  };
+
+  const handleDropOnType = async (event: React.DragEvent<HTMLButtonElement>, newType: TaskType) => {
+    event.preventDefault();
+    setDraggedOverType(null);
+    const taskId = event.dataTransfer.getData("application/task-id");
+    if (taskId) {
+      const task = getTaskById(taskId);
+      if (task && task.type !== newType) {
+        try {
+          await updateTaskInContext(taskId, { type: newType });
+          toast({ title: t('success'), description: t('toast.task.typeChanged', { type: t(`task.type.${newType}` as any) }) });
+        } catch (error) {
+          toast({ title: t('error'), description: t('toast.task.error.save'), variant: "destructive" });
+        }
+      }
+    }
+  };
 
   if (showSignInPrompt) {
     return (
@@ -407,6 +447,7 @@ function TasksClientContent() {
     return `${text.substring(0, maxLength)}...`;
   };
 
+
   return (
     <div className="flex h-full">
       <Sidebar
@@ -425,7 +466,14 @@ function TasksClientContent() {
                     onClick={() => setActiveTaskTypeFilter(typeOpt.value as TaskType | 'all')}
                     isActive={activeTaskTypeFilter === typeOpt.value}
                     tooltip={{ children: t(typeOpt.labelKey), side: 'right', align: 'center' }}
-                    className="justify-start"
+                    className={cn(
+                        "justify-start",
+                        draggedOverType === typeOpt.value && typeOpt.value !== 'all' && "ring-2 ring-primary ring-offset-1"
+                    )}
+                    onDragOver={typeOpt.value !== 'all' ? handleDragOver : undefined}
+                    onDrop={typeOpt.value !== 'all' ? (e) => handleDropOnType(e, typeOpt.value as TaskType) : undefined}
+                    onDragEnter={typeOpt.value !== 'all' ? (e) => handleDragEnterType(e, typeOpt.value as TaskType | 'all') : undefined}
+                    onDragLeave={typeOpt.value !== 'all' ? handleDragLeaveType : undefined}
                   >
                     <typeOpt.icon />
                     <span className="flex-grow">{t(typeOpt.labelKey)}</span>
@@ -565,12 +613,14 @@ function TasksClientContent() {
                 return (
                 <TooltipProvider key={task.id}>
                   <li
+                      draggable="true"
+                      onDragStart={(e) => handleDragStart(e, task.id)}
                       className={cn(
-                          "group flex items-center justify-between py-2.5 px-1 rounded-md hover:bg-muted",
+                          "group flex items-center justify-between py-2.5 px-1 rounded-md hover:bg-muted cursor-grab",
                           selectedTaskId === task.id && "bg-muted shadow-md" 
                       )}
                   >
-                    <div className="flex items-center flex-1 min-w-0 mr-2"> {/* Changed flex-grow to flex-1 and added min-w-0 */}
+                    <div className="flex items-center flex-1 min-w-0 mr-2">
                        <Checkbox
                           id={`task-${task.id}`}
                           checked={task.status === 'completed'}
@@ -580,14 +630,14 @@ function TasksClientContent() {
                         />
                       <div className="flex-1 min-w-0 cursor-pointer overflow-hidden" onClick={() => handleEditTask(task.id)}>
                         <p className={cn(
-                            "text-base font-medium", // Removed truncate
+                            "text-base font-medium", 
                             task.status === 'completed' && "line-through text-muted-foreground"
                           )} title={task.title}>
                           {truncateText(task.title, 200)}
                         </p>
                         {task.description && (
                           <p className={cn(
-                              "text-xs text-muted-foreground", // Removed truncate
+                              "text-xs text-muted-foreground", 
                               task.status === 'completed' && "line-through"
                             )} title={task.description}>
                             {truncateText(task.description, 200)}
@@ -643,8 +693,8 @@ function TasksClientContent() {
           {/* Edit Panel Area Wrapper */}
           {showEditPanel && (
             <div className={cn(
-                "bg-card flex flex-col h-full shadow-md", // Common styles
-                "w-full md:w-1/2 md:border-l" // Responsive width and border
+                "bg-card flex flex-col h-full shadow-md", 
+                "w-full md:w-1/2 md:border-l" 
             )}>
               <TaskForm
                 key={selectedTaskId || 'new-task'} 

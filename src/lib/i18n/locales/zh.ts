@@ -398,6 +398,7 @@ export default {
   'toast.task.linkRemovedAndTaskUpdated': '链接已移除，任务已更新。',
   'toast.task.error.flashcardLinkFailed': '创建或链接新抽认卡失败。',
   'toast.task.error.intermediateSaveFailed': '更新任务链接失败。请尝试保存整个任务。',
+  'toast.task.typeChanged': '任务类型已更改为 {type}。',
   'task.display.today': '今天',
   'task.display.tomorrow': '明天',
   'task.display.label.today': '今天',

@@ -13,7 +13,9 @@ import type { Task, TimeInfo, TaskStatus, RepeatFrequency, ReminderType, TaskTyp
 import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
 import TaskForm, { type TaskFormData } from '@/components/TaskForm';
 import { usePomodoro } from '@/contexts/PomodoroContext';
-import { format, parseISO, differenceInCalendarDays, isToday, isTomorrow, isValid, isSameYear, startOfDay, addDays, startOfWeek, endOfWeek, areIntervalsOverlapping, enUS, zhCN } from 'date-fns';
+import { format, parseISO, differenceInCalendarDays, isToday, isTomorrow, isValid, isSameYear, startOfDay, addDays, startOfWeek, endOfWeek, areIntervalsOverlapping } from 'date-fns';
+import { enUS } from 'date-fns/locale/en-US';
+import { zhCN } from 'date-fns/locale/zh-CN';
 import { cn } from '@/lib/utils';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import TaskDurationPie from '@/components/TaskDurationPie';
@@ -110,10 +112,10 @@ export default function TasksClient() {
     return undefined;
   }, [selectedTaskId, getTaskById]);
 
-  const formatDateStringForDisplay = useCallback((date: Date, todayForComparison: Date, locale: any, includeYearIfDifferent = true): string => {
-    const yearFormat = (includeYearIfDifferent && !isSameYear(date, todayForComparison)) ? 'yyyy/MM/dd' : 'MM/dd';
-    return format(date, yearFormat, { locale });
-  }, []);
+  const formatDateStringForDisplay = useCallback((date: Date, includeYearIfDifferent = true): string => {
+    const yearFormat = (includeYearIfDifferent && !isSameYear(date, today)) ? 'yyyy/MM/dd' : 'MM/dd';
+    return format(date, yearFormat, { locale: dateFnsLocale });
+  }, [dateFnsLocale, today]);
 
   const formatTimeLabel = useCallback((timeInfo?: TimeInfo): FormattedTimeInfo => {
     const defaultReturn: FormattedTimeInfo = { visibleLabel: '', tooltipLabel: t('task.display.noTime'), timeStatus: 'none' };
@@ -121,7 +123,6 @@ export default function TasksClient() {
       return defaultReturn;
     }
 
-    const todayForComparison = startOfDay(new Date());
     let parsedStartDate: Date;
     try {
       parsedStartDate = startOfDay(parseISO(timeInfo.startDate));
@@ -132,14 +133,14 @@ export default function TasksClient() {
     let visibleLabel = '';
     let tooltipLabel = '';
     let timeStatus: FormattedTimeInfo['timeStatus'] = 'none';
-    const daysToStart = differenceInCalendarDays(parsedStartDate, todayForComparison);
+    const daysToStart = differenceInCalendarDays(parsedStartDate, today);
 
     if (isToday(parsedStartDate)) {
       visibleLabel = t('task.display.label.today');
     } else if (isTomorrow(parsedStartDate)) {
       visibleLabel = t('task.display.label.tomorrowShort');
     } else {
-      visibleLabel = formatDateStringForDisplay(parsedStartDate, todayForComparison, dateFnsLocale, false);
+      visibleLabel = formatDateStringForDisplay(parsedStartDate, false);
     }
 
     if (timeInfo.type === 'date_range' && timeInfo.endDate) {
@@ -147,34 +148,34 @@ export default function TasksClient() {
       try {
         parsedEndDate = startOfDay(parseISO(timeInfo.endDate));
         if (!isValid(parsedEndDate) || parsedEndDate < parsedStartDate) {
-           tooltipLabel = `${formatDateStringForDisplay(parsedStartDate, todayForComparison, dateFnsLocale, true)} (${t('task.display.overdue')})`;
+           tooltipLabel = `${formatDateStringForDisplay(parsedStartDate, true)} (${t('task.display.overdue')})`;
            timeStatus = daysToStart < 0 ? 'overdue' : 'active';
         } else {
           const duration = differenceInCalendarDays(parsedEndDate, parsedStartDate) + 1;
-          const fullStartDateStr = formatDateStringForDisplay(parsedStartDate, todayForComparison, dateFnsLocale, true);
-          const fullEndDateStr = formatDateStringForDisplay(parsedEndDate, todayForComparison, dateFnsLocale, true);
+          const fullStartDateStr = formatDateStringForDisplay(parsedStartDate, true);
+          const fullEndDateStr = formatDateStringForDisplay(parsedEndDate, true);
           
           const durationTextKey: TranslationKeys = duration === 1 ? 'task.display.totalDurationDay' : 'task.display.totalDurationDaysPlural';
           const durationText = t(durationTextKey, { count: duration });
           tooltipLabel = `${fullStartDateStr} - ${fullEndDateStr} ${durationText}`;
 
 
-          if (todayForComparison > parsedEndDate) {
+          if (today > parsedEndDate) {
             timeStatus = 'overdue';
-          } else if (todayForComparison >= parsedStartDate && todayForComparison <= parsedEndDate) {
+          } else if (today >= parsedStartDate && today <= parsedEndDate) {
             timeStatus = 'active';
-          } else if (todayForComparison < parsedStartDate) {
+          } else if (today < parsedStartDate) {
              timeStatus = 'upcoming';
           } else {
              timeStatus = 'active';
           }
         }
       } catch (e) {
-          tooltipLabel = `${formatDateStringForDisplay(parsedStartDate, todayForComparison, dateFnsLocale, true)} (${t('task.display.overdue')})`;
+          tooltipLabel = `${formatDateStringForDisplay(parsedStartDate, true)} (${t('task.display.overdue')})`;
           timeStatus = 'overdue';
       }
     } else if (timeInfo.type === 'datetime' || timeInfo.type === 'all_day' || (timeInfo.type === 'date_range' && !timeInfo.endDate) ) {
-      const fullStartDateStr = formatDateStringForDisplay(parsedStartDate, todayForComparison, dateFnsLocale, true);
+      const fullStartDateStr = formatDateStringForDisplay(parsedStartDate, true);
       if (isToday(parsedStartDate)) {
         tooltipLabel = t('task.display.today');
         timeStatus = 'active';
@@ -189,7 +190,7 @@ export default function TasksClient() {
         tooltipLabel += ` ${t('task.display.at')} ${timeInfo.time}`;
       }
     } else if (timeInfo.type === 'no_time' && timeInfo.startDate) {
-      tooltipLabel = formatDateStringForDisplay(parsedStartDate, todayForComparison, dateFnsLocale, true);
+      tooltipLabel = formatDateStringForDisplay(parsedStartDate, true);
       if (isToday(parsedStartDate)) timeStatus = 'active';
       else if (daysToStart > 0) timeStatus = 'upcoming';
       else timeStatus = 'overdue';
@@ -201,7 +202,7 @@ export default function TasksClient() {
 
     return { visibleLabel, tooltipLabel, timeStatus };
 
-  }, [t, dateFnsLocale, formatDateStringForDisplay]);
+  }, [t, dateFnsLocale, formatDateStringForDisplay, today]);
 
   const filteredAndSortedTasks = useMemo(() => {
     const weekStartsOn = 1; // Monday
@@ -374,7 +375,7 @@ export default function TasksClient() {
     { value: 'innie', labelKey: 'task.type.innie', icon: Briefcase, count: taskCounts.innie },
     { value: 'outie', labelKey: 'task.type.outie', icon: User, count: taskCounts.outie },
     { value: 'blackout', labelKey: 'task.type.blackout', icon: Coffee, count: taskCounts.blackout },
-  ], [taskCounts, t]);
+  ], [taskCounts]);
 
 
   if (showSignInPrompt) {
@@ -537,7 +538,7 @@ export default function TasksClient() {
                                             className="mx-1 flex-shrink-0"
                                          />;
                             const durationTextKey: TranslationKeys = totalDaysInRange === 1 ? 'task.display.totalDurationDay' : 'task.display.totalDurationDaysPlural';
-                            statusIconTooltipContent = <p>{formatDateStringForDisplay(sDate, today, dateFnsLocale, true)} - {formatDateStringForDisplay(eDate, today, dateFnsLocale, true)} ({t(durationTextKey, {count: totalDaysInRange})})</p>;
+                            statusIconTooltipContent = <p>{formatDateStringForDisplay(sDate, true)} - {formatDateStringForDisplay(eDate, true)} ({t(durationTextKey, {count: totalDaysInRange})})</p>;
                         }
                     } else if (timeStatus === 'active') { 
                          statusIcon = <Zap className="h-4 w-4 text-green-500 mx-1 flex-shrink-0" />;

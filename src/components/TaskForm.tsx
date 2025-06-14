@@ -13,7 +13,8 @@ import { Save, CalendarIcon, Link2, RotateCcw, Clock, Bell, Trash2, X, Loader2, 
 import { useI18n, useCurrentLocale } from '@/lib/i18n/client';
 import { cn } from '@/lib/utils';
 import { format, parseISO, isValid, isToday, isTomorrow } from 'date-fns';
-import { zhCN, enUS } from 'date-fns/locale';
+import { enUS } from 'date-fns/locale/en-US';
+import { zhCN } from 'date-fns/locale/zh-CN';
 import { useFlashcards } from '@/contexts/FlashcardsContext';
 import FlashcardForm from '@/components/FlashcardForm';
 import { useToast } from '@/hooks/use-toast';
@@ -709,5 +710,6 @@ function SelectFlashcardDialog({
   );
 }
     
+
 
 

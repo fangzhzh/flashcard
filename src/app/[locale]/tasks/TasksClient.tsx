@@ -490,7 +490,7 @@ function TasksClientContent() {
       </Sidebar>
 
       <SidebarInset className="flex flex-1 flex-col overflow-hidden">
-        <header className="flex-shrink-0 flex items-center justify-start p-2 md:px-3 border-b sticky top-0 bg-background z-10 h-9 gap-1">
+        <header className="flex-shrink-0 flex items-center justify-start px-2 py-1 border-b sticky top-0 bg-background z-10 h-9 gap-1">
           <div className="flex items-center gap-1">
              <SidebarTrigger className="md:hidden h-6 w-6" onClick={toggleSidebar} />
              <SidebarTrigger className="hidden md:inline-flex h-6 w-6" onClick={toggleSidebar} />
@@ -514,7 +514,7 @@ function TasksClientContent() {
         </header>
 
         {/* Mobile Date Filters */}
-        <div className="sm:hidden p-2 border-b flex-shrink-0">
+        <div className="sm:hidden px-2 py-1 border-b flex-shrink-0">
             <Tabs
               value={activeDateFilter}
               onValueChange={(value) => setActiveDateFilter(value as TaskDateFilter)}
@@ -530,7 +530,7 @@ function TasksClientContent() {
         </div>
 
         {/* Content area: list + optional panel */}
-        <div className="flex flex-1 overflow-hidden"> {/* PARENT FLEX CONTAINER for list and edit panel */}
+        <div className="flex flex-1 overflow-hidden mt-2"> {/* PARENT FLEX CONTAINER for list and edit panel */}
           {/* Task List Area Wrapper */}
           <div
             className={cn(

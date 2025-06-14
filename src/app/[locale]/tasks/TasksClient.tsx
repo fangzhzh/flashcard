@@ -455,10 +455,10 @@ function TasksClientContent() {
         side="left"
         variant="sidebar"
       >
-        <div className="flex flex-col h-full overflow-hidden">
-          <SidebarHeader className="flex-shrink-0">
+        <div className="flex flex-col h-full pt-16 overflow-hidden">
+          <SidebarHeader className="p-2 flex-shrink-0">
           </SidebarHeader>
-          <SidebarContent className="pt-1"> 
+          <SidebarContent> 
             <SidebarMenu>
               {taskTypeFilterOptions.map(typeOpt => (
                 <SidebarMenuItem key={typeOpt.value}>

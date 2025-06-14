@@ -74,7 +74,7 @@ function TasksClientContent() {
   const today = startOfDay(new Date());
 
   const pomodoroContext = usePomodoro();
-  const { toggleSidebar, isMobile } = useSidebar();
+  const { isMobile } = useSidebar();
 
 
   const [isSubmittingForm, setIsSubmittingForm] = useState(false);
@@ -448,8 +448,8 @@ function TasksClientContent() {
         side="left"
         variant="sidebar"
       >
-        {isMobile||true ? (
-          <div>
+      {isMobile ? (
+          <React.Fragment>
             <SidebarHeader className="flex-shrink-0 p-2" />
             <SidebarContent className="pt-1">
               <SidebarMenu>
@@ -474,7 +474,7 @@ function TasksClientContent() {
               </SidebarMenu>
             </SidebarContent>
             <SidebarFooter className="flex-shrink-0" />
-          </div>
+          </React.Fragment>
         ) : (
           <div className={cn("flex flex-col h-full overflow-hidden pt-16")}>
             <SidebarHeader className="flex-shrink-0 p-2">
@@ -514,8 +514,8 @@ function TasksClientContent() {
       <SidebarInset className="flex flex-1 flex-col overflow-hidden">
         <header className="flex-shrink-0 flex items-center justify-start px-2 py-1 border-b sticky top-0 bg-background z-10 h-9 gap-1">
           <div className="flex items-center gap-1">
-             <SidebarTrigger className="md:hidden h-6 w-6" onClick={toggleSidebar} />
-             <SidebarTrigger className="hidden md:inline-flex h-6 w-6" onClick={toggleSidebar} />
+             <SidebarTrigger className="md:hidden h-6 w-6" />
+             <SidebarTrigger className="hidden md:inline-flex h-6 w-6" />
           </div>
           {/* Desktop Date Filters */}
           <div className="hidden sm:block ml-1">
@@ -631,8 +631,16 @@ function TasksClientContent() {
                         statusIconTooltipContent = <p>{t('task.display.status.overdue')}</p>;
                     }
                 }
-                const displayTitle = isMobile && task.title.length > 43 ? task.title.substring(0, 40) + "..." : task.title;
-                const displayDescription = task.description && isMobile && task.description.length > 43 ? task.description.substring(0, 40) + "..." : task.description;
+                const charLimit = 40;
+                const ellipsisThreshold = charLimit + 3;
+
+                const displayTitle = isMobile && task.title.length > ellipsisThreshold 
+                                     ? task.title.substring(0, charLimit) + "..." 
+                                     : task.title;
+                
+                const displayDescription = task.description && isMobile && task.description.length > ellipsisThreshold 
+                                           ? task.description.substring(0, charLimit) + "..." 
+                                           : task.description;
 
 
                 return (
@@ -738,7 +746,7 @@ function TasksClientContent() {
       
       <Button
         variant="default"
-        className="fixed bottom-[6.5rem] right-6 z-40 rounded-full h-14 w-14 p-0 shadow-lg"
+        className="fixed bottom-6 right-6 z-40 rounded-full h-14 w-14 p-0 shadow-lg"
         onClick={handleCreateNewTask}
         title={t('tasks.button.create')}
       >
@@ -759,4 +767,5 @@ export default function TasksClient() {
     
 
     
+
 

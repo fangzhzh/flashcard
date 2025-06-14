@@ -602,8 +602,8 @@ function TasksClientContent() {
                         statusIconTooltipContent = <p>{t('task.display.status.overdue')}</p>;
                     }
                 }
-                const displayTitle = isMobile && task.title.length > 53 ? task.title.substring(0, 50) + "..." : task.title;
-                const displayDescription = task.description && isMobile && task.description.length > 53 ? task.description.substring(0, 50) + "..." : task.description;
+                const displayTitle = isMobile && task.title.length > 43 ? task.title.substring(0, 40) + "..." : task.title;
+                const displayDescription = task.description && isMobile && task.description.length > 43 ? task.description.substring(0, 40) + "..." : task.description;
 
 
                 return (
@@ -730,4 +730,3 @@ export default function TasksClient() {
     
 
     
-

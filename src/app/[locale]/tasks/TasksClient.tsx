@@ -6,10 +6,10 @@ import { useFlashcards } from '@/contexts/FlashcardsContext';
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
-import { Loader2, Info, ShieldAlert, PlayCircle, Zap, AlertTriangle, CalendarIcon, Hourglass, ListChecks, PanelLeft, Briefcase, User, Coffee, LayoutGrid } from 'lucide-react';
+import { Loader2, Info, ShieldAlert, PlayCircle, Zap, AlertTriangle, CalendarIcon, Hourglass, ListChecks, PanelLeft, Briefcase, User, Coffee, LayoutGrid, X, Save, Link2, RotateCcw, Clock, Bell, Trash2, FilePlus, Search, Edit3, Repeat } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { useI18n, useCurrentLocale } from '@/lib/i18n/client';
-import type { Task, TimeInfo, TaskStatus, RepeatFrequency, ReminderType, TaskType } from '@/types';
+import type { Task, TimeInfo, TaskStatus, RepeatFrequency, ReminderType, TaskType, ArtifactLink, ReminderInfo as ReminderInfoType, Flashcard as FlashcardType } from '@/types';
 import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
 import TaskForm, { type TaskFormData } from '@/components/TaskForm';
 import { usePomodoro } from '@/contexts/PomodoroContext';
@@ -53,7 +53,7 @@ interface TaskTypeFilterOption {
   count: number;
 }
 
-// This component contains the main UI and logic for the tasks page
+
 function TasksClientContent() {
   const { user, loading: authLoading } = useAuth();
   const {
@@ -74,7 +74,6 @@ function TasksClientContent() {
   const today = startOfDay(new Date());
 
   const pomodoroContext = usePomodoro();
-  const { setOpen: setSidebarOpen, isMobile: sidebarIsMobile } = useSidebar();
 
 
   const [isSubmittingForm, setIsSubmittingForm] = useState(false);
@@ -115,10 +114,10 @@ function TasksClientContent() {
     return undefined;
   }, [selectedTaskId, getTaskById]);
 
-  const formatDateStringForDisplay = useCallback((date: Date, includeYearIfDifferent = true): string => {
-    const yearFormat = (includeYearIfDifferent && !isSameYear(date, today)) ? 'yyyy/MM/dd' : 'MM/dd';
-    return format(date, yearFormat, { locale: dateFnsLocale });
-  }, [dateFnsLocale, today]);
+  const formatDateStringForDisplay = useCallback((date: Date, todayDate: Date, locale: Locale, includeYearIfDifferent = true): string => {
+    const yearFormat = (includeYearIfDifferent && !isSameYear(date, todayDate)) ? 'yyyy/MM/dd' : 'MM/dd';
+    return format(date, yearFormat, { locale });
+  }, []);
 
   const formatTimeLabel = useCallback((timeInfo?: TimeInfo): FormattedTimeInfo => {
     const defaultReturn: FormattedTimeInfo = { visibleLabel: '', tooltipLabel: t('task.display.noTime'), timeStatus: 'none' };
@@ -143,7 +142,7 @@ function TasksClientContent() {
     } else if (isTomorrow(parsedStartDate)) {
       visibleLabel = t('task.display.label.tomorrowShort');
     } else {
-      visibleLabel = formatDateStringForDisplay(parsedStartDate, false);
+      visibleLabel = formatDateStringForDisplay(parsedStartDate, today, dateFnsLocale, false);
     }
 
     if (timeInfo.type === 'date_range' && timeInfo.endDate) {
@@ -151,12 +150,12 @@ function TasksClientContent() {
       try {
         parsedEndDate = startOfDay(parseISO(timeInfo.endDate));
         if (!isValid(parsedEndDate) || parsedEndDate < parsedStartDate) {
-           tooltipLabel = `${formatDateStringForDisplay(parsedStartDate, true)} (${t('task.display.overdue')})`;
+           tooltipLabel = `${formatDateStringForDisplay(parsedStartDate, today, dateFnsLocale, true)} (${t('task.display.overdue')})`;
            timeStatus = daysToStart < 0 ? 'overdue' : 'active';
         } else {
           const duration = differenceInCalendarDays(parsedEndDate, parsedStartDate) + 1;
-          const fullStartDateStr = formatDateStringForDisplay(parsedStartDate, true);
-          const fullEndDateStr = formatDateStringForDisplay(parsedEndDate, true);
+          const fullStartDateStr = formatDateStringForDisplay(parsedStartDate, today, dateFnsLocale, true);
+          const fullEndDateStr = formatDateStringForDisplay(parsedEndDate, today, dateFnsLocale, true);
           
           const durationTextKey: TranslationKeys = duration === 1 ? 'task.display.totalDurationDay' : 'task.display.totalDurationDaysPlural';
           const durationText = t(durationTextKey, { count: duration });
@@ -174,11 +173,11 @@ function TasksClientContent() {
           }
         }
       } catch (e) {
-          tooltipLabel = `${formatDateStringForDisplay(parsedStartDate, true)} (${t('task.display.overdue')})`;
+          tooltipLabel = `${formatDateStringForDisplay(parsedStartDate, today, dateFnsLocale, true)} (${t('task.display.overdue')})`;
           timeStatus = 'overdue';
       }
     } else if (timeInfo.type === 'datetime' || timeInfo.type === 'all_day' || (timeInfo.type === 'date_range' && !timeInfo.endDate) ) {
-      const fullStartDateStr = formatDateStringForDisplay(parsedStartDate, true);
+      const fullStartDateStr = formatDateStringForDisplay(parsedStartDate, today, dateFnsLocale, true);
       if (isToday(parsedStartDate)) {
         tooltipLabel = t('task.display.today');
         timeStatus = 'active';
@@ -193,7 +192,7 @@ function TasksClientContent() {
         tooltipLabel += ` ${t('task.display.at')} ${timeInfo.time}`;
       }
     } else if (timeInfo.type === 'no_time' && timeInfo.startDate) {
-      tooltipLabel = formatDateStringForDisplay(parsedStartDate, true);
+      tooltipLabel = formatDateStringForDisplay(parsedStartDate, today, dateFnsLocale, true);
       if (isToday(parsedStartDate)) timeStatus = 'active';
       else if (daysToStart > 0) timeStatus = 'upcoming';
       else timeStatus = 'overdue';
@@ -408,16 +407,6 @@ function TasksClientContent() {
         collapsible="icon"
         side="left"
         variant="sidebar"
-        onMouseEnter={() => {
-          if (!sidebarIsMobile) {
-            setSidebarOpen(true);
-          }
-        }}
-        onMouseLeave={() => {
-          if (!sidebarIsMobile) {
-            setSidebarOpen(false);
-          }
-        }}
       >
         <div className="flex flex-col h-full pt-16 overflow-hidden">
           <SidebarHeader className="p-2 flex-shrink-0">
@@ -448,26 +437,28 @@ function TasksClientContent() {
 
       <SidebarInset className="flex flex-1 flex-col overflow-hidden">
         <header className="flex-shrink-0 flex items-center justify-between p-2 md:p-3 border-b sticky top-0 bg-background z-10">
-          <div className="flex items-center"> 
-            <SidebarTrigger className="md:hidden" /> 
+          <div className="flex items-center gap-2"> {/* Parent for trigger and filters */}
+            <SidebarTrigger className="md:hidden" />
             <SidebarTrigger className="hidden md:inline-flex" />
-            {/* Title removed as per request */}
+            {/* Desktop Date Filters Moved Here */}
+            <div className="hidden sm:block">
+              <Tabs
+                value={activeDateFilter}
+                onValueChange={(value) => setActiveDateFilter(value as TaskDateFilter)}
+                className="h-9"
+              >
+                <TabsList className="grid grid-cols-5 h-full">
+                  <TabsTrigger value="all" className="py-1.5 text-xs">{t('tasks.filter.all')}</TabsTrigger>
+                  <TabsTrigger value="today" className="py-1.5 text-xs">{t('tasks.filter.today')}</TabsTrigger>
+                  <TabsTrigger value="threeDays" className="py-1.5 text-xs">{t('tasks.filter.threeDays')}</TabsTrigger>
+                  <TabsTrigger value="thisWeek" className="py-1.5 text-xs">{t('tasks.filter.thisWeek')}</TabsTrigger>
+                  <TabsTrigger value="twoWeeks" className="py-1.5 text-xs">{t('tasks.filter.twoWeeks')}</TabsTrigger>
+                </TabsList>
+              </Tabs>
+            </div>
           </div>
-          <div className="hidden sm:block"> 
-             <Tabs
-              value={activeDateFilter}
-              onValueChange={(value) => setActiveDateFilter(value as TaskDateFilter)}
-              className="h-9"
-            >
-              <TabsList className="grid grid-cols-5 h-full">
-                <TabsTrigger value="all" className="py-1.5 text-xs">{t('tasks.filter.all')}</TabsTrigger>
-                <TabsTrigger value="today" className="py-1.5 text-xs">{t('tasks.filter.today')}</TabsTrigger>
-                <TabsTrigger value="threeDays" className="py-1.5 text-xs">{t('tasks.filter.threeDays')}</TabsTrigger>
-                <TabsTrigger value="thisWeek" className="py-1.5 text-xs">{t('tasks.filter.thisWeek')}</TabsTrigger>
-                <TabsTrigger value="twoWeeks" className="py-1.5 text-xs">{t('tasks.filter.twoWeeks')}</TabsTrigger>
-              </TabsList>
-            </Tabs>
-          </div>
+          {/* This div is now effectively empty or can be used for right-aligned header items if any */}
+          <div></div>
         </header>
 
         <div className="sm:hidden p-2 border-b flex-shrink-0">
@@ -554,7 +545,7 @@ function TasksClientContent() {
                                             className="mx-1 flex-shrink-0"
                                          />;
                             const durationTextKey: TranslationKeys = totalDaysInRange === 1 ? 'task.display.totalDurationDay' : 'task.display.totalDurationDaysPlural';
-                            statusIconTooltipContent = <p>{formatDateStringForDisplay(sDate, true)} - {formatDateStringForDisplay(eDate, true)} ({t(durationTextKey, {count: totalDaysInRange})})</p>;
+                            statusIconTooltipContent = <p>{formatDateStringForDisplay(sDate, today, dateFnsLocale, true)} - {formatDateStringForDisplay(eDate, today, dateFnsLocale, true)} ({t(durationTextKey, {count: totalDaysInRange})})</p>;
                         }
                     } else if (timeStatus === 'active') { 
                          statusIcon = <Zap className="h-4 w-4 text-green-500 mx-1 flex-shrink-0" />;
@@ -677,8 +668,6 @@ function TasksClientContent() {
   );
 }
 
-// This is the component that TasksPage will import and render.
-// It provides the SidebarContext.
 export default function TasksClient() {
   return (
     <SidebarProvider defaultOpen={false}>
@@ -687,3 +676,4 @@ export default function TasksClient() {
   );
 }
 
+    

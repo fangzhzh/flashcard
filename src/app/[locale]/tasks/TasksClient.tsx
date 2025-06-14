@@ -337,9 +337,8 @@ function TasksClientContent() {
       } else if (selectedTask) {
         await updateTaskInContext(selectedTask.id, data);
         toast({ title: t('success'), description: t('toast.task.updated') });
+        setSelectedTaskId(null); // Close form panel after updating
       }
-      // Optionally keep form open for quick edits, or close:
-      // setSelectedTaskId(null); 
     } catch (error) {
       toast({ title: t('error'), description: t('toast.task.error.save'), variant: "destructive" });
     } finally {
@@ -378,7 +377,7 @@ function TasksClientContent() {
     { value: 'innie', labelKey: 'task.type.innie', icon: Briefcase, count: taskCounts.innie },
     { value: 'outie', labelKey: 'task.type.outie', icon: User, count: taskCounts.outie },
     { value: 'blackout', labelKey: 'task.type.blackout', icon: Coffee, count: taskCounts.blackout },
-  ], [taskCounts]);
+  ], [t, taskCounts]);
 
 
   if (showSignInPrompt) {
@@ -688,3 +687,4 @@ export default function TasksClient() {
     </SidebarProvider>
   );
 }
+

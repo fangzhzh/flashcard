@@ -529,8 +529,8 @@ export default function TaskForm({
               name="description"
               render={({ field }) => (
                 <FormItem>
-                  <div className="flex items-center mb-1">
-                    <FormLabel className="text-base text-muted-foreground flex-grow">
+                  <div className="flex items-center justify-between mb-1">
+                    <FormLabel className="text-base text-muted-foreground">
                       {t('task.form.label.description')}
                     </FormLabel>
                     <Button
@@ -539,7 +539,7 @@ export default function TaskForm({
                       size="xsIcon"
                       onClick={() => setIsPreviewingDescription(!isPreviewingDescription)}
                       title={isPreviewingDescription ? t('task.form.description.editMode') : t('task.form.description.previewMode')}
-                      className="text-muted-foreground hover:text-foreground ml-2 flex-shrink-0"
+                      className="text-muted-foreground hover:text-foreground"
                     >
                       {isPreviewingDescription ? <FileEdit className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                     </Button>
@@ -748,3 +748,4 @@ function SelectFlashcardDialog({
     </Dialog>
   );
 }
+

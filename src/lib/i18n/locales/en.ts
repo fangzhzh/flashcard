@@ -310,7 +310,10 @@ export default {
   'task.form.label.title': 'Title',
   'task.form.placeholder.title': 'Enter task title...',
   'task.form.label.description': 'Description (Optional)',
-  'task.form.placeholder.description': 'Enter task description...',
+  'task.form.placeholder.description': 'Enter task description... (Markdown supported)',
+  'task.form.description.previewMode': 'Preview Description',
+  'task.form.description.editMode': 'Edit Description',
+  'task.form.description.emptyPreview': 'Nothing to preview. Edit the description to see it here.',
   'task.form.label.type': 'Task Type',
   'task.form.placeholder.type': 'Select task type...',
   'task.type.innie': 'Innie',
@@ -463,3 +466,4 @@ export default {
   'error': 'Error',
 
 } as const;
+

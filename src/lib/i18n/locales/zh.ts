@@ -310,7 +310,10 @@ export default {
   'task.form.label.title': '标题',
   'task.form.placeholder.title': '输入任务标题...',
   'task.form.label.description': '描述 (可选)',
-  'task.form.placeholder.description': '输入任务描述...',
+  'task.form.placeholder.description': '输入任务描述... (支持 Markdown)',
+  'task.form.description.previewMode': '预览描述',
+  'task.form.description.editMode': '编辑描述',
+  'task.form.description.emptyPreview': '无可预览内容。请编辑描述以在此处查看。',
   'task.form.label.type': '任务类型',
   'task.form.placeholder.type': '选择任务类型...',
   'task.type.innie': '内部事务',
@@ -463,3 +466,4 @@ export default {
   'error': '错误',
 
 } as const;
+

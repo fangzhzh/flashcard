@@ -9,7 +9,7 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import type { Task, RepeatFrequency, TimeInfo, ArtifactLink, ReminderInfo, Flashcard as FlashcardType, Deck, TaskType } from '@/types';
-import { Save, CalendarIcon, Link2, RotateCcw, Clock, Bell, Trash2, X, Loader2, FilePlus, ListChecks, Search, Edit3, Repeat, Briefcase, User, Coffee } from 'lucide-react';
+import { Save, CalendarIcon, Link2, RotateCcw, Clock, Bell, Trash2, X, Loader2, FilePlus, ListChecks, Search, Edit3, Repeat, Briefcase, User, Coffee, Eye, FileEdit } from 'lucide-react'; // Added Eye, FileEdit
 import { useI18n, useCurrentLocale } from '@/lib/i18n/client';
 import { cn } from '@/lib/utils';
 import { format, parseISO, isValid, isToday, isTomorrow } from 'date-fns';
@@ -33,6 +33,8 @@ import {
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogTrigger, DialogFooter } from "@/components/ui/dialog";
 import TaskDateTimeReminderDialog from '@/components/TaskDateTimeReminderDialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import ReactMarkdown from 'react-markdown'; // Added import
+import remarkGfm from 'remark-gfm'; // Added import
 
 const artifactLinkSchema = z.object({
   flashcardId: z.string().nullable().optional(),
@@ -133,6 +135,7 @@ export default function TaskForm({
   const [isSelectFlashcardDialogOpen, setIsSelectFlashcardDialogOpen] = React.useState(false);
   const [isDeleting, setIsDeleting] = React.useState(false);
   const [isDateTimeReminderDialogOpen, setIsDateTimeReminderDialogOpen] = React.useState(false);
+  const [isPreviewingDescription, setIsPreviewingDescription] = React.useState(false); // State for description preview
 
   const taskTypeOptions: { value: TaskType; labelKey: string; icon: React.ElementType }[] = React.useMemo(() => [
     { value: 'innie', labelKey: 'task.type.innie', icon: Briefcase },
@@ -526,11 +529,45 @@ export default function TaskForm({
               name="description"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel className="text-base text-muted-foreground">{t('task.form.label.description')}</FormLabel>
-                  <FormControl>
-                    <Textarea placeholder={t('task.form.placeholder.description')} {...field} value={field.value ?? ''} className="min-h-[120px] text-sm" />
-                  </FormControl>
-                  <FormMessage />
+                  <div className="flex justify-between items-center mb-1">
+                    <FormLabel className="text-base text-muted-foreground">{t('task.form.label.description')}</FormLabel>
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="xsIcon"
+                      onClick={() => setIsPreviewingDescription(!isPreviewingDescription)}
+                      title={isPreviewingDescription ? t('task.form.description.editMode') : t('task.form.description.previewMode')}
+                      className="text-muted-foreground hover:text-foreground"
+                    >
+                      {isPreviewingDescription ? <FileEdit className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                    </Button>
+                  </div>
+                  {isPreviewingDescription ? (
+                    <div 
+                        className="markdown-content prose dark:prose-invert prose-sm max-w-none p-3 border rounded-md min-h-[120px] text-sm bg-muted/20"
+                        onClick={() => setIsPreviewingDescription(false)} // Click preview to go back to edit
+                        onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') setIsPreviewingDescription(false);}}
+                        role="button"
+                        tabIndex={0}
+                        aria-label={t('task.form.description.editMode')}
+                    >
+                      {field.value && field.value.trim() !== '' ? (
+                        <ReactMarkdown remarkPlugins={[remarkGfm]}>{field.value}</ReactMarkdown>
+                      ) : (
+                        <p className="italic text-muted-foreground">{t('task.form.description.emptyPreview')}</p>
+                      )}
+                    </div>
+                  ) : (
+                    <FormControl>
+                      <Textarea
+                        placeholder={t('task.form.placeholder.description')}
+                        {...field}
+                        value={field.value ?? ''}
+                        className="min-h-[120px] text-sm"
+                      />
+                    </FormControl>
+                  )}
+                  <FormMessage>{form.formState.errors.description && t(form.formState.errors.description.message as any)}</FormMessage>
                 </FormItem>
               )}
             />
@@ -709,3 +746,4 @@ function SelectFlashcardDialog({
     </Dialog>
   );
 }
+

@@ -48,6 +48,7 @@ export interface PomodoroSessionState {
 // Task Management Types
 export type TaskStatus = 'pending' | 'completed';
 export type RepeatFrequency = 'none' | 'daily' | 'weekly' | 'monthly' | 'annually' | 'weekday' | 'weekend';
+export type TaskType = 'innie' | 'outie' | 'blackout';
 
 export interface TimeInfo {
   type: 'no_time' | 'datetime' | 'all_day' | 'date_range';
@@ -72,6 +73,7 @@ export interface Task {
   title: string;
   description?: string | null;
   status: TaskStatus;
+  type: TaskType; // Added new field
   repeat: RepeatFrequency;
   timeInfo: TimeInfo;
   artifactLink: ArtifactLink;
@@ -79,3 +81,4 @@ export interface Task {
   createdAt: string;
   updatedAt: string;
 }
+

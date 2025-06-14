@@ -1,6 +1,6 @@
 
 "use client";
-import type { Flashcard, FlashcardSourceDataItem, AppUser, Deck, Task, TaskStatus, RepeatFrequency, TimeInfo, ArtifactLink, ReminderInfo } from '@/types';
+import type { Flashcard, FlashcardSourceDataItem, AppUser, Deck, Task, TaskStatus, RepeatFrequency, TimeInfo, ArtifactLink, ReminderInfo, TaskType } from '@/types'; // Added TaskType
 import React, { createContext, useContext, ReactNode, useCallback, useMemo, useEffect, useState } from 'react';
 import { db } from '@/lib/firebase';
 import {
@@ -78,7 +78,6 @@ export const FlashcardsProvider = ({ children }: { children: ReactNode }) => {
       const existingSeedSnapshot = await getDocs(existingSeedQuery);
 
       if (!existingSeedSnapshot.empty) {
-        console.log("Skipping seed: User already has cards sourced from JSON.");
         setIsSeeding(false);
         return;
       }
@@ -102,14 +101,12 @@ export const FlashcardsProvider = ({ children }: { children: ReactNode }) => {
       }
 
       if (!seedDeckId) {
-        console.error("Could not obtain seed deck ID.");
         setIsSeeding(false);
         return;
       }
 
       const vocabulary = flashcardJsonData.vocabulary as FlashcardSourceDataItem[];
       if (vocabulary.length === 0) {
-          console.log("No vocabulary found in flashcard.json to seed.");
           setIsSeeding(false);
           return;
       }
@@ -133,7 +130,6 @@ export const FlashcardsProvider = ({ children }: { children: ReactNode }) => {
         batch.set(newCardDocRef, newCardFromSource);
       });
       await batch.commit();
-      console.log(`Seeded ${vocabulary.length} cards into deck "${DEFAULT_SEED_DECK_NAME}".`);
     } catch (error) {
       console.error("Error seeding initial flashcards:", error);
     } finally {
@@ -195,6 +191,7 @@ export const FlashcardsProvider = ({ children }: { children: ReactNode }) => {
             const data = doc.data();
             const taskData = {
               id: doc.id, ...data,
+              type: data.type || 'innie', // Ensure type defaults if missing from older data
               createdAt: data.createdAt instanceof Timestamp ? formatISO(data.createdAt.toDate()) : (typeof data.createdAt === 'string' ? data.createdAt : null),
               updatedAt: data.updatedAt instanceof Timestamp ? formatISO(data.updatedAt.toDate()) : (typeof data.updatedAt === 'string' ? data.updatedAt : null),
               timeInfo: {
@@ -309,6 +306,7 @@ export const FlashcardsProvider = ({ children }: { children: ReactNode }) => {
       const now = serverTimestamp();
       const newTaskData = {
         ...data,
+        type: data.type || 'innie', // Default type if not provided
         userId: user.uid,
         status: 'pending' as TaskStatus, 
         artifactLink: data.artifactLink || { flashcardId: null },
@@ -323,6 +321,7 @@ export const FlashcardsProvider = ({ children }: { children: ReactNode }) => {
         userId: user.uid,
         status: 'pending' as TaskStatus,
         ...data,
+        type: data.type || 'innie',
         artifactLink: data.artifactLink || { flashcardId: null },
         reminderInfo: data.reminderInfo || { type: 'none' },
         createdAt: localCreatedAt,
@@ -338,13 +337,14 @@ export const FlashcardsProvider = ({ children }: { children: ReactNode }) => {
       const currentTask = tasks.find(t => t.id === id);
       const updateData = {
         ...updates,
+        type: updates.type || currentTask?.type || 'innie', // Preserve or update type
         artifactLink: updates.artifactLink || currentTask?.artifactLink || { flashcardId: null },
         reminderInfo: updates.reminderInfo || currentTask?.reminderInfo || { type: 'none' },
         updatedAt: serverTimestamp()
       };
       await updateDoc(taskDocRef, updateData);
       const task = tasks.find(t => t.id === id);
-      return task ? { ...task, ...updates, updatedAt: formatISO(new Date()) } : null;
+      return task ? { ...task, ...updates, type: updateData.type, updatedAt: formatISO(new Date()) } : null;
     } catch (error) { console.error("Error updating task:", error); return null; }
   }, [user, tasks]);
 
@@ -437,3 +437,4 @@ export const useFlashcards = () => {
   }
   return context;
 };
+

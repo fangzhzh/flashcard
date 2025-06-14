@@ -311,6 +311,11 @@ export default {
   'task.form.placeholder.title': 'Enter task title...',
   'task.form.label.description': 'Description (Optional)',
   'task.form.placeholder.description': 'Enter task description...',
+  'task.form.label.type': 'Task Type',
+  'task.form.placeholder.type': 'Select task type...',
+  'task.type.innie': 'Innie (Work/Internal)',
+  'task.type.outie': 'Outie (Personal/External)',
+  'task.type.blackout': 'Blackout (Low Focus)',
   'task.form.label.repeat': 'Repeat',
   'task.form.repeat.none': 'None',
   'task.form.repeat.daily': 'Daily',
@@ -457,3 +462,4 @@ export default {
   'error': 'Error',
 
 } as const;
+

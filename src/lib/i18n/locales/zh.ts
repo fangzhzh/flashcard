@@ -311,6 +311,11 @@ export default {
   'task.form.placeholder.title': '输入任务标题...',
   'task.form.label.description': '描述 (可选)',
   'task.form.placeholder.description': '输入任务描述...',
+  'task.form.label.type': '任务类型',
+  'task.form.placeholder.type': '选择任务类型...',
+  'task.type.innie': '内部事务 (工作/公司内部)',
+  'task.type.outie': '外部事务 (个人/外部)',
+  'task.type.blackout': '放空事务 (低专注度)',
   'task.form.label.repeat': '重复',
   'task.form.repeat.none': '无',
   'task.form.repeat.daily': '每日',
@@ -457,3 +462,4 @@ export default {
   'error': '错误',
 
 } as const;
+

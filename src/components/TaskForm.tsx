@@ -8,8 +8,8 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
-import type { Task, RepeatFrequency, TimeInfo, ArtifactLink, ReminderInfo, Flashcard as FlashcardType, Deck } from '@/types';
-import { Save, CalendarIcon, Link2, RotateCcw, Clock, Bell, Trash2, X, Loader2, FilePlus, ListChecks, Search, Edit3, Repeat } from 'lucide-react';
+import type { Task, RepeatFrequency, TimeInfo, ArtifactLink, ReminderInfo, Flashcard as FlashcardType, Deck, TaskType } from '@/types'; // Added TaskType
+import { Save, CalendarIcon, Link2, RotateCcw, Clock, Bell, Trash2, X, Loader2, FilePlus, ListChecks, Search, Edit3, Repeat, Briefcase, User, Coffee } from 'lucide-react'; // Added icons for types
 import { useI18n, useCurrentLocale } from '@/lib/i18n/client';
 import { cn } from '@/lib/utils';
 import { format, parseISO, isValid, isToday, isTomorrow } from 'date-fns';
@@ -31,7 +31,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogTrigger, DialogFooter } from "@/components/ui/dialog";
 import TaskDateTimeReminderDialog from '@/components/TaskDateTimeReminderDialog';
-
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'; // Added Select
 
 const artifactLinkSchema = z.object({
   flashcardId: z.string().nullable().optional(),
@@ -70,6 +70,7 @@ const reminderInfoSchema = z.object({
 const taskSchema = z.object({
   title: z.string().min(1, 'toast.task.error.titleRequired'),
   description: z.string().optional().nullable(),
+  type: z.enum(['innie', 'outie', 'blackout']).default('innie'), // Added type field
   repeat: z.enum(['none', 'daily', 'weekday', 'weekend', 'weekly', 'monthly', 'annually']).default('none'),
   timeInfo: timeInfoSchema,
   artifactLink: artifactLinkSchema.default({ flashcardId: null }),
@@ -108,6 +109,7 @@ export default function TaskForm({
     defaultValues: {
       title: initialData?.title || '',
       description: initialData?.description || '',
+      type: initialData?.type || 'innie', // Added default for type
       repeat: initialData?.repeat || 'none',
       timeInfo: initialData?.timeInfo || { type: 'no_time', startDate: null, endDate: null, time: null },
       artifactLink: initialData?.artifactLink || { flashcardId: null },
@@ -130,6 +132,12 @@ export default function TaskForm({
   const [isSelectFlashcardDialogOpen, setIsSelectFlashcardDialogOpen] = React.useState(false);
   const [isDeleting, setIsDeleting] = React.useState(false);
   const [isDateTimeReminderDialogOpen, setIsDateTimeReminderDialogOpen] = React.useState(false);
+
+  const taskTypeOptions: { value: TaskType; labelKey: string; icon: React.ElementType }[] = React.useMemo(() => [
+    { value: 'innie', labelKey: 'task.type.innie', icon: Briefcase },
+    { value: 'outie', labelKey: 'task.type.outie', icon: User },
+    { value: 'blackout', labelKey: 'task.type.blackout', icon: Coffee },
+  ], []);
 
 
   React.useEffect(() => {
@@ -158,6 +166,7 @@ export default function TaskForm({
     const dataForReset: TaskFormData = {
       title: initialData?.title || '',
       description: initialData?.description || '',
+      type: initialData?.type || 'innie', // Added type
       repeat: initialData?.repeat || 'none',
       timeInfo: normalizedTimeInfo,
       artifactLink: initialData?.artifactLink || { flashcardId: null },
@@ -275,7 +284,6 @@ export default function TaskForm({
         throw new Error("Failed to create flashcard or get ID.");
       }
     } catch (error) {
-      console.error("Error creating and linking flashcard:", error);
       toast({ title: t('error'), description: t('toast.task.error.flashcardLinkFailed'), variant: 'destructive' });
     } finally {
       setIsSubmittingNewFlashcard(false);
@@ -295,7 +303,6 @@ export default function TaskForm({
       setIsEditFlashcardDialogOpen(false);
       setEditingFlashcardData(null);
     } catch (error) {
-      console.error("Error updating linked flashcard:", error);
       toast({ title: t('error'), description: t('toast.flashcard.error.save'), variant: 'destructive' });
     } finally {
       setIsSubmittingEditedFlashcard(false);
@@ -359,6 +366,34 @@ export default function TaskForm({
                     <Input placeholder={t('task.form.placeholder.title')} {...field} className="text-xl font-semibold border-0 shadow-none focus-visible:ring-0 focus-visible:ring-offset-0 px-0 h-auto py-1" />
                   </FormControl>
                   <FormMessage>{form.formState.errors.title && t(form.formState.errors.title.message as any)}</FormMessage>
+                </FormItem>
+              )}
+            />
+
+            <FormField
+              control={form.control}
+              name="type"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel className="text-base text-muted-foreground">{t('task.form.label.type')}</FormLabel>
+                  <Select onValueChange={field.onChange} defaultValue={field.value}>
+                    <FormControl>
+                      <SelectTrigger>
+                        <SelectValue placeholder={t('task.form.placeholder.type')} />
+                      </SelectTrigger>
+                    </FormControl>
+                    <SelectContent>
+                      {taskTypeOptions.map(option => (
+                        <SelectItem key={option.value} value={option.value}>
+                          <div className="flex items-center">
+                            <option.icon className="mr-2 h-4 w-4 text-muted-foreground" />
+                            {t(option.labelKey as any)}
+                          </div>
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <FormMessage>{form.formState.errors.type && t(form.formState.errors.type.message as any)}</FormMessage>
                 </FormItem>
               )}
             />
@@ -674,4 +709,5 @@ function SelectFlashcardDialog({
   );
 }
     
+
 

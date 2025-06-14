@@ -5,7 +5,7 @@ import { useRouter, useParams, useSearchParams } from 'next/navigation';
 import { useFlashcards } from '@/contexts/FlashcardsContext';
 import TaskForm, { type TaskFormData } from '@/components/TaskForm'; // Import TaskFormData
 import PageContainer from '@/components/PageContainer';
-import type { Task, TaskStatus, RepeatFrequency, TimeInfo, ArtifactLink } from '@/types';
+import type { Task, TaskStatus, RepeatFrequency, TimeInfo, ArtifactLink, TaskType } from '@/types'; // Added TaskType
 import { useToast } from '@/hooks/use-toast';
 import { Button } from '@/components/ui/button';
 import { ArrowLeft, Loader2 } from 'lucide-react';
@@ -50,6 +50,7 @@ export default function TaskFormPage({ mode }: TaskFormPageProps) {
       setInitialData({
         title: '',
         description: '',
+        type: 'innie', // Default type
         repeat: 'none',
         timeInfo: { type: 'no_time' },
         artifactLink: { flashcardId: null },
@@ -141,3 +142,4 @@ export default function TaskFormPage({ mode }: TaskFormPageProps) {
     </PageContainer>
   );
 }
+

@@ -9,7 +9,7 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Loader2, Info, ShieldAlert, PlayCircle, Zap, AlertTriangle, CalendarRange, Hourglass, ListChecks } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { useI18n, useCurrentLocale } from '@/lib/i18n/client';
-import type { Task, TimeInfo, TaskStatus, RepeatFrequency, ReminderType } from '@/types';
+import type { Task, TimeInfo, TaskStatus, RepeatFrequency, ReminderType, TaskType } from '@/types'; // Added TaskType
 import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
 import TaskForm, { type TaskFormData } from '@/components/TaskForm';
 import { usePomodoro } from '@/contexts/PomodoroContext';
@@ -57,6 +57,7 @@ export default function TasksClient() {
   const defaultNewTaskData = useMemo(() => ({
     title: '',
     description: '',
+    type: 'innie' as TaskType, // Added default type
     repeat: 'none' as RepeatFrequency,
     timeInfo: { type: 'no_time' as 'no_time', startDate: null, endDate: null, time: null },
     artifactLink: { flashcardId: null as string | null },
@@ -117,7 +118,7 @@ export default function TasksClient() {
             tooltipLabel = `${fullStartDateStr} - ${fullEndDateStr} (${t('task.display.ended')})`;
             timeStatus = 'overdue';
           } else if (todayForComparison >= parsedStartDate && todayForComparison <= parsedEndDate) {
-            tooltipLabel = `${fullStartDateStr} - ${fullEndDateStr} (${t('task.display.durationDays', { count: duration })})`;
+            tooltipLabel = `${fullStartDateStr} - ${fullEndDateStr} (${duration === 1 ? t('task.display.totalDurationDay', { count: duration }) : t('task.display.totalDurationDaysPlural', { count: duration })})`;
             timeStatus = 'active';
           } else if (todayForComparison < parsedStartDate) {
              tooltipLabel = `${fullStartDateStr} - ${fullEndDateStr} (${t('task.display.inXDays', { count: daysToStart })})`;
@@ -558,3 +559,4 @@ export default function TasksClient() {
   );
 }
     
+

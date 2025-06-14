@@ -73,7 +73,7 @@ export default function FlashcardItem({ flashcard, onDelete }: FlashcardItemProp
     <Card className="flex flex-col h-full shadow-lg hover:shadow-xl transition-shadow duration-300">
       <CardHeader>
         <div className="flex justify-between items-start">
-          <CardTitle className="text-xl flex-grow">
+          <CardTitle className="text-lg flex-grow"> {/* Changed from text-xl */}
             <div className="markdown-content whitespace-pre-wrap">
               <ReactMarkdown remarkPlugins={[remarkGfm]}>
                 {flashcard.front}
@@ -90,10 +90,10 @@ export default function FlashcardItem({ flashcard, onDelete }: FlashcardItemProp
             }}
             title={t('flashcard.item.speakFront' as any, {defaultValue: "Speak front content"})}
           >
-            <Volume2 className="h-5 w-5" />
+            <Volume2 className="h-4 w-4" /> {/* Changed from h-5 w-5 */}
           </Button>
         </div>
-        <div className="flex flex-col space-y-1 text-xs mt-1">
+        <div className="flex flex-col space-y-1 text-xs mt-0.5"> {/* Changed from mt-1 */}
             {deckName && (
               <div className="flex items-center text-muted-foreground">
                 <Library className="mr-1.5 h-3.5 w-3.5" />
@@ -125,17 +125,17 @@ export default function FlashcardItem({ flashcard, onDelete }: FlashcardItemProp
               }}
               title={t('flashcard.item.speakBack' as any, {defaultValue: "Speak back content"})}
             >
-              <Volume2 className="h-5 w-5" />
+              <Volume2 className="h-4 w-4" /> {/* Changed from h-5 w-5 */}
             </Button>
           </div>
         )}
       </CardContent>
-      <CardFooter className="flex flex-col sm:flex-row justify-between items-center gap-2 pt-4 border-t">
+      <CardFooter className="flex flex-col sm:flex-row justify-between items-center gap-1.5 pt-3 border-t"> {/* Changed gap-2 to gap-1.5, pt-4 to pt-3 */}
         <Button variant="ghost" size="sm" onClick={() => setShowBack(!showBack)} className="w-full sm:w-auto">
           {showBack ? <EyeOff className="mr-2 h-4 w-4" /> : <Eye className="mr-2 h-4 w-4" />}
           {showBack ? t('flashcard.item.hideAnswer') : t('flashcard.item.showAnswer')}
         </Button>
-        <div className="flex flex-wrap justify-end gap-2 w-full sm:w-auto"> {/* Added flex-wrap and justify-end here */}
+        <div className="flex flex-wrap justify-end gap-1.5 w-full sm:w-auto"> {/* Changed gap-2 to gap-1.5 */}
           <Link href={`/flashcards/${flashcard.id}/edit`} passHref legacyBehavior>
             <Button variant="outline" size="sm" className="flex-1 sm:flex-none">
               <FilePenLine className="mr-2 h-4 w-4" /> {t('flashcard.item.edit')}
@@ -165,3 +165,4 @@ export default function FlashcardItem({ flashcard, onDelete }: FlashcardItemProp
     </Card>
   );
 }
+

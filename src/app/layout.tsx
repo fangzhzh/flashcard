@@ -27,7 +27,7 @@ export default function RootLayout({
         <link rel="icon" href="/favicon.ico" sizes="any" />
       </head>
       <body className={`${inter.variable} antialiased`}>
-        <div className="flex min-h-screen flex-col">
+        <div className="flex min-h-screen flex-col overflow-x-hidden">
           <main className="flex-1">{children}</main>
         </div>
         <Toaster />
@@ -35,3 +35,4 @@ export default function RootLayout({
     </html>
   );
 }
+

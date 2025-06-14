@@ -290,7 +290,7 @@ export default {
   'pomodoro.break.benefit.ritualRest': '通过白噪音或深呼吸冥想2分钟，用"仪式感"切断大脑回路。',
 
   // Task Management
-  'tasks.title': '你的任务',
+  'tasks.title': '任务',
   'tasks.button.create': '创建新任务',
   'tasks.list.loading': '加载任务中...',
   'tasks.list.empty.title': '还没有任务!',
@@ -427,6 +427,7 @@ export default {
   'tasks.filter.threeDays': '3天',
   'tasks.filter.thisWeek': '本周',
   'tasks.filter.twoWeeks': '2周',
+  'tasks.filter.allTypes': '所有类型',
 
   'task.form.dateTimeReminder.editButton': '配置时间与重复...',
   'task.form.dateTimeReminder.dialog.title': '设置日期、时间、重复与提醒',

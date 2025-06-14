@@ -290,7 +290,7 @@ export default {
   'pomodoro.break.benefit.ritualRest': 'Interrupt brain circuits with a "ritual" like 2 minutes of white noise or deep breathing meditation.',
 
   // Task Management
-  'tasks.title': 'Your Tasks',
+  'tasks.title': 'Tasks',
   'tasks.button.create': 'Create New Task',
   'tasks.list.loading': 'Loading your tasks...',
   'tasks.list.empty.title': 'No Tasks Yet!',
@@ -427,6 +427,7 @@ export default {
   'tasks.filter.threeDays': '3 Days',
   'tasks.filter.thisWeek': 'Week',
   'tasks.filter.twoWeeks': '2 Weeks',
+  'tasks.filter.allTypes': 'All Types',
 
   'task.form.dateTimeReminder.editButton': 'Configure Time & Repeat...',
   'task.form.dateTimeReminder.dialog.title': 'Set Date, Time, Repeat & Reminder',

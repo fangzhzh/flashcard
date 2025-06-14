@@ -26,7 +26,7 @@ const TaskDurationPie: React.FC<TaskDurationPieProps> = ({
 
   const strokeColor = variant === 'upcoming'
     ? 'hsl(var(--accent))' // Color for upcoming tasks (e.g., theme's accent color)
-    : 'hsl(var(--primary))'; // Color for active tasks (theme's primary color)
+    : '#00FF00'; // Color for active tasks (theme's primary color)
 
   return (
     <svg

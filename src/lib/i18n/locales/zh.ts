@@ -413,13 +413,14 @@ export default {
   'task.display.status.active': '进行中',
   'task.display.status.activeRange': '进行中 (日期范围)',
   'task.display.status.overdue': '已过期',
+  'task.display.totalDurationDays': '共 {count} 天',
   'task.pomodoroStartedFor': '任务番茄钟已启动: {title}',
   'task.currentTaskLabel': '当前任务:',
   'tasks.filter.all': '全部',
   'tasks.filter.today': '今天',
-  'tasks.filter.threeDays': '3天内',
+  'tasks.filter.threeDays': '3天',
   'tasks.filter.thisWeek': '本周',
-  'tasks.filter.twoWeeks': '2周内',
+  'tasks.filter.twoWeeks': '2周',
 
   // New keys for Task Date/Time/Reminder Dialog
   'task.form.dateTimeReminder.editButton': '配置时间与重复...',

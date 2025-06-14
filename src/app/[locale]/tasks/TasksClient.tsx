@@ -108,7 +108,7 @@ export default function TasksClient() {
         parsedEndDate = startOfDay(parseISO(timeInfo.endDate));
         if (!isValid(parsedEndDate) || parsedEndDate < parsedStartDate) {
            tooltipLabel = `${formatDateDisplay(parsedStartDate, true)} (${t('task.display.overdue')})`;
-           timeStatus = daysToStart < 0 ? 'overdue' : 'active';
+           timeStatus = daysToStart < 0 ? 'overdue' : 'active'; // Or overdue if start is past
         } else {
           const duration = differenceInCalendarDays(parsedEndDate, parsedStartDate) + 1;
           const fullStartDateStr = formatDateDisplay(parsedStartDate, true);
@@ -123,7 +123,7 @@ export default function TasksClient() {
           } else if (todayForComparison < parsedStartDate) {
              tooltipLabel = `${fullStartDateStr} - ${fullEndDateStr} (${t('task.display.inXDays', { count: daysToStart })})`;
              timeStatus = 'upcoming';
-          } else {
+          } else { // Should not be reached if above logic is correct
              tooltipLabel = `${fullStartDateStr} - ${fullEndDateStr} (${t('task.display.endsInXDays', {count: differenceInCalendarDays(parsedEndDate, todayForComparison) + 1 })})`;
              timeStatus = 'active';
           }
@@ -133,6 +133,7 @@ export default function TasksClient() {
           timeStatus = 'overdue';
       }
     } else if (timeInfo.type === 'datetime' || timeInfo.type === 'all_day' || (timeInfo.type === 'date_range' && !timeInfo.endDate) ) {
+      // This handles single date scenarios (all_day, datetime, or date_range where endDate is missing/same as start)
       const fullStartDateStr = formatDateDisplay(parsedStartDate, true);
       if (isToday(parsedStartDate)) {
         tooltipLabel = t('task.display.today');
@@ -140,14 +141,14 @@ export default function TasksClient() {
       } else if (daysToStart > 0) {
         tooltipLabel = `${fullStartDateStr} (${t('task.display.inXDays', { count: daysToStart })})`;
         timeStatus = 'upcoming';
-      } else {
+      } else { // daysToStart < 0
         tooltipLabel = `${fullStartDateStr} (${t('task.display.overdue')})`;
         timeStatus = 'overdue';
       }
       if (timeInfo.type === 'datetime' && timeInfo.time) {
         tooltipLabel += ` ${t('task.display.at')} ${timeInfo.time}`;
       }
-    } else if (timeInfo.type === 'no_time' && timeInfo.startDate) {
+    } else if (timeInfo.type === 'no_time' && timeInfo.startDate) { // Unlikely 'no_time' has startDate, but defensively
       tooltipLabel = formatDateDisplay(parsedStartDate, true);
       if (isToday(parsedStartDate)) timeStatus = 'active';
       else if (daysToStart > 0) timeStatus = 'upcoming';
@@ -171,7 +172,7 @@ export default function TasksClient() {
 
       const { timeInfo } = task;
       if (!timeInfo?.startDate || !isValid(parseISO(timeInfo.startDate))) {
-        return activeFilter === 'all'; // Only show in 'all' if no valid start date
+        return activeFilter === 'all';
       }
       const taskStartDate = startOfDay(parseISO(timeInfo.startDate));
       const taskEndDate = timeInfo.endDate && isValid(parseISO(timeInfo.endDate)) ? startOfDay(parseISO(timeInfo.endDate)) : taskStartDate;
@@ -183,7 +184,6 @@ export default function TasksClient() {
 
       switch (activeFilter) {
         case 'today':
-          // Interval remains today
           break;
         case 'threeDays':
           filterInterval.end = addDays(today, 2);
@@ -192,15 +192,13 @@ export default function TasksClient() {
           filterInterval.start = startOfWeek(today, { weekStartsOn });
           filterInterval.end = endOfWeek(today, { weekStartsOn });
           break;
-        case 'twoWeeks': // New: covers next two full calendar weeks
+        case 'twoWeeks':
           filterInterval.start = startOfWeek(addDays(today, 7), { weekStartsOn });
           filterInterval.end = endOfWeek(addDays(today, 13), { weekStartsOn });
           break;
         default:
           return true;
       }
-
-      // Check if the task's date range overlaps with the filter's interval
       return areIntervalsOverlapping(
         { start: taskStartDate, end: taskEndDate },
         filterInterval
@@ -226,13 +224,11 @@ export default function TasksClient() {
     });
   }, [tasks, activeFilter]);
 
-  // --- CONDITIONAL RENDERING LOGIC STARTS HERE ---
-  const isLoadingAppData = (authLoading && !user) || // Still authenticating
-                           (!authLoading && user && (isLoadingTasks || contextOverallLoading || isSeeding)); // Authenticated, but app data is loading
+  const isLoadingAppData = (authLoading && !user) ||
+                           (!authLoading && user && (isLoadingTasks || contextOverallLoading || isSeeding));
 
   const showSignInPrompt = !authLoading && !user;
 
-  // Hooks that need to run after initial loading/auth checks
   const handleEditTask = (taskId: string) => {
     setIsCreatingNewTask(false);
     setSelectedTaskId(taskId);
@@ -264,9 +260,7 @@ export default function TasksClient() {
     }
     const pomodoroState = pomodoroContext.sessionState;
     const startFn = pomodoroContext.startPomodoro;
-
     const duration = pomodoroState?.userPreferredDurationMinutes || 25;
-
     startFn(duration, taskTitle);
     toast({ title: t('pomodoro.button.start'), description: t('task.pomodoroStartedFor', { title: taskTitle }) });
     router.push(`/${currentLocale}/timer`);
@@ -316,8 +310,6 @@ export default function TasksClient() {
     }
   };
 
-
-  // --- MAIN COMPONENT RENDER ---
   if (showSignInPrompt) {
     return (
        <Alert variant="destructive" className="mt-8 max-w-md mx-auto">
@@ -341,7 +333,7 @@ export default function TasksClient() {
 
   return (
     <>
-    <div className="flex h-[calc(100vh-var(--header-height,4rem)-4rem)]"> {/* Adjusted height calculation */}
+    <div className="flex h-[calc(100vh-var(--header-height,4rem)-4rem)]">
       <div className={cn(
         "transition-all duration-300 ease-in-out overflow-y-auto flex flex-col",
         showEditPanel ? "hidden md:flex md:w-1/2 md:pr-2" : "w-full pr-0"
@@ -413,8 +405,14 @@ export default function TasksClient() {
                         }
                         currentRemainingPercentage = Math.max(0, Math.min(currentRemainingPercentage, 100));
 
-                        statusIcon = <TaskDurationPie remainingPercentage={currentRemainingPercentage} variant="active" size={16} className="mx-1 flex-shrink-0" />;
-                        statusIconTooltipContent = <p>{t('task.display.status.activeRange')}</p>;
+                        statusIcon = <TaskDurationPie
+                                        remainingPercentage={currentRemainingPercentage}
+                                        totalDurationDays={totalDaysInRange}
+                                        variant="active"
+                                        size={16}
+                                        className="mx-1 flex-shrink-0"
+                                     />;
+                        statusIconTooltipContent = <p>{t('task.display.status.activeRange')} - {t('task.display.totalDurationDays', { count: totalDaysInRange })}</p>;
                     }
                 } else if (timeStatus === 'active') {
                      statusIcon = <Zap className="h-4 w-4 text-green-500 mx-1 flex-shrink-0" />;
@@ -482,7 +480,7 @@ export default function TasksClient() {
                   {statusIcon && statusIconTooltipContent && (
                      <Tooltip delayDuration={300}>
                         <TooltipTrigger asChild>
-                            <div> {/* Extra div to satisfy TooltipTrigger asChild with complex icon components */}
+                            <div className="flex items-center"> {/* Ensure icon is clickable and properly aligned */}
                                 {statusIcon}
                             </div>
                         </TooltipTrigger>

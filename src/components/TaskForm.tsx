@@ -546,7 +546,7 @@ export default function TaskForm({
                   </div>
                   {isPreviewingDescription ? (
                     <div
-                        className="markdown-content prose dark:prose-invert prose-sm max-w-none p-3 border rounded-md min-h-[120px] text-sm bg-muted/20"
+                        className="markdown-content prose dark:prose-invert prose-sm max-w-none p-3 border rounded-md min-h-[120px] text-sm bg-muted/20 overflow-x-auto"
                         onClick={() => setIsPreviewingDescription(false)}
                         onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') setIsPreviewingDescription(false);}}
                         role="button"

@@ -74,6 +74,7 @@ function TasksClientContent() {
   const today = startOfDay(new Date());
 
   const pomodoroContext = usePomodoro();
+  const { toggleSidebar } = useSidebar();
 
 
   const [isSubmittingForm, setIsSubmittingForm] = useState(false);
@@ -391,7 +392,7 @@ function TasksClientContent() {
 
   if (isLoadingAppData) {
      return (
-      <div className="flex justify-center items-center mt-8 h-full"> {/* Changed to h-full */}
+      <div className="flex justify-center items-center h-full">
         <Loader2 className="h-8 w-8 animate-spin text-primary" />
         <p className="ml-2 text-muted-foreground">{t('tasks.list.loading')}</p>
       </div>
@@ -401,7 +402,7 @@ function TasksClientContent() {
   const showEditPanel = selectedTaskId !== null || isCreatingNewTask;
 
   return (
-    <div className="flex h-full"> {/* Root div of TasksClientContent */}
+    <div className="flex h-full">
       <Sidebar
         collapsible="icon"
         side="left"
@@ -436,12 +437,12 @@ function TasksClientContent() {
 
       <SidebarInset className="flex flex-1 flex-col overflow-hidden">
         <header className="flex-shrink-0 flex items-center justify-start p-2 md:px-3 border-b sticky top-0 bg-background z-10 h-9 gap-1">
-          <div className="flex items-center gap-1"> {/* Added gap-1 here */}
-            <SidebarTrigger className="md:hidden h-6 w-6" />
-            <SidebarTrigger className="hidden md:inline-flex h-6 w-6" />
+          <div className="flex items-center gap-1">
+             <SidebarTrigger className="md:hidden h-6 w-6" onClick={toggleSidebar} />
+             <SidebarTrigger className="hidden md:inline-flex h-6 w-6" onClick={toggleSidebar} />
           </div>
           {/* Desktop Date Filters */}
-          <div className="hidden sm:block"> {/* Removed ml-1 */}
+          <div className="hidden sm:block ml-1">
             <Tabs
               value={activeDateFilter}
               onValueChange={(value) => setActiveDateFilter(value as TaskDateFilter)}
@@ -475,7 +476,7 @@ function TasksClientContent() {
         </div>
 
         {/* Content area: list + optional panel */}
-        <div className="flex flex-1 overflow-hidden"> {/* Parent flex container for list and edit panel */}
+        <div className="flex flex-1 overflow-hidden">
           {/* Task List Area Wrapper */}
           <div
             className={cn(
@@ -483,7 +484,7 @@ function TasksClientContent() {
               showEditPanel ? "flex-1 min-w-0" : "w-full" 
             )}
           >
-            {filteredAndSortedTasks.length === 0 && !showEditPanel && (
+            {!showEditPanel && filteredAndSortedTasks.length === 0 && (
               <Alert className={cn("mt-4 border-primary/50 text-primary bg-primary/5 mx-1")}>
                 <Info className="h-5 w-5 text-primary" />
                 <AlertTitle className="font-semibold text-primary">{t('tasks.list.empty.title')}</AlertTitle>
@@ -571,7 +572,7 @@ function TasksClientContent() {
                           className="mr-2 flex-shrink-0"
                           aria-label={t('task.item.toggleCompletionAria', {title: task.title})}
                         />
-                      <div className="min-w-0 cursor-pointer flex-grow" onClick={() => handleEditTask(task.id)}>
+                      <div className="min-w-0 cursor-pointer flex-grow overflow-hidden" onClick={() => handleEditTask(task.id)}>
                         <p className={cn(
                             "text-base font-medium truncate",
                             task.status === 'completed' && "line-through text-muted-foreground"

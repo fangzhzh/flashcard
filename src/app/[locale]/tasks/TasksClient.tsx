@@ -74,7 +74,7 @@ function TasksClientContent() {
   const today = startOfDay(new Date());
 
   const pomodoroContext = usePomodoro();
-  const { toggleSidebar } = useSidebar();
+  const { toggleSidebar, isMobile } = useSidebar();
 
 
   const [isSubmittingForm, setIsSubmittingForm] = useState(false);
@@ -455,10 +455,10 @@ function TasksClientContent() {
         side="left"
         variant="sidebar"
       >
-        <div className="flex flex-col h-full pt-16 overflow-hidden">
+        <div className={cn("flex flex-col h-full overflow-hidden", !isMobile && "pt-16")}>
           <SidebarHeader className="p-2 flex-shrink-0">
           </SidebarHeader>
-          <SidebarContent> 
+          <SidebarContent className="pt-1"> 
             <SidebarMenu>
               {taskTypeFilterOptions.map(typeOpt => (
                 <SidebarMenuItem key={typeOpt.value}>
@@ -519,12 +519,12 @@ function TasksClientContent() {
               value={activeDateFilter}
               onValueChange={(value) => setActiveDateFilter(value as TaskDateFilter)}
             >
-              <TabsList className="grid w-full grid-cols-3 h-8 gap-1"> 
-                <TabsTrigger value="all" className="py-1.5 text-xs">{t('tasks.filter.all')}</TabsTrigger>
-                <TabsTrigger value="today" className="py-1.5 text-xs">{t('tasks.filter.today')}</TabsTrigger>
-                <TabsTrigger value="threeDays" className="py-1.5 text-xs">{t('tasks.filter.threeDays')}</TabsTrigger>
-                <TabsTrigger value="thisWeek" className="py-1.5 text-xs">{t('tasks.filter.thisWeek')}</TabsTrigger>
-                <TabsTrigger value="twoWeeks" className="py-1.5 text-xs">{t('tasks.filter.twoWeeks')}</TabsTrigger>
+              <TabsList className="flex flex-wrap w-full justify-start items-center h-auto rounded-md bg-muted p-1 text-muted-foreground gap-1"> 
+                <TabsTrigger value="all" className="py-1.5 text-xs px-2.5">{t('tasks.filter.all')}</TabsTrigger>
+                <TabsTrigger value="today" className="py-1.5 text-xs px-2.5">{t('tasks.filter.today')}</TabsTrigger>
+                <TabsTrigger value="threeDays" className="py-1.5 text-xs px-2.5">{t('tasks.filter.threeDays')}</TabsTrigger>
+                <TabsTrigger value="thisWeek" className="py-1.5 text-xs px-2.5">{t('tasks.filter.thisWeek')}</TabsTrigger>
+                <TabsTrigger value="twoWeeks" className="py-1.5 text-xs px-2.5">{t('tasks.filter.twoWeeks')}</TabsTrigger>
               </TabsList>
             </Tabs>
         </div>

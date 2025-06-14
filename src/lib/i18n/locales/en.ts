@@ -313,9 +313,9 @@ export default {
   'task.form.placeholder.description': 'Enter task description...',
   'task.form.label.type': 'Task Type',
   'task.form.placeholder.type': 'Select task type...',
-  'task.type.innie': 'Innie (Work/Internal)',
-  'task.type.outie': 'Outie (Personal/External)',
-  'task.type.blackout': 'Blackout (Low Focus)',
+  'task.type.innie': 'Innie',
+  'task.type.outie': 'Outie',
+  'task.type.blackout': 'Blackout',
   'task.form.label.repeat': 'Repeat',
   'task.form.repeat.none': 'None',
   'task.form.repeat.daily': 'Daily',
@@ -405,7 +405,8 @@ export default {
   'task.display.started': 'Started',
   'task.display.startsToday': 'Starts Today',
   'task.display.inXDays': 'in {count} days',
-  'task.display.durationDays': '{count} days long',
+  'task.display.totalDurationDay': '({count} day total)',
+  'task.display.totalDurationDaysPlural': '({count} days total)',
   'task.display.endsInXDays': 'ends in {count} days',
   'task.display.ended': 'Ended',
   'task.display.due': 'Due',
@@ -418,8 +419,7 @@ export default {
   'task.display.status.active': 'Active',
   'task.display.status.activeRange': 'Active (date range)',
   'task.display.status.overdue': 'Overdue',
-  'task.display.totalDurationDay': '({count} day total)',
-  'task.display.totalDurationDaysPlural': '({count} days total)',
+
   'task.pomodoroStartedFor': 'Pomodoro started for task: {title}',
   'task.currentTaskLabel': 'Current Task:',
   'tasks.filter.all': 'All',
@@ -463,4 +463,3 @@ export default {
   'error': 'Error',
 
 } as const;
-

@@ -400,8 +400,8 @@ export default function TasksClient() {
   const showEditPanel = selectedTaskId !== null || isCreatingNewTask;
 
   return (
-    <SidebarProvider defaultOpen={false}> 
-      <Sidebar collapsible="icon" side="left" variant="sidebar">
+    <SidebarProvider defaultOpen={false}> {/* Ensures sidebar starts collapsed */}
+      <Sidebar collapsible="icon" side="left" variant="sidebar"> {/* Ensures it collapses to icons */}
         <div className="flex flex-col h-full pt-16 overflow-hidden"> {/* Offset wrapper for main header */}
           <SidebarHeader className="p-2 flex-shrink-0">
             {/* Sidebar header content if any, or can be removed if not needed */}
@@ -435,6 +435,7 @@ export default function TasksClient() {
         <header className="flex items-center justify-between p-2 md:p-3 border-b sticky top-0 bg-background z-10">
           <div className="flex items-center gap-2">
             <SidebarTrigger className="md:hidden" /> 
+            <SidebarTrigger className="hidden md:inline-flex" /> {/* Desktop trigger */}
             <h1 className="text-xl md:text-2xl font-semibold tracking-tight">{t('tasks.title')}</h1>
           </div>
           <div className="hidden sm:block"> 
@@ -660,5 +661,3 @@ export default function TasksClient() {
     </SidebarProvider>
   );
 }
-
-    

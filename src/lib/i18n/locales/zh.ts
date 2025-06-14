@@ -313,9 +313,9 @@ export default {
   'task.form.placeholder.description': '输入任务描述...',
   'task.form.label.type': '任务类型',
   'task.form.placeholder.type': '选择任务类型...',
-  'task.type.innie': '内部事务 (工作/公司内部)',
-  'task.type.outie': '外部事务 (个人/外部)',
-  'task.type.blackout': '放空事务 (低专注度)',
+  'task.type.innie': '内部事务',
+  'task.type.outie': '外部事务',
+  'task.type.blackout': '放空事务',
   'task.form.label.repeat': '重复',
   'task.form.repeat.none': '无',
   'task.form.repeat.daily': '每日',
@@ -405,7 +405,8 @@ export default {
   'task.display.started': '已开始',
   'task.display.startsToday': '今日开始',
   'task.display.inXDays': '{count}天内',
-  'task.display.durationDays': '{count}天',
+  'task.display.totalDurationDay': '(共 {count} 天)',
+  'task.display.totalDurationDaysPlural': '(共 {count} 天)',
   'task.display.endsInXDays': '{count}天后结束',
   'task.display.ended': '已结束',
   'task.display.due': '截止于',
@@ -418,8 +419,7 @@ export default {
   'task.display.status.active': '进行中',
   'task.display.status.activeRange': '进行中 (日期范围)',
   'task.display.status.overdue': '已过期',
-  'task.display.totalDurationDay': '(共 {count} 天)',
-  'task.display.totalDurationDaysPlural': '(共 {count} 天)',
+
   'task.pomodoroStartedFor': '任务番茄钟已启动: {title}',
   'task.currentTaskLabel': '当前任务:',
   'tasks.filter.all': '全部',
@@ -463,4 +463,3 @@ export default {
   'error': '错误',
 
 } as const;
-

@@ -476,7 +476,7 @@ function TasksClientContent() {
             <SidebarFooter className="flex-shrink-0" />
           </React.Fragment>
         ) : (
-          <div className={cn("flex flex-col h-full overflow-hidden")}> {/* Removed pt-16 */}
+           <div className={cn("flex flex-col", !isMobile && "h-full overflow-hidden")}>
             <SidebarHeader className="flex-shrink-0 p-2">
             </SidebarHeader>
             <SidebarContent className="pt-1"> 
@@ -511,7 +511,7 @@ function TasksClientContent() {
         )}
       </Sidebar>
 
-      <SidebarInset className="flex flex-1 flex-col overflow-hidden">
+      <SidebarInset className="flex flex-1 flex-col overflow-y-auto">
         <header className="flex-shrink-0 flex items-center justify-start px-2 py-1 border-b sticky top-0 bg-background z-10 h-9 gap-1">
           <div className="flex items-center gap-1">
              <SidebarTrigger className="md:hidden h-6 w-6" />
@@ -552,12 +552,12 @@ function TasksClientContent() {
         </div>
 
         {/* Content area: list + optional panel */}
-        <div className="flex flex-1 overflow-hidden mt-2"> {/* PARENT FLEX CONTAINER for list and edit panel */}
+        <div className="flex flex-1 mt-2"> {/* PARENT FLEX CONTAINER for list and edit panel */}
           {/* Task List Area Wrapper */}
           <div
             className={cn(
-              "h-full overflow-y-auto",
-              showEditPanel ? "hidden md:block md:w-1/2 p-1 md:pr-0" : "w-full p-1"
+              "p-1 md:pr-0", // Removed h-full and overflow-y-auto
+              showEditPanel ? "hidden md:block md:w-1/2" : "w-full"
             )}
           >
             {filteredAndSortedTasks.length === 0 && !showEditPanel && (
@@ -726,7 +726,7 @@ function TasksClientContent() {
           {/* Edit Panel Area Wrapper */}
           {showEditPanel && (
             <div className={cn(
-                "bg-card flex flex-col h-full shadow-md", 
+                "bg-card flex flex-col shadow-md", // Removed h-full
                 "w-full md:w-1/2 md:border-l" 
             )}>
               <TaskForm
@@ -767,6 +767,7 @@ export default function TasksClient() {
     
 
     
+
 
 
 

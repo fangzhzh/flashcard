@@ -27,16 +27,16 @@ const TaskDurationPie: React.FC<TaskDurationPieProps> = ({
 
   const strokeColor = variant === 'upcoming'
     ? 'hsl(var(--accent))'
-    : 'hsl(var(--primary))'; // Use primary theme color for active variant
+    : 'hsl(var(--primary))';
 
-  const textColor = '#000000'; // Black for high contrast
+  const textColor = 'hsl(var(--foreground))'; // Use theme's foreground color
 
   let durationText = '';
   if (totalDurationDays !== undefined && totalDurationDays > 0) {
     durationText = `${totalDurationDays}`;
   }
 
-  let fontSize = Math.max(6, size * 0.45);
+  let fontSize = Math.max(6, size * 0.45); // Base font size
   if (totalDurationDays && totalDurationDays >= 100) {
       fontSize = Math.max(5, size * 0.35);
   } else if (totalDurationDays && totalDurationDays >= 10) {
@@ -90,4 +90,3 @@ const TaskDurationPie: React.FC<TaskDurationPieProps> = ({
 };
 
 export default TaskDurationPie;
-

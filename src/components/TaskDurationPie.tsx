@@ -27,24 +27,19 @@ const TaskDurationPie: React.FC<TaskDurationPieProps> = ({
 
   const strokeColor = variant === 'upcoming'
     ? 'hsl(var(--accent))'
-    : 'hsl(var(--primary))';
+    : '#00FF00'; // Changed to green for active variant
 
-  const textColor = 'hsl(var(--primary-foreground))';
+  const textColor = '#000000'; // Changed to black for high contrast
 
   let durationText = '';
   if (totalDurationDays !== undefined && totalDurationDays > 0) {
-    durationText = `${totalDurationDays}`; // Display just the number
+    durationText = `${totalDurationDays}`;
   }
 
-  // Aim for a font size that's roughly half the pie size, capped for very small pies.
-  // For a 16px pie, this would be around 8px.
-  // For a 12px pie, this would be 6px.
-  // Badge text is often around 0.75rem (12px) for its default height,
-  // but our pie is smaller, so we need a proportionally smaller font.
-  let fontSize = Math.max(6, size * 0.45); // Adjusted for better visibility
-  if (totalDurationDays && totalDurationDays >= 100) { // Slightly reduce for 3-digit numbers
+  let fontSize = Math.max(6, size * 0.45);
+  if (totalDurationDays && totalDurationDays >= 100) {
       fontSize = Math.max(5, size * 0.35);
-  } else if (totalDurationDays && totalDurationDays >= 10) { // Slightly reduce for 2-digit numbers
+  } else if (totalDurationDays && totalDurationDays >= 10) {
       fontSize = Math.max(5.5, size * 0.4);
   }
 

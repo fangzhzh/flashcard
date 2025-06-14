@@ -512,13 +512,14 @@ function TasksClientContent() {
       </Sidebar>
 
       <SidebarInset className="flex flex-1 flex-col overflow-y-auto">
-        <header className="flex-shrink-0 flex items-center justify-start px-2 py-1 border-b sticky top-0 bg-background z-10 h-9 gap-1">
-          <div className="flex items-center gap-1">
+        <header className="flex-shrink-0 flex flex-col sm:flex-row sm:items-center px-2 py-1 border-b sticky top-0 bg-background z-10 gap-1 sm:h-9">
+          <div className="flex items-center gap-1 mb-1 sm:mb-0 self-start sm:self-center">
              <SidebarTrigger className="md:hidden h-6 w-6" />
              <SidebarTrigger className="hidden md:inline-flex h-6 w-6" />
           </div>
+          
           {/* Desktop Date Filters */}
-          <div className="hidden sm:block ml-1">
+          <div className="hidden sm:block sm:ml-1">
             <Tabs
               value={activeDateFilter}
               onValueChange={(value) => setActiveDateFilter(value as TaskDateFilter)}
@@ -533,10 +534,9 @@ function TasksClientContent() {
               </TabsList>
             </Tabs>
           </div>
-        </header>
 
-        {/* Mobile Date Filters */}
-        <div className="sm:hidden px-2 py-1 border-b flex-shrink-0">
+          {/* Mobile Date Filters */}
+          <div className="sm:hidden w-full">
             <Tabs
               value={activeDateFilter}
               onValueChange={(value) => setActiveDateFilter(value as TaskDateFilter)}
@@ -549,7 +549,8 @@ function TasksClientContent() {
                 <TabsTrigger value="twoWeeks" className="py-1.5 text-xs px-2.5">{t('tasks.filter.twoWeeks')}</TabsTrigger>
               </TabsList>
             </Tabs>
-        </div>
+          </div>
+        </header>
 
         {/* Content area: list + optional panel */}
         <div className="flex flex-1 mt-2"> {/* PARENT FLEX CONTAINER for list and edit panel */}
@@ -767,6 +768,7 @@ export default function TasksClient() {
     
 
     
+
 
 
 

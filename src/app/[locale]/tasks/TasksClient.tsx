@@ -449,7 +449,7 @@ function TasksClientContent() {
         variant="sidebar"
       >
         <div className={cn("flex flex-col", !isMobile && "h-full overflow-hidden pt-16")}>
-          <SidebarHeader className="p-2 flex-shrink-0">
+          <SidebarHeader className="flex-shrink-0">
           </SidebarHeader>
           <SidebarContent className="pt-1"> 
             <SidebarMenu>
@@ -602,6 +602,9 @@ function TasksClientContent() {
                         statusIconTooltipContent = <p>{t('task.display.status.overdue')}</p>;
                     }
                 }
+                const displayTitle = isMobile && task.title.length > 60 ? task.title.substring(0, 57) + "..." : task.title;
+                const displayDescription = task.description && isMobile && task.description.length > 100 ? task.description.substring(0, 97) + "..." : task.description;
+
 
                 return (
                 <TooltipProvider key={task.id}>
@@ -623,17 +626,17 @@ function TasksClientContent() {
                         />
                       <div className="flex-1 min-w-0 cursor-pointer overflow-hidden" onClick={() => handleEditTask(task.id)}>
                         <p className={cn(
-                            "text-base font-medium truncate", 
+                            "text-base font-medium", 
                             task.status === 'completed' && "line-through text-muted-foreground"
                           )} title={task.title}>
-                          {task.title}
+                          {displayTitle}
                         </p>
-                        {task.description && (
+                        {displayDescription && (
                           <p className={cn(
-                              "text-xs text-muted-foreground truncate", 
+                              "text-xs text-muted-foreground", 
                               task.status === 'completed' && "line-through"
-                            )} title={task.description}>
-                            {task.description}
+                            )} title={task.description ?? undefined}>
+                            {displayDescription}
                           </p>
                         )}
                       </div>
@@ -724,5 +727,6 @@ export default function TasksClient() {
     </SidebarProvider>
   );
 }
+    
 
     

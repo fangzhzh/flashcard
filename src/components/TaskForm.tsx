@@ -8,8 +8,8 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
-import type { Task, RepeatFrequency, TimeInfo, ArtifactLink, ReminderInfo, Flashcard as FlashcardType, Deck, TaskType } from '@/types'; // Added TaskType
-import { Save, CalendarIcon, Link2, RotateCcw, Clock, Bell, Trash2, X, Loader2, FilePlus, ListChecks, Search, Edit3, Repeat, Briefcase, User, Coffee } from 'lucide-react'; // Added icons for types
+import type { Task, RepeatFrequency, TimeInfo, ArtifactLink, ReminderInfo, Flashcard as FlashcardType, Deck, TaskType } from '@/types';
+import { Save, CalendarIcon, Link2, RotateCcw, Clock, Bell, Trash2, X, Loader2, FilePlus, ListChecks, Search, Edit3, Repeat, Briefcase, User, Coffee } from 'lucide-react';
 import { useI18n, useCurrentLocale } from '@/lib/i18n/client';
 import { cn } from '@/lib/utils';
 import { format, parseISO, isValid, isToday, isTomorrow } from 'date-fns';
@@ -32,7 +32,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogTrigger, DialogFooter } from "@/components/ui/dialog";
 import TaskDateTimeReminderDialog from '@/components/TaskDateTimeReminderDialog';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'; // Added Select
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 
 const artifactLinkSchema = z.object({
   flashcardId: z.string().nullable().optional(),
@@ -71,7 +71,7 @@ const reminderInfoSchema = z.object({
 const taskSchema = z.object({
   title: z.string().min(1, 'toast.task.error.titleRequired'),
   description: z.string().optional().nullable(),
-  type: z.enum(['innie', 'outie', 'blackout']).default('innie'), // Added type field
+  type: z.enum(['innie', 'outie', 'blackout']).default('innie'),
   repeat: z.enum(['none', 'daily', 'weekday', 'weekend', 'weekly', 'monthly', 'annually']).default('none'),
   timeInfo: timeInfoSchema,
   artifactLink: artifactLinkSchema.default({ flashcardId: null }),
@@ -110,7 +110,7 @@ export default function TaskForm({
     defaultValues: {
       title: initialData?.title || '',
       description: initialData?.description || '',
-      type: initialData?.type || 'innie', // Added default for type
+      type: initialData?.type || 'innie',
       repeat: initialData?.repeat || 'none',
       timeInfo: initialData?.timeInfo || { type: 'no_time', startDate: null, endDate: null, time: null },
       artifactLink: initialData?.artifactLink || { flashcardId: null },
@@ -138,7 +138,7 @@ export default function TaskForm({
     { value: 'innie', labelKey: 'task.type.innie', icon: Briefcase },
     { value: 'outie', labelKey: 'task.type.outie', icon: User },
     { value: 'blackout', labelKey: 'task.type.blackout', icon: Coffee },
-  ], []);
+  ], [t]);
 
 
   React.useEffect(() => {
@@ -167,7 +167,7 @@ export default function TaskForm({
     const dataForReset: TaskFormData = {
       title: initialData?.title || '',
       description: initialData?.description || '',
-      type: initialData?.type || 'innie', // Added type
+      type: initialData?.type || 'innie',
       repeat: initialData?.repeat || 'none',
       timeInfo: normalizedTimeInfo,
       artifactLink: initialData?.artifactLink || { flashcardId: null },
@@ -528,7 +528,7 @@ export default function TaskForm({
                 <FormItem>
                   <FormLabel className="text-base text-muted-foreground">{t('task.form.label.description')}</FormLabel>
                   <FormControl>
-                    <Textarea placeholder={t('task.form.placeholder.description')} {...field} value={field.value ?? ''} className="min-h-[80px] text-sm" />
+                    <Textarea placeholder={t('task.form.placeholder.description')} {...field} value={field.value ?? ''} className="min-h-[120px] text-sm" />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -536,7 +536,18 @@ export default function TaskForm({
             />
         </div>
 
-        <div className="flex justify-between items-center pt-4 border-t mt-auto">
+        <div className="flex justify-between items-center pt-4 border-t">
+            <div className="flex gap-2">
+                <Button type="submit" disabled={isLoading || isFetchingFlashcard || isSubmittingNewFlashcard || isSubmittingEditedFlashcard || isDeleting} className="min-w-[100px]" size="sm">
+                    {isLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}
+                    {isLoading ? t('task.form.button.saving') : (mode === 'edit' ? t('task.form.button.update') : t('task.form.button.create'))}
+                </Button>
+                {onCancel && (
+                    <Button type="button" variant="ghost" onClick={onCancel} disabled={isLoading || isSubmittingNewFlashcard || isSubmittingEditedFlashcard || isFetchingFlashcard || isDeleting} size="sm">
+                       <X className="mr-2 h-4 w-4" /> {t('deck.item.delete.confirm.cancel')}
+                    </Button>
+                )}
+            </div>
             <div>
                 {mode === 'edit' && onDelete && (
                      <AlertDialog>
@@ -563,17 +574,6 @@ export default function TaskForm({
                         </AlertDialogContent>
                     </AlertDialog>
                 )}
-            </div>
-            <div className="flex gap-2">
-                {onCancel && (
-                    <Button type="button" variant="ghost" onClick={onCancel} disabled={isLoading || isSubmittingNewFlashcard || isSubmittingEditedFlashcard || isFetchingFlashcard || isDeleting} size="sm">
-                       <X className="mr-2 h-4 w-4" /> {t('deck.item.delete.confirm.cancel')}
-                    </Button>
-                )}
-                <Button type="submit" disabled={isLoading || isFetchingFlashcard || isSubmittingNewFlashcard || isSubmittingEditedFlashcard || isDeleting} className="min-w-[100px]" size="sm">
-                    {isLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}
-                    {isLoading ? t('task.form.button.saving') : (mode === 'edit' ? t('task.form.button.update') : t('task.form.button.create'))}
-                </Button>
             </div>
         </div>
       </form>
@@ -710,6 +710,3 @@ function SelectFlashcardDialog({
   );
 }
     
-
-
-

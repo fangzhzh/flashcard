@@ -356,7 +356,7 @@ export default function TaskForm({
     <>
     <Form {...form}>
       <form onSubmit={form.handleSubmit(onSubmit)} className="h-full flex flex-col p-2">
-        <div className="flex-grow min-h-0 space-y-4 overflow-y-auto pr-2 pb-20">
+        <div className="flex-1 min-h-0 space-y-4 overflow-y-auto px-2 pt-2 pb-4">
             <FormField
               control={form.control}
               name="title"
@@ -709,3 +709,6 @@ function SelectFlashcardDialog({
     </Dialog>
   );
 }
+
+
+    

@@ -59,9 +59,9 @@ const timeInfoSchema = z.object({
         return { message: 'task.form.error.timeInfo.startDateRequired', path: ["startDate"] };
     }
     if (data.type === 'date_range' && (!data.startDate || !data.endDate)) {
-        return { message: 'task.form.error.timeInfo.dateRangeFieldsRequired', path: ["startDate"] }; 
+        return { message: 'task.form.error.timeInfo.dateRangeFieldsRequired', path: ["startDate"] };
     }
-    return { message: 'Invalid time configuration' }; 
+    return { message: 'Invalid time configuration' };
 });
 
 const reminderInfoSchema = z.object({
@@ -87,7 +87,7 @@ interface TaskFormProps {
   mode: 'create' | 'edit';
   onCancel?: () => void;
   onIntermediateSave?: (updates: Partial<TaskFormData>) => Promise<boolean>;
-  onDelete?: () => Promise<void>; 
+  onDelete?: () => Promise<void>;
 }
 
 export default function TaskForm({
@@ -146,7 +146,7 @@ export default function TaskForm({
         if (watchedArtifactLink?.flashcardId) {
             setIsFetchingFlashcard(true);
             const card = getFlashcardById(watchedArtifactLink.flashcardId);
-            setLinkedFlashcard(card || null); 
+            setLinkedFlashcard(card || null);
             setIsFetchingFlashcard(false);
         } else {
             setLinkedFlashcard(null);
@@ -196,7 +196,7 @@ export default function TaskForm({
     { value: '1_hour_before', labelKey: 'task.form.reminder.type.1_hour_before' },
     { value: '1_day_before', labelKey: 'task.form.reminder.type.1_day_before' },
   ], []);
-  
+
   const formatDateTimeDisplay = React.useCallback(() => {
     const { timeInfo } = form.getValues();
     if (timeInfo.type === 'no_time' || !timeInfo.startDate || !isValid(parseISO(timeInfo.startDate))) {
@@ -220,7 +220,7 @@ export default function TaskForm({
         else endDateStr = format(endDate, 'MMM d', { locale: dateFnsLocale });
         return `${dateStr} ${t('task.form.dateTimeReminder.summary.rangeSeparator')} ${endDateStr}`;
     }
-    return dateStr; 
+    return dateStr;
   }, [form, t, dateFnsLocale]);
 
   const formatRepeatDisplay = React.useCallback(() => {
@@ -249,7 +249,7 @@ export default function TaskForm({
         if (success) {
             form.setValue('artifactLink', clearedArtifactLink);
             setLinkedFlashcard(null);
-            setEditingFlashcardData(null); 
+            setEditingFlashcardData(null);
             toast({ title: t('success'), description: t('toast.task.linkRemovedAndTaskUpdated') });
         } else {
             toast({ title: t('error'), description: t('toast.task.error.intermediateSaveFailed'), variant: 'destructive' });
@@ -276,7 +276,7 @@ export default function TaskForm({
             } else {
                 toast({ title: t('error'), description: t('toast.task.error.intermediateSaveFailed'), variant: 'destructive' });
             }
-        } else { 
+        } else {
             form.setValue('artifactLink', newArtifactLink);
             toast({ title: t('success'), description: t('toast.task.flashcardLinked') });
         }
@@ -355,8 +355,8 @@ export default function TaskForm({
   return (
     <>
     <Form {...form}>
-      <form onSubmit={form.handleSubmit(onSubmit)} className="p-1 h-full flex flex-col">
-        <div className="flex-grow space-y-4 overflow-y-auto pr-2 pb-20"> {/* Added pb-20 for 80px padding */}
+      <form onSubmit={form.handleSubmit(onSubmit)} className="h-full flex flex-col">
+        <div className="flex-grow space-y-4 overflow-y-auto pr-2 pb-6">
             <FormField
               control={form.control}
               name="title"
@@ -487,7 +487,7 @@ export default function TaskForm({
                             </div>
                         </div>
                     )}
-                    
+
                     {!watchedArtifactLink?.flashcardId && (
                         <div className="flex flex-wrap gap-2 pt-1">
                              <Dialog open={isNewFlashcardDialogOpen} onOpenChange={setIsNewFlashcardDialogOpen}>
@@ -536,7 +536,7 @@ export default function TaskForm({
             />
         </div>
 
-        <div className="flex justify-between items-center pt-4 border-t">
+        <div className="flex-shrink-0 flex justify-between items-center pt-4 border-t">
             <div className="flex gap-2">
                 <Button type="submit" disabled={isLoading || isFetchingFlashcard || isSubmittingNewFlashcard || isSubmittingEditedFlashcard || isDeleting} className="min-w-[100px]" size="sm">
                     {isLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}
@@ -644,13 +644,13 @@ function SelectFlashcardDialog({
     if (!searchTerm.trim()) {
       return [...allFlashcards]
         .sort((a, b) => (new Date(b.createdAt || 0).getTime()) - (new Date(a.createdAt || 0).getTime()))
-        .slice(0, 10); 
+        .slice(0, 10);
     }
     return allFlashcards.filter(
       (card) =>
         card.front.toLowerCase().includes(searchTerm.toLowerCase()) ||
         card.back.toLowerCase().includes(searchTerm.toLowerCase())
-    ).slice(0, 20); 
+    ).slice(0, 20);
   }, [allFlashcards, searchTerm]);
 
   return (
@@ -671,7 +671,7 @@ function SelectFlashcardDialog({
             />
           </div>
           <ScrollArea className="h-[300px] w-full">
-            {isLoadingDecks && searchTerm === '' && allFlashcards.length === 0 ? ( 
+            {isLoadingDecks && searchTerm === '' && allFlashcards.length === 0 ? (
               <div className="flex justify-center items-center h-full">
                 <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
               </div>
@@ -688,7 +688,7 @@ function SelectFlashcardDialog({
                     className="w-full justify-start text-left h-auto py-2"
                     onClick={() => {
                       onSelect(card.id);
-                      onOpenChange(false); 
+                      onOpenChange(false);
                     }}
                   >
                     <div className="flex flex-col min-w-0 overflow-hidden">

@@ -33,26 +33,19 @@ const TaskDurationPie: React.FC<TaskDurationPieProps> = ({
 
   let durationText = '';
   if (totalDurationDays !== undefined && totalDurationDays > 0) {
-    durationText = `${totalDurationDays}d`;
+    durationText = `${totalDurationDays}`; // Display just the number
   }
 
-  let fontSize;
-  if (totalDurationDays !== undefined && totalDurationDays > 0) {
-    if (size >= 16) { // Apply more nuanced sizing for typical icon sizes
-      if (totalDurationDays < 10) { // 1d-9d
-        fontSize = size * 0.5; // e.g., 16px pie -> 8px font
-      } else if (totalDurationDays < 100) { // 10d-99d
-        fontSize = size * 0.4; // e.g., 16px pie -> 6.4px font
-      } else { // 100d+
-        fontSize = size * 0.35; // e.g., 16px pie -> 5.6px font
-      }
-    } else if (size >= 12) { // For slightly smaller pies
-        fontSize = size * 0.45;
-    } else { // For very small pies, attempt a base readable size or scale down
-        fontSize = Math.max(5, size * 0.4); // Minimum 5px, or 40% of size
-    }
-  } else {
-    fontSize = 0; // No text if no duration
+  // Aim for a font size that's roughly half the pie size, capped for very small pies.
+  // For a 16px pie, this would be around 8px.
+  // For a 12px pie, this would be 6px.
+  // Badge text is often around 0.75rem (12px) for its default height,
+  // but our pie is smaller, so we need a proportionally smaller font.
+  let fontSize = Math.max(6, size * 0.45); // Adjusted for better visibility
+  if (totalDurationDays && totalDurationDays >= 100) { // Slightly reduce for 3-digit numbers
+      fontSize = Math.max(5, size * 0.35);
+  } else if (totalDurationDays && totalDurationDays >= 10) { // Slightly reduce for 2-digit numbers
+      fontSize = Math.max(5.5, size * 0.4);
   }
 
 
@@ -102,4 +95,3 @@ const TaskDurationPie: React.FC<TaskDurationPieProps> = ({
 };
 
 export default TaskDurationPie;
-

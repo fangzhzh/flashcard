@@ -84,8 +84,6 @@ function TasksClientContent() {
 
   const [taskCounts, setTaskCounts] = useState({ innie: 0, outie: 0, blackout: 0, all: 0 });
 
-  const { toggleSidebar: mainToggleSidebar } = useSidebar();
-
 
   useEffect(() => {
     if (tasks) {
@@ -393,7 +391,7 @@ function TasksClientContent() {
 
   if (isLoadingAppData) {
      return (
-      <div className="flex justify-center items-center mt-8 h-[calc(100vh-var(--header-height,8rem)-4rem)]">
+      <div className="flex justify-center items-center mt-8 h-full"> {/* Changed to h-full */}
         <Loader2 className="h-8 w-8 animate-spin text-primary" />
         <p className="ml-2 text-muted-foreground">{t('tasks.list.loading')}</p>
       </div>
@@ -403,7 +401,7 @@ function TasksClientContent() {
   const showEditPanel = selectedTaskId !== null || isCreatingNewTask;
 
   return (
-    <div className="flex h-[calc(100vh-4rem)]"> {/* Overall container for tasks section */}
+    <div className="flex h-full"> {/* Root div of TasksClientContent */}
       <Sidebar
         collapsible="icon"
         side="left"
@@ -438,12 +436,12 @@ function TasksClientContent() {
 
       <SidebarInset className="flex flex-1 flex-col overflow-hidden">
         <header className="flex-shrink-0 flex items-center justify-start p-2 md:px-3 border-b sticky top-0 bg-background z-10 h-9 gap-1">
-          <div className="flex items-center">
+          <div className="flex items-center gap-1"> {/* Added gap-1 here */}
             <SidebarTrigger className="md:hidden h-6 w-6" />
             <SidebarTrigger className="hidden md:inline-flex h-6 w-6" />
           </div>
           {/* Desktop Date Filters */}
-          <div className="hidden sm:block ml-1">
+          <div className="hidden sm:block"> {/* Removed ml-1 */}
             <Tabs
               value={activeDateFilter}
               onValueChange={(value) => setActiveDateFilter(value as TaskDateFilter)}
@@ -478,8 +476,13 @@ function TasksClientContent() {
 
         {/* Content area: list + optional panel */}
         <div className="flex flex-1 overflow-hidden"> {/* Parent flex container for list and edit panel */}
-          {/* Task List Area */}
-          <div className="flex-1 overflow-y-auto p-1 pr-0">
+          {/* Task List Area Wrapper */}
+          <div
+            className={cn(
+              "h-full overflow-y-auto p-1",
+              showEditPanel ? "flex-1 min-w-0" : "w-full" 
+            )}
+          >
             {filteredAndSortedTasks.length === 0 && !showEditPanel && (
               <Alert className={cn("mt-4 border-primary/50 text-primary bg-primary/5 mx-1")}>
                 <Info className="h-5 w-5 text-primary" />
@@ -630,9 +633,9 @@ function TasksClientContent() {
               })}
             </ul>
           </div>
-          {/* Edit Panel Area */}
+          {/* Edit Panel Area Wrapper */}
           {showEditPanel && (
-            <div className="w-[25rem] h-[75%] border-l bg-card flex flex-col shadow-md">
+            <div className="w-full md:w-[25rem] md:flex-shrink-0 border-l bg-card flex flex-col h-[75%] shadow-md">
               <TaskForm
                 key={selectedTaskId || 'new-task'} 
                 mode={isCreatingNewTask ? 'create' : 'edit'}
@@ -668,3 +671,4 @@ export default function TasksClient() {
     </SidebarProvider>
   );
 }
+

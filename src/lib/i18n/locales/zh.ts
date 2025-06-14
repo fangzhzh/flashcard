@@ -400,8 +400,8 @@ export default {
   'task.display.started': '已开始',
   'task.display.startsToday': '今日开始',
   'task.display.inXDays': '{count}天内',
-  'task.display.durationDays': '{count} 天',
-  'task.display.endsInXDays': '{count} 天后结束',
+  'task.display.durationDays': '{count}天',
+  'task.display.endsInXDays': '{count}天后结束',
   'task.display.ended': '已结束',
   'task.display.due': '截止于',
   'task.display.allDay': '全天',
@@ -413,7 +413,7 @@ export default {
   'task.display.status.active': '进行中',
   'task.display.status.activeRange': '进行中 (日期范围)',
   'task.display.status.overdue': '已过期',
-  'task.display.totalDurationDays': '共 {count} 天',
+  'task.display.totalDurationDays': '共 {count, plural, =1 {# 天} other {# 天}}',
   'task.pomodoroStartedFor': '任务番茄钟已启动: {title}',
   'task.currentTaskLabel': '当前任务:',
   'tasks.filter.all': '全部',
@@ -422,7 +422,6 @@ export default {
   'tasks.filter.thisWeek': '本周',
   'tasks.filter.twoWeeks': '2周',
 
-  // New keys for Task Date/Time/Reminder Dialog
   'task.form.dateTimeReminder.editButton': '配置时间与重复...',
   'task.form.dateTimeReminder.dialog.title': '设置日期、时间、重复与提醒',
   'task.form.dateTimeReminder.dialog.startTimeLabel': '开始时间',
@@ -445,8 +444,6 @@ export default {
   'task.form.dateTimeReminder.summary.noReminder': '无提醒',
   'task.form.dateTimeReminder.summary.connector': '，',
 
-
-  // Notifications (General)
   'notifications.enabled.title': '通知已启用',
   'notifications.enabled.description': '您现在将收到番茄钟会话的通知。',
   'notifications.denied.title': '通知已禁用',
@@ -454,10 +451,7 @@ export default {
   'notifications.error.title': '通知错误',
   'notifications.error.description': '无法请求通知权限。',
 
-  // General
   'success': '成功',
   'error': '错误',
 
 } as const;
-
-    

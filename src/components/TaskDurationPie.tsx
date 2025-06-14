@@ -5,7 +5,7 @@ import { cn } from '@/lib/utils';
 
 interface TaskDurationPieProps {
   remainingPercentage: number; // 0-100
-  totalDurationDays?: number; // New prop
+  totalDurationDays?: number;
   size?: number;
   className?: string;
   strokeWidth?: number;
@@ -33,24 +33,18 @@ const TaskDurationPie: React.FC<TaskDurationPieProps> = ({
 
   let durationText = '';
   if (totalDurationDays !== undefined && totalDurationDays > 0) {
-    if (totalDurationDays === 1) {
-      durationText = '1d';
-    } else {
-      durationText = `${totalDurationDays}d`;
-    }
+    durationText = `${totalDurationDays}d`;
   }
 
-  // Adjust font size based on text length and pie size
-  let fontSize = size / 3; // Default font size
-  if (durationText.length > 2) { // e.g., "10d"
-    fontSize = size / 3.5;
+  let fontSize = size * 0.4; // Base for 16px -> 6.4px
+  if (durationText.length > 2 && size >=16) { // For "10d", "12d" etc.
+    fontSize = size * 0.35; // For 16px -> 5.6px
   }
-  if (durationText.length > 3) { // e.g., "100d"
-    fontSize = size / 4;
+  if (durationText.length > 3 && size >= 16) { // For "100d" etc.
+    fontSize = size * 0.3; // For 16px -> 4.8px
   }
-   if (size < 16) { // For very small pies, reduce more
-    fontSize = size / 2.5;
-    if (durationText.length > 2) fontSize = size / 3;
+  if (size < 12 && size > 0) { // Ensure very small pies still try to render something
+      fontSize = Math.max(4, size * 0.35);
   }
 
 
@@ -59,9 +53,8 @@ const TaskDurationPie: React.FC<TaskDurationPieProps> = ({
       width={size}
       height={size}
       viewBox={`0 0 ${size} ${size}`}
-      className={cn("transform -rotate-90", className)} // -rotate-90 to start from top
+      className={cn("transform -rotate-90", className)}
     >
-      {/* Background circle (gray part - represents what's passed or the total track) */}
       <circle
         cx={size / 2}
         cy={size / 2}
@@ -71,7 +64,6 @@ const TaskDurationPie: React.FC<TaskDurationPieProps> = ({
         fill="transparent"
         opacity="0.25"
       />
-      {/* Foreground circle (theme color part - represents remaining) */}
       <circle
         cx={size / 2}
         cy={size / 2}
@@ -87,7 +79,7 @@ const TaskDurationPie: React.FC<TaskDurationPieProps> = ({
         <text
           x="50%"
           y="50%"
-          transform={`rotate(90 ${size/2} ${size/2})`} // Counter-rotate the text
+          transform={`rotate(90 ${size/2} ${size/2})`}
           textAnchor="middle"
           dominantBaseline="middle"
           fontSize={fontSize}
@@ -102,4 +94,3 @@ const TaskDurationPie: React.FC<TaskDurationPieProps> = ({
 };
 
 export default TaskDurationPie;
-

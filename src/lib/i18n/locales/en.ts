@@ -422,7 +422,6 @@ export default {
   'tasks.filter.thisWeek': 'Week',
   'tasks.filter.twoWeeks': '2 Weeks',
 
-  // New keys for Task Date/Time/Reminder Dialog
   'task.form.dateTimeReminder.editButton': 'Configure Time & Repeat...',
   'task.form.dateTimeReminder.dialog.title': 'Set Date, Time, Repeat & Reminder',
   'task.form.dateTimeReminder.dialog.startTimeLabel': 'Start Time',
@@ -445,8 +444,6 @@ export default {
   'task.form.dateTimeReminder.summary.noReminder': 'No reminder',
   'task.form.dateTimeReminder.summary.connector': ', ',
 
-
-  // Notifications (General)
   'notifications.enabled.title': 'Notifications Enabled',
   'notifications.enabled.description': 'You will now receive notifications for Pomodoro sessions.',
   'notifications.denied.title': 'Notifications Denied',
@@ -454,11 +451,7 @@ export default {
   'notifications.error.title': 'Notification Error',
   'notifications.error.description': 'Could not request notification permission.',
 
-  // General
   'success': 'Success',
   'error': 'Error',
 
 } as const;
-
-
-    

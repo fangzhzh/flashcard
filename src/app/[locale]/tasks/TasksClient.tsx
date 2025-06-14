@@ -30,7 +30,6 @@ interface FormattedTimeInfo {
 type TaskFilter = 'all' | 'today' | 'threeDays' | 'thisWeek' | 'twoWeeks';
 
 export default function TasksClient() {
-  // --- ALL HOOKS MUST BE CALLED UNCONDITIONALLY AT THE TOP ---
   const { user, loading: authLoading } = useAuth();
   const {
     tasks,
@@ -108,7 +107,7 @@ export default function TasksClient() {
         parsedEndDate = startOfDay(parseISO(timeInfo.endDate));
         if (!isValid(parsedEndDate) || parsedEndDate < parsedStartDate) {
            tooltipLabel = `${formatDateDisplay(parsedStartDate, true)} (${t('task.display.overdue')})`;
-           timeStatus = daysToStart < 0 ? 'overdue' : 'active'; // Or overdue if start is past
+           timeStatus = daysToStart < 0 ? 'overdue' : 'active'; 
         } else {
           const duration = differenceInCalendarDays(parsedEndDate, parsedStartDate) + 1;
           const fullStartDateStr = formatDateDisplay(parsedStartDate, true);
@@ -123,7 +122,7 @@ export default function TasksClient() {
           } else if (todayForComparison < parsedStartDate) {
              tooltipLabel = `${fullStartDateStr} - ${fullEndDateStr} (${t('task.display.inXDays', { count: daysToStart })})`;
              timeStatus = 'upcoming';
-          } else { // Should not be reached if above logic is correct
+          } else { 
              tooltipLabel = `${fullStartDateStr} - ${fullEndDateStr} (${t('task.display.endsInXDays', {count: differenceInCalendarDays(parsedEndDate, todayForComparison) + 1 })})`;
              timeStatus = 'active';
           }
@@ -133,7 +132,6 @@ export default function TasksClient() {
           timeStatus = 'overdue';
       }
     } else if (timeInfo.type === 'datetime' || timeInfo.type === 'all_day' || (timeInfo.type === 'date_range' && !timeInfo.endDate) ) {
-      // This handles single date scenarios (all_day, datetime, or date_range where endDate is missing/same as start)
       const fullStartDateStr = formatDateDisplay(parsedStartDate, true);
       if (isToday(parsedStartDate)) {
         tooltipLabel = t('task.display.today');
@@ -141,14 +139,14 @@ export default function TasksClient() {
       } else if (daysToStart > 0) {
         tooltipLabel = `${fullStartDateStr} (${t('task.display.inXDays', { count: daysToStart })})`;
         timeStatus = 'upcoming';
-      } else { // daysToStart < 0
+      } else { 
         tooltipLabel = `${fullStartDateStr} (${t('task.display.overdue')})`;
         timeStatus = 'overdue';
       }
       if (timeInfo.type === 'datetime' && timeInfo.time) {
         tooltipLabel += ` ${t('task.display.at')} ${timeInfo.time}`;
       }
-    } else if (timeInfo.type === 'no_time' && timeInfo.startDate) { // Unlikely 'no_time' has startDate, but defensively
+    } else if (timeInfo.type === 'no_time' && timeInfo.startDate) { 
       tooltipLabel = formatDateDisplay(parsedStartDate, true);
       if (isToday(parsedStartDate)) timeStatus = 'active';
       else if (daysToStart > 0) timeStatus = 'upcoming';
@@ -165,7 +163,7 @@ export default function TasksClient() {
 
   const filteredAndSortedTasks = useMemo(() => {
     const today = startOfDay(new Date());
-    const weekStartsOn = 1; // Monday
+    const weekStartsOn = 1; 
 
     const filterFn = (task: Task): boolean => {
       if (activeFilter === 'all') return true;
@@ -177,31 +175,31 @@ export default function TasksClient() {
       const taskStartDate = startOfDay(parseISO(timeInfo.startDate));
       const taskEndDate = timeInfo.endDate && isValid(parseISO(timeInfo.endDate)) ? startOfDay(parseISO(timeInfo.endDate)) : taskStartDate;
 
-      const filterInterval = {
-        start: today,
-        end: today
-      };
+      let filterIntervalStart = today;
+      let filterIntervalEnd = today;
 
       switch (activeFilter) {
         case 'today':
+          // filterIntervalStart and filterIntervalEnd are already today
           break;
         case 'threeDays':
-          filterInterval.end = addDays(today, 2);
+          filterIntervalEnd = addDays(today, 2); // Today + next 2 days
           break;
         case 'thisWeek':
-          filterInterval.start = startOfWeek(today, { weekStartsOn });
-          filterInterval.end = endOfWeek(today, { weekStartsOn });
+          filterIntervalStart = startOfWeek(today, { weekStartsOn });
+          filterIntervalEnd = endOfWeek(today, { weekStartsOn });
           break;
         case 'twoWeeks':
-          filterInterval.start = startOfWeek(addDays(today, 7), { weekStartsOn });
-          filterInterval.end = endOfWeek(addDays(today, 13), { weekStartsOn });
+          // Next two full calendar weeks, NOT including the current week
+          filterIntervalStart = startOfWeek(addDays(today, 7), { weekStartsOn }); // Start of next week
+          filterIntervalEnd = endOfWeek(addDays(filterIntervalStart, 6 + 7), { weekStartsOn }); // End of the week after next
           break;
         default:
           return true;
       }
       return areIntervalsOverlapping(
         { start: taskStartDate, end: taskEndDate },
-        filterInterval
+        {start: filterIntervalStart, end: filterIntervalEnd }
       );
     };
 
@@ -386,6 +384,18 @@ export default function TasksClient() {
                         }
                         statusIcon = <Hourglass className={hourglassBaseClassName} style={hourglassStyle} />;
                         statusIconTooltipContent = <p>{t('task.display.status.upcoming')}</p>;
+                        
+                        if (task.timeInfo.type === 'date_range' && task.timeInfo.endDate && isValid(parseISO(task.timeInfo.endDate))) {
+                             // Add CalendarRange icon for upcoming date ranges only if not completed and not active
+                            if (task.status !== 'completed' && timeStatus === 'upcoming') {
+                                statusIcon = (
+                                    <>
+                                        {statusIcon}
+                                        <CalendarRange className="h-4 w-4 text-muted-foreground mx-1 flex-shrink-0" />
+                                    </>
+                                );
+                            }
+                        }
                     }
                 } else if (timeStatus === 'active' && task.timeInfo?.type === 'date_range' && task.timeInfo.startDate && task.timeInfo.endDate) {
                     const sDate = parseISO(task.timeInfo.startDate);
@@ -412,7 +422,15 @@ export default function TasksClient() {
                                         size={16}
                                         className="mx-1 flex-shrink-0"
                                      />;
-                        statusIconTooltipContent = <p>{t('task.display.status.activeRange')} - {t('task.display.totalDurationDays', { count: totalDaysInRange })}</p>;
+                        
+                        const formatDateForTooltip = (date: Date): string => {
+                            const yearFormat = (!isSameYear(date, todayForComparison)) ? 'yyyy/MM/dd' : 'MM/dd';
+                            return format(date, yearFormat);
+                        };
+                        const startDateStr = formatDateForTooltip(sDate);
+                        const endDateStr = formatDateForTooltip(eDate);
+                        statusIconTooltipContent = `${startDateStr} - ${endDateStr} (${t('task.display.totalDurationDays', { count: totalDaysInRange })})`;
+
                     }
                 } else if (timeStatus === 'active') {
                      statusIcon = <Zap className="h-4 w-4 text-green-500 mx-1 flex-shrink-0" />;
@@ -420,6 +438,9 @@ export default function TasksClient() {
                 } else if (timeStatus === 'overdue') {
                     statusIcon = <AlertTriangle className="h-4 w-4 text-yellow-500 mx-1 flex-shrink-0" />;
                     statusIconTooltipContent = <p>{t('task.display.status.overdue')}</p>;
+                     if (task.timeInfo.type === 'date_range' && task.timeInfo.endDate && isValid(parseISO(task.timeInfo.endDate))) {
+                        // No CalendarRange for overdue date ranges
+                     }
                 }
             }
 
@@ -473,14 +494,10 @@ export default function TasksClient() {
                       </Tooltip>
                     )}
 
-                  {task.timeInfo?.type === 'date_range' && task.status !== 'completed' && timeStatus === 'upcoming' && (
-                    <CalendarRange className="h-4 w-4 text-muted-foreground mx-1 flex-shrink-0" />
-                  )}
-
                   {statusIcon && statusIconTooltipContent && (
                      <Tooltip delayDuration={300}>
                         <TooltipTrigger asChild>
-                            <div className="flex items-center"> {/* Ensure icon is clickable and properly aligned */}
+                            <div className="flex items-center">
                                 {statusIcon}
                             </div>
                         </TooltipTrigger>

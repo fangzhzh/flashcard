@@ -36,15 +36,23 @@ const TaskDurationPie: React.FC<TaskDurationPieProps> = ({
     durationText = `${totalDurationDays}d`;
   }
 
-  let fontSize = size * 0.4; // Base for 16px -> 6.4px
-  if (durationText.length > 2 && size >=16) { // For "10d", "12d" etc.
-    fontSize = size * 0.35; // For 16px -> 5.6px
-  }
-  if (durationText.length > 3 && size >= 16) { // For "100d" etc.
-    fontSize = size * 0.3; // For 16px -> 4.8px
-  }
-  if (size < 12 && size > 0) { // Ensure very small pies still try to render something
-      fontSize = Math.max(4, size * 0.35);
+  let fontSize;
+  if (totalDurationDays !== undefined && totalDurationDays > 0) {
+    if (size >= 16) { // Apply more nuanced sizing for typical icon sizes
+      if (totalDurationDays < 10) { // 1d-9d
+        fontSize = size * 0.5; // e.g., 16px pie -> 8px font
+      } else if (totalDurationDays < 100) { // 10d-99d
+        fontSize = size * 0.4; // e.g., 16px pie -> 6.4px font
+      } else { // 100d+
+        fontSize = size * 0.35; // e.g., 16px pie -> 5.6px font
+      }
+    } else if (size >= 12) { // For slightly smaller pies
+        fontSize = size * 0.45;
+    } else { // For very small pies, attempt a base readable size or scale down
+        fontSize = Math.max(5, size * 0.4); // Minimum 5px, or 40% of size
+    }
+  } else {
+    fontSize = 0; // No text if no duration
   }
 
 
@@ -75,7 +83,7 @@ const TaskDurationPie: React.FC<TaskDurationPieProps> = ({
         strokeDashoffset={offset}
         strokeLinecap="round"
       />
-      {durationText && (
+      {durationText && fontSize > 0 && (
         <text
           x="50%"
           y="50%"
@@ -94,3 +102,4 @@ const TaskDurationPie: React.FC<TaskDurationPieProps> = ({
 };
 
 export default TaskDurationPie;
+

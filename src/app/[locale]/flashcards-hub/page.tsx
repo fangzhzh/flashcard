@@ -17,7 +17,7 @@ export default function FlashcardsHubPage() {
 
   if (authLoading) {
      return (
-      <PageContainer>
+      <PageContainer disableScroll={true}>
         <div className="flex justify-center items-center min-h-[calc(100vh-10rem)]">
           <Loader2 className="h-12 w-12 animate-spin text-primary" />
         </div>
@@ -26,7 +26,7 @@ export default function FlashcardsHubPage() {
   }
 
   return (
-    <PageContainer>
+    <PageContainer disableScroll={true}>
       <div className="space-y-8">
         <h1 className="text-3xl font-bold tracking-tight">{t('flashcards.dashboard.welcome')}</h1>
         
@@ -79,4 +79,3 @@ export default function FlashcardsHubPage() {
     </PageContainer>
   );
 }
-

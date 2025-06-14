@@ -355,8 +355,8 @@ export default function TaskForm({
   return (
     <>
     <Form {...form}>
-      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4 p-1 h-full flex flex-col">
-        <div className="flex-grow space-y-4 overflow-y-auto pr-2">
+      <form onSubmit={form.handleSubmit(onSubmit)} className="p-1 h-full flex flex-col">
+        <div className="flex-grow space-y-4 overflow-y-auto pr-2 pb-20"> {/* Added pb-20 for 80px padding */}
             <FormField
               control={form.control}
               name="title"

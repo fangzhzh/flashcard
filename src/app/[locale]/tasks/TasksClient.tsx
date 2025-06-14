@@ -6,7 +6,7 @@ import { useFlashcards } from '@/contexts/FlashcardsContext';
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
-import { Loader2, Info, ShieldAlert, PlayCircle, Zap, AlertTriangle, CalendarRange, Hourglass, ListChecks, PlusCircle } from 'lucide-react';
+import { Loader2, Info, ShieldAlert, PlayCircle, Zap, AlertTriangle, CalendarRange, Hourglass, ListChecks } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { useI18n, useCurrentLocale } from '@/lib/i18n/client';
 import type { Task, TimeInfo, TaskStatus, RepeatFrequency, ReminderType } from '@/types';
@@ -475,7 +475,7 @@ export default function TasksClient() {
                       </Tooltip>
                     )}
 
-                  {task.timeInfo?.type === 'date_range' && task.status !== 'completed' && timeStatus !== 'active' && (
+                  {task.timeInfo?.type === 'date_range' && task.status !== 'completed' && timeStatus === 'upcoming' && (
                     <CalendarRange className="h-4 w-4 text-muted-foreground mx-1 flex-shrink-0" />
                   )}
 

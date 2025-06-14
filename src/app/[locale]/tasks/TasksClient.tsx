@@ -401,6 +401,12 @@ function TasksClientContent() {
 
   const showEditPanel = selectedTaskId !== null || isCreatingNewTask;
 
+  const truncateText = (text: string | null | undefined, maxLength: number): string => {
+    if (!text) return '';
+    if (text.length <= maxLength) return text;
+    return `${text.substring(0, maxLength)}...`;
+  };
+
   return (
     <div className="flex h-full">
       <Sidebar
@@ -476,15 +482,15 @@ function TasksClientContent() {
         </div>
 
         {/* Content area: list + optional panel */}
-        <div className="flex flex-1 overflow-hidden">
+        <div className="flex flex-1 overflow-hidden"> {/* PARENT FLEX CONTAINER for list and edit panel */}
           {/* Task List Area Wrapper */}
           <div
             className={cn(
-              "h-full overflow-y-auto p-1",
-              showEditPanel ? "flex-1 min-w-0" : "w-full" 
+              "h-full overflow-y-auto",
+              showEditPanel ? "hidden md:block md:w-1/2 p-1 md:pr-0" : "w-full p-1"
             )}
           >
-            {!showEditPanel && filteredAndSortedTasks.length === 0 && (
+            {filteredAndSortedTasks.length === 0 && !showEditPanel && (
               <Alert className={cn("mt-4 border-primary/50 text-primary bg-primary/5 mx-1")}>
                 <Info className="h-5 w-5 text-primary" />
                 <AlertTitle className="font-semibold text-primary">{t('tasks.list.empty.title')}</AlertTitle>
@@ -564,7 +570,7 @@ function TasksClientContent() {
                           selectedTaskId === task.id && "bg-muted shadow-md" 
                       )}
                   >
-                    <div className="flex items-center flex-grow min-w-0 mr-2"> 
+                    <div className="flex items-center flex-1 min-w-0 mr-2"> {/* Changed flex-grow to flex-1 and added min-w-0 */}
                        <Checkbox
                           id={`task-${task.id}`}
                           checked={task.status === 'completed'}
@@ -572,19 +578,19 @@ function TasksClientContent() {
                           className="mr-2 flex-shrink-0"
                           aria-label={t('task.item.toggleCompletionAria', {title: task.title})}
                         />
-                      <div className="min-w-0 cursor-pointer flex-grow overflow-hidden" onClick={() => handleEditTask(task.id)}>
+                      <div className="flex-1 min-w-0 cursor-pointer overflow-hidden" onClick={() => handleEditTask(task.id)}>
                         <p className={cn(
-                            "text-base font-medium truncate",
+                            "text-base font-medium", // Removed truncate
                             task.status === 'completed' && "line-through text-muted-foreground"
                           )} title={task.title}>
-                          {task.title}
+                          {truncateText(task.title, 200)}
                         </p>
                         {task.description && (
                           <p className={cn(
-                              "text-xs text-muted-foreground truncate",
+                              "text-xs text-muted-foreground", // Removed truncate
                               task.status === 'completed' && "line-through"
                             )} title={task.description}>
-                            {task.description}
+                            {truncateText(task.description, 200)}
                           </p>
                         )}
                       </div>
@@ -636,7 +642,10 @@ function TasksClientContent() {
           </div>
           {/* Edit Panel Area Wrapper */}
           {showEditPanel && (
-            <div className="w-full md:w-[25rem] md:flex-shrink-0 border-l bg-card flex flex-col h-[75%] shadow-md">
+            <div className={cn(
+                "bg-card flex flex-col h-full shadow-md", // Common styles
+                "w-full md:w-1/2 md:border-l" // Responsive width and border
+            )}>
               <TaskForm
                 key={selectedTaskId || 'new-task'} 
                 mode={isCreatingNewTask ? 'create' : 'edit'}

@@ -150,9 +150,11 @@ export default function TasksClient() {
           const duration = differenceInCalendarDays(parsedEndDate, parsedStartDate) + 1;
           const fullStartDateStr = formatDateDisplay(parsedStartDate, true);
           const fullEndDateStr = formatDateDisplay(parsedEndDate, true);
-          const durationTextKey = duration === 1 ? 'task.display.totalDurationDay' : 'task.display.totalDurationDaysPlural';
+          
+          const durationTextKey: TranslationKeys = duration === 1 ? 'task.display.totalDurationDay' : 'task.display.totalDurationDaysPlural';
           const durationText = t(durationTextKey, { count: duration });
           tooltipLabel = `${fullStartDateStr} - ${fullEndDateStr} ${durationText}`;
+
 
           if (todayForComparison > parsedEndDate) {
             timeStatus = 'overdue';
@@ -234,14 +236,14 @@ export default function TasksClient() {
           filterIntervalStart = startOfWeek(today, { weekStartsOn });
           filterIntervalEnd = endOfWeek(today, { weekStartsOn });
           break;
-        case 'twoWeeks': // Two full calendar weeks AFTER the current one
-          filterIntervalStart = startOfWeek(addDays(today, 7), { weekStartsOn }); // Start of next week
-          filterIntervalEnd = endOfWeek(addDays(filterIntervalStart, 6 + 7), { weekStartsOn }); // End of the week after next
+        case 'twoWeeks': 
+          filterIntervalStart = startOfWeek(addDays(today, 7), { weekStartsOn }); 
+          filterIntervalEnd = endOfWeek(addDays(filterIntervalStart, 6 + 7), { weekStartsOn }); 
           break;
         default:
-          return true; // Should not happen with defined filters
+          return true; 
       }
-      // Check if the task's date range (taskStartDate to taskEndDate) overlaps with the filter's interval (filterIntervalStart to filterIntervalEnd)
+      
       return areIntervalsOverlapping(
         { start: taskStartDate, end: taskEndDate },
         {start: filterIntervalStart, end: filterIntervalEnd }
@@ -346,7 +348,6 @@ export default function TasksClient() {
             // toast({ title: t('success'), description: t('toast.task.updated') }); // Might be too noisy for intermediate saves
             return true;
         } catch (error) {
-            console.error("Intermediate save failed:", error);
             // toast({ title: t('error'), description: t('toast.task.error.intermediateSaveFailed'), variant: 'destructive' });
             return false;
         }
@@ -396,44 +397,44 @@ export default function TasksClient() {
   const showEditPanel = selectedTaskId !== null || isCreatingNewTask;
 
   return (
-    <SidebarProvider defaultOpen={false}> {/* Changed defaultOpen to false */}
+    <SidebarProvider defaultOpen={false}> 
       <Sidebar collapsible="icon" side="left" variant="sidebar">
-        <SidebarHeader className="p-2">
-          {/* Sidebar header content if any, or can be removed if not needed */}
-        </SidebarHeader>
-        <SidebarContent>
-          <SidebarMenu>
-            {taskTypeFilterOptions.map(typeOpt => (
-              <SidebarMenuItem key={typeOpt.value}>
-                <SidebarMenuButton
-                  onClick={() => setActiveTaskTypeFilter(typeOpt.value as TaskType | 'all')}
-                  isActive={activeTaskTypeFilter === typeOpt.value}
-                  tooltip={{ children: t(typeOpt.labelKey), side: 'right', align: 'center' }}
-                  className="justify-start"
-                >
-                  <typeOpt.icon />
-                  <span className="flex-grow">{t(typeOpt.labelKey)}</span>
-                  <span className="text-xs text-muted-foreground ml-auto pr-1">{typeOpt.count}</span>
-                </SidebarMenuButton>
-              </SidebarMenuItem>
-            ))}
-            <SidebarSeparator className="my-2" />
-            {/* "Add Type" icon/button would go here, but is deferred */}
-          </SidebarMenu>
-        </SidebarContent>
-        <SidebarFooter>
-          {/* Sidebar footer content if any */}
-        </SidebarFooter>
+        <div className="flex flex-col h-full pt-16 overflow-hidden"> {/* Offset wrapper for main header */}
+          <SidebarHeader className="p-2 flex-shrink-0">
+            {/* Sidebar header content if any, or can be removed if not needed */}
+          </SidebarHeader>
+          <SidebarContent> 
+            <SidebarMenu>
+              {taskTypeFilterOptions.map(typeOpt => (
+                <SidebarMenuItem key={typeOpt.value}>
+                  <SidebarMenuButton
+                    onClick={() => setActiveTaskTypeFilter(typeOpt.value as TaskType | 'all')}
+                    isActive={activeTaskTypeFilter === typeOpt.value}
+                    tooltip={{ children: t(typeOpt.labelKey), side: 'right', align: 'center' }}
+                    className="justify-start"
+                  >
+                    <typeOpt.icon />
+                    <span className="flex-grow">{t(typeOpt.labelKey)}</span>
+                    <span className="text-xs text-muted-foreground ml-auto pr-1">{typeOpt.count}</span>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
+              ))}
+              <SidebarSeparator className="my-2" />
+            </SidebarMenu>
+          </SidebarContent>
+          <SidebarFooter className="flex-shrink-0">
+            {/* Sidebar footer content if any */}
+          </SidebarFooter>
+        </div>
       </Sidebar>
 
       <SidebarInset className="flex flex-col">
         <header className="flex items-center justify-between p-2 md:p-3 border-b sticky top-0 bg-background z-10">
           <div className="flex items-center gap-2">
-            <SidebarTrigger className="md:hidden" /> {/* Hidden on md+ for auto-collapse/expand */}
+            <SidebarTrigger className="md:hidden" /> 
             <h1 className="text-xl md:text-2xl font-semibold tracking-tight">{t('tasks.title')}</h1>
           </div>
-          {/* Date filter tabs remain visible */}
-          <div className="hidden sm:block"> {/* Hide on very small screens, let sidebar handle trigger */}
+          <div className="hidden sm:block"> 
              <Tabs
               value={activeDateFilter}
               onValueChange={(value) => setActiveDateFilter(value as TaskDateFilter)}
@@ -450,13 +451,12 @@ export default function TasksClient() {
           </div>
         </header>
 
-        {/* Date Filter Tabs for smaller screens, below header */}
         <div className="sm:hidden p-2 border-b">
             <Tabs
               value={activeDateFilter}
               onValueChange={(value) => setActiveDateFilter(value as TaskDateFilter)}
             >
-              <TabsList className="grid w-full grid-cols-3 h-auto gap-1"> {/* Adjusted to 3 cols for better fit if needed */}
+              <TabsList className="grid w-full grid-cols-3 h-auto gap-1"> 
                 <TabsTrigger value="all" className="py-1.5 text-xs">{t('tasks.filter.all')}</TabsTrigger>
                 <TabsTrigger value="today" className="py-1.5 text-xs">{t('tasks.filter.today')}</TabsTrigger>
                 <TabsTrigger value="threeDays" className="py-1.5 text-xs">{t('tasks.filter.threeDays')}</TabsTrigger>
@@ -470,7 +470,7 @@ export default function TasksClient() {
         <div className="flex flex-grow overflow-hidden">
           <div className={cn(
             "transition-all duration-300 ease-in-out overflow-y-auto flex flex-col flex-grow",
-            showEditPanel ? "w-full md:w-1/2 md:pr-2" : "w-full pr-0" // Adjust width based on edit panel
+            showEditPanel ? "w-full md:w-1/2 md:pr-2" : "w-full pr-0" 
           )}>
 
             {filteredAndSortedTasks.length === 0 && (
@@ -483,8 +483,7 @@ export default function TasksClient() {
               </Alert>
             )}
 
-            {/* Task List */}
-            <ul className={cn("space-y-1 flex-grow pb-20 px-1")}> {/* Added padding to avoid FAB overlap */}
+            <ul className={cn("space-y-1 flex-grow pb-20 px-1")}> 
               {filteredAndSortedTasks.map((task) => {
                 const { visibleLabel, tooltipLabel, timeStatus } = formatTimeLabel(task.timeInfo);
                 let statusIcon: React.ReactNode = null;
@@ -499,17 +498,16 @@ export default function TasksClient() {
                             let hourglassStyle: React.CSSProperties = {};
                             let hourglassBaseClassName = 'h-4 w-4 mx-1 flex-shrink-0';
 
-                            if (daysToStart >= 0 && daysToStart <= 7) { // Example: green for up to 1 week
-                                hourglassStyle = { color: '#2ECC71' }; // Brighter green
-                            } else if (daysToStart > 7 && daysToStart <= 30) { // Example: olive for up to 1 month
-                                hourglassStyle = { color: '#808000' }; // Olive green
-                            } else { // Default for further out
+                            if (daysToStart >= 0 && daysToStart <= 7) { 
+                                hourglassStyle = { color: '#2ECC71' }; 
+                            } else if (daysToStart > 7 && daysToStart <= 30) { 
+                                hourglassStyle = { color: '#808000' }; 
+                            } else { 
                                 hourglassBaseClassName = cn(hourglassBaseClassName, 'text-muted-foreground');
                             }
                             statusIcon = <Hourglass className={hourglassBaseClassName} style={hourglassStyle} />;
                             statusIconTooltipContent = <p>{t('task.display.status.upcoming')}</p>;
 
-                            // For date range tasks that are upcoming, do not show CalendarRange if Hourglass is already shown
                             if (task.timeInfo.type === 'date_range' && task.timeInfo.endDate && isValid(parseISO(task.timeInfo.endDate))) {
                                 // No CalendarRange icon if Hourglass is already there for upcoming
                             }
@@ -522,11 +520,11 @@ export default function TasksClient() {
                             let daysRemainingIncludingToday = differenceInCalendarDays(eDate, todayForComparison) + 1;
                             let currentRemainingPercentage = 0;
 
-                            if (todayForComparison > eDate) { // Task ended in the past
+                            if (todayForComparison > eDate) { 
                                 currentRemainingPercentage = 0;
-                            } else if (todayForComparison < sDate) { // Task starts in the future (should be handled by 'upcoming' if so)
+                            } else if (todayForComparison < sDate) { 
                                 currentRemainingPercentage = 100;
-                            } else { // Task is currently active
+                            } else { 
                                if (totalDaysInRange > 0) {
                                  currentRemainingPercentage = (daysRemainingIncludingToday / totalDaysInRange) * 100;
                                }
@@ -540,14 +538,19 @@ export default function TasksClient() {
                                             size={16}
                                             className="mx-1 flex-shrink-0"
                                          />;
-                            statusIconTooltipContent = <p>{tooltipLabel}</p>;
+                            const durationTextKey = totalDaysInRange === 1 ? 'task.display.totalDurationDay' : 'task.display.totalDurationDaysPlural';
+                            statusIconTooltipContent = <p>{formatDateDisplay(sDate, true)} - {formatDateDisplay(eDate, true)} ({t(durationTextKey, {count: totalDaysInRange})})</p>;
                         }
-                    } else if (timeStatus === 'active') { // For non-date-range tasks that are active today
+                    } else if (timeStatus === 'active') { 
                          statusIcon = <Zap className="h-4 w-4 text-green-500 mx-1 flex-shrink-0" />;
                          statusIconTooltipContent = <p>{t('task.display.status.active')}</p>;
                     } else if (timeStatus === 'overdue') {
                         statusIcon = <AlertTriangle className="h-4 w-4 text-yellow-500 mx-1 flex-shrink-0" />;
                         statusIconTooltipContent = <p>{t('task.display.status.overdue')}</p>;
+                         if (task.timeInfo?.type === 'date_range' && task.timeInfo.startDate && task.timeInfo.endDate && isValid(parseISO(task.timeInfo.startDate)) && isValid(parseISO(task.timeInfo.endDate))) {
+                              // Optionally, if you want to show the pie for overdue date ranges
+                              // statusIcon = <TaskDurationPie remainingPercentage={0} totalDurationDays={differenceInCalendarDays(parseISO(task.timeInfo.endDate), parseISO(task.timeInfo.startDate)) + 1} variant="active" size={16} className="mx-1 flex-shrink-0" />;
+                         }
                     }
                 }
 
@@ -556,10 +559,10 @@ export default function TasksClient() {
                   <li
                       className={cn(
                           "group flex items-center justify-between py-2.5 px-1 rounded-md hover:bg-muted",
-                          selectedTaskId === task.id && "bg-muted shadow-md" // Highlight if selected
+                          selectedTaskId === task.id && "bg-muted shadow-md" 
                       )}
                   >
-                    <div className="flex items-center flex-grow min-w-0 mr-2"> {/* Ensure this div can shrink */}
+                    <div className="flex items-center flex-grow min-w-0 mr-2"> 
                        <Checkbox
                           id={`task-${task.id}`}
                           checked={task.status === 'completed'}
@@ -567,7 +570,6 @@ export default function TasksClient() {
                           className="mr-2 flex-shrink-0"
                           aria-label={t('task.item.toggleCompletionAria', {title: task.title})}
                         />
-                      {/* Clickable area for editing */}
                       <div className="min-w-0 cursor-pointer flex-grow" onClick={() => handleEditTask(task.id)}>
                         <p className={cn(
                             "text-base font-medium truncate",
@@ -585,14 +587,13 @@ export default function TasksClient() {
                         )}
                       </div>
                     </div>
-                    <div className="flex items-center flex-shrink-0 ml-auto"> {/* Actions on the right */}
-                      {/* Date Label */}
+                    <div className="flex items-center flex-shrink-0 ml-auto"> 
                       {visibleLabel && (
                           <Tooltip delayDuration={300}>
                             <TooltipTrigger asChild>
                               <span
                                 className="text-xs text-muted-foreground mr-1 cursor-pointer"
-                                onClick={(e) => { e.stopPropagation(); handleEditTask(task.id);}} // Allow clicking date to edit
+                                onClick={(e) => { e.stopPropagation(); handleEditTask(task.id);}} 
                               >
                                 {visibleLabel}
                               </span>
@@ -603,11 +604,10 @@ export default function TasksClient() {
                           </Tooltip>
                         )}
 
-                      {/* Status Icon (Pie, Zap, etc.) */}
                       {statusIcon && statusIconTooltipContent && (
                          <Tooltip delayDuration={300}>
                             <TooltipTrigger asChild>
-                                <div className="flex items-center"> {/* Wrapper for icon */}
+                                <div className="flex items-center"> 
                                     {statusIcon}
                                 </div>
                             </TooltipTrigger>
@@ -615,7 +615,6 @@ export default function TasksClient() {
                         </Tooltip>
                       )}
 
-                      {/* Start Pomodoro Button */}
                       <Button
                         variant="ghost"
                         size="icon"
@@ -634,26 +633,24 @@ export default function TasksClient() {
             </ul>
           </div>
 
-          {/* Edit/Create Panel (Right side) */}
           {showEditPanel && (
             <div className={cn(
                 "w-full md:w-1/2 md:border-l md:pl-4 py-4 overflow-y-auto",
-                "flex flex-col h-full" // Ensure it takes full height in its container
+                "flex flex-col h-full" 
               )}>
                <TaskForm
-                key={selectedTaskId || 'new-task'} // Re-mount form when selection changes
+                key={selectedTaskId || 'new-task'} 
                 mode={isCreatingNewTask ? 'create' : 'edit'}
                 initialData={isCreatingNewTask ? defaultNewTaskData : selectedTask}
                 onSubmit={handleMainFormSubmit}
                 isLoading={isSubmittingForm}
                 onCancel={handleCancelEdit}
-                onIntermediateSave={selectedTask ? handleIntermediateFormSave : undefined} // Pass only if editing
-                onDelete={selectedTask ? handleDeleteTask : undefined} // Pass only if editing existing task
+                onIntermediateSave={selectedTask ? handleIntermediateFormSave : undefined} 
+                onDelete={selectedTask ? handleDeleteTask : undefined} 
               />
             </div>
           )}
         </div>
-        {/* FAB for Create New Task - only if edit panel is NOT open */}
         {!showEditPanel && (
             <Button
               variant="default"
@@ -661,7 +658,7 @@ export default function TasksClient() {
               onClick={handleCreateNewTask}
               title={t('tasks.button.create')}
           >
-              <ListChecks className="h-7 w-7" /> {/* Using ListChecks as per your FAB */}
+              <ListChecks className="h-7 w-7" /> 
           </Button>
         )}
       </SidebarInset>

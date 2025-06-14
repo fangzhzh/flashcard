@@ -441,13 +441,6 @@ function TasksClientContent() {
 
   const showEditPanel = selectedTaskId !== null || isCreatingNewTask;
 
-  const truncateText = (text: string | null | undefined, maxLength: number): string => {
-    if (!text) return '';
-    if (text.length <= maxLength) return text;
-    return `${text.substring(0, maxLength)}...`;
-  };
-
-
   return (
     <div className="flex h-full">
       <Sidebar
@@ -455,7 +448,7 @@ function TasksClientContent() {
         side="left"
         variant="sidebar"
       >
-        <div className={cn("flex flex-col h-full overflow-hidden", !isMobile && "pt-16")}>
+        <div className={cn("flex flex-col", !isMobile && "h-full overflow-hidden pt-16")}>
           <SidebarHeader className="p-2 flex-shrink-0">
           </SidebarHeader>
           <SidebarContent className="pt-1"> 
@@ -519,7 +512,7 @@ function TasksClientContent() {
               value={activeDateFilter}
               onValueChange={(value) => setActiveDateFilter(value as TaskDateFilter)}
             >
-              <TabsList className="flex flex-wrap w-full justify-start items-center h-auto rounded-md bg-muted p-1 text-muted-foreground gap-1"> 
+              <TabsList className="flex flex-wrap w-full justify-start items-center h-auto rounded-md bg-muted p-1 text-muted-foreground gap-1">
                 <TabsTrigger value="all" className="py-1.5 text-xs px-2.5">{t('tasks.filter.all')}</TabsTrigger>
                 <TabsTrigger value="today" className="py-1.5 text-xs px-2.5">{t('tasks.filter.today')}</TabsTrigger>
                 <TabsTrigger value="threeDays" className="py-1.5 text-xs px-2.5">{t('tasks.filter.threeDays')}</TabsTrigger>
@@ -630,22 +623,22 @@ function TasksClientContent() {
                         />
                       <div className="flex-1 min-w-0 cursor-pointer overflow-hidden" onClick={() => handleEditTask(task.id)}>
                         <p className={cn(
-                            "text-base font-medium", 
+                            "text-base font-medium truncate", 
                             task.status === 'completed' && "line-through text-muted-foreground"
                           )} title={task.title}>
-                          {truncateText(task.title, 200)}
+                          {task.title}
                         </p>
                         {task.description && (
                           <p className={cn(
-                              "text-xs text-muted-foreground", 
+                              "text-xs text-muted-foreground truncate", 
                               task.status === 'completed' && "line-through"
                             )} title={task.description}>
-                            {truncateText(task.description, 200)}
+                            {task.description}
                           </p>
                         )}
                       </div>
                     </div>
-                    <div className="flex items-center flex-shrink-0 ml-auto"> 
+                    <div className="flex items-center flex-shrink-0"> 
                       {visibleLabel && (
                           <Tooltip delayDuration={300}>
                             <TooltipTrigger asChild>
@@ -732,3 +725,4 @@ export default function TasksClient() {
   );
 }
 
+    

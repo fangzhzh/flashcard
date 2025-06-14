@@ -309,7 +309,7 @@ export default {
   'task.form.title.edit': 'Edit Task',
   'task.form.label.title': 'Title',
   'task.form.placeholder.title': 'Enter task title...',
-  'task.form.label.description': 'Description (Optional)',
+  'task.form.label.description': 'Description',
   'task.form.placeholder.description': 'Enter task description... (Markdown supported)',
   'task.form.description.previewMode': 'Preview Description',
   'task.form.description.editMode': 'Edit Description',
@@ -466,4 +466,3 @@ export default {
   'error': 'Error',
 
 } as const;
-

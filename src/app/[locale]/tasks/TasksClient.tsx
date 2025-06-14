@@ -6,7 +6,7 @@ import { useFlashcards } from '@/contexts/FlashcardsContext';
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
-import { Loader2, Info, ShieldAlert, PlayCircle, Zap, AlertTriangle, CalendarRange, Hourglass, ListChecks, PanelLeft, Briefcase, User, Coffee, LayoutGrid } from 'lucide-react';
+import { Loader2, Info, ShieldAlert, PlayCircle, Zap, AlertTriangle, CalendarIcon, Hourglass, ListChecks, PanelLeft, Briefcase, User, Coffee, LayoutGrid } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { useI18n, useCurrentLocale } from '@/lib/i18n/client';
 import type { Task, TimeInfo, TaskStatus, RepeatFrequency, ReminderType, TaskType } from '@/types';
@@ -208,7 +208,7 @@ function TasksClientContent() {
   }, [t, dateFnsLocale, formatDateStringForDisplay, today]);
 
   const filteredAndSortedTasks = useMemo(() => {
-    const weekStartsOn = 1; // Monday
+    const weekStartsOn = currentLocale === 'zh' ? 1 : 0; // Monday for Chinese, Sunday for English
 
     let currentTasks = tasks;
 
@@ -243,8 +243,9 @@ function TasksClientContent() {
           filterIntervalEnd = endOfWeek(today, { weekStartsOn });
           break;
         case 'twoWeeks': 
-          filterIntervalStart = startOfWeek(addDays(today, 7), { weekStartsOn }); 
-          filterIntervalEnd = endOfWeek(addDays(filterIntervalStart, 6 + 7), { weekStartsOn }); 
+          // The twoWeeks filter should cover the current week and the next week.
+          filterIntervalStart = startOfWeek(today, { weekStartsOn }); // Start of current week
+          filterIntervalEnd = endOfWeek(addDays(today, 7), { weekStartsOn }); // End of next week
           break;
         default:
           return true; 
@@ -279,7 +280,7 @@ function TasksClientContent() {
       // Fallback to creation date if dates are the same or both null (newest first)
       return (b.createdAt && a.createdAt) ? (new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()) : 0;
     });
-  }, [tasks, activeDateFilter, activeTaskTypeFilter, today]);
+  }, [tasks, activeDateFilter, activeTaskTypeFilter, today, currentLocale]);
 
   const isLoadingAppData = (authLoading && !user) ||
                            (!authLoading && user && (isLoadingTasks || contextOverallLoading || isSeeding));
@@ -402,7 +403,7 @@ function TasksClientContent() {
   const showEditPanel = selectedTaskId !== null || isCreatingNewTask;
 
   return (
-    <>
+    <div className="flex h-[calc(100vh-4rem)]"> {/* Root div for TasksClientContent */}
       <Sidebar
         collapsible="icon"
         side="left"
@@ -447,8 +448,8 @@ function TasksClientContent() {
         </div>
       </Sidebar>
 
-      <SidebarInset className="flex flex-col">
-        <header className="flex items-center justify-between p-2 md:p-3 border-b sticky top-0 bg-background z-10">
+      <SidebarInset className="flex flex-1 flex-col overflow-hidden"> {/* Ensure SidebarInset manages its overflow and takes space */}
+        <header className="flex-shrink-0 flex items-center justify-between p-2 md:p-3 border-b sticky top-0 bg-background z-10"> {/* flex-shrink-0 and sticky top-0 (relative to SidebarInset) */}
           <div className="flex items-center gap-2">
             <SidebarTrigger className="md:hidden" /> 
             <SidebarTrigger className="hidden md:inline-flex" /> {/* Desktop trigger */}
@@ -471,7 +472,7 @@ function TasksClientContent() {
           </div>
         </header>
 
-        <div className="sm:hidden p-2 border-b">
+        <div className="sm:hidden p-2 border-b flex-shrink-0"> {/* flex-shrink-0 */}
             <Tabs
               value={activeDateFilter}
               onValueChange={(value) => setActiveDateFilter(value as TaskDateFilter)}
@@ -487,9 +488,9 @@ function TasksClientContent() {
         </div>
 
 
-        <div className="flex flex-grow overflow-hidden">
+        <div className="flex flex-grow overflow-auto"> {/* This div handles scrolling for its children */}
           <div className={cn(
-            "transition-all duration-300 ease-in-out overflow-y-auto flex flex-col flex-grow",
+            "transition-all duration-300 ease-in-out flex flex-col flex-grow", // Removed overflow-y-auto
             showEditPanel ? "w-full md:w-1/2 md:pr-2" : "w-full pr-0" 
           )}>
 
@@ -503,7 +504,7 @@ function TasksClientContent() {
               </Alert>
             )}
 
-            <ul className={cn("space-y-1 flex-grow pb-20 px-1")}> 
+            <ul className={cn("space-y-1 flex-grow pb-20 px-1 overflow-y-auto")}> {/* List itself can scroll if needed */}
               {filteredAndSortedTasks.map((task) => {
                 const { visibleLabel, tooltipLabel, timeStatus } = formatTimeLabel(task.timeInfo);
                 let statusIcon: React.ReactNode = null;
@@ -647,8 +648,8 @@ function TasksClientContent() {
 
           {showEditPanel && (
             <div className={cn(
-                "w-full md:w-1/2 md:border-l md:pl-4 py-4 overflow-y-auto",
-                "flex flex-col h-full" 
+                "w-full md:w-1/2 md:border-l md:pl-4 py-4", // Removed overflow-y-auto
+                "flex flex-col" // TaskForm will fill this
               )}>
                <TaskForm
                 key={selectedTaskId || 'new-task'} 
@@ -674,7 +675,7 @@ function TasksClientContent() {
           </Button>
         )}
       </SidebarInset>
-    </>
+    </div>
   );
 }
 

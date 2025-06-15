@@ -305,11 +305,14 @@ function TasksClientContent() {
 
   const proceedWithPendingAction = () => {
     if (pendingAction) {
-      pendingAction.callback();
-      if (pendingAction.type === 'filter' || pendingAction.type === 'newTask') {
+      pendingAction.callback(); // Executes the stored action
+      if (pendingAction.type === 'filter') {
+        // For filters, always close any open edit/create form
         setSelectedTaskId(null);
         setIsCreatingNewTask(false);
       }
+      // For 'newTask' and 'editTask', the pendingAction.callback has already set the correct state (selectedTaskId or isCreatingNewTask).
+      // No need to reset them here if the action was to open/switch edit/create panel.
       setIsTaskFormDirty(false);
     }
     setIsConfirmDiscardDialogOpen(false);
@@ -327,12 +330,16 @@ function TasksClientContent() {
       setPendingAction({ type: actionType, callback: actionCallback, descriptionKey, confirmButtonKey });
       setIsConfirmDiscardDialogOpen(true);
     } else {
-      actionCallback();
-      if (actionType === 'filter' || actionType === 'newTask') {
+      actionCallback(); // This runs the specific action (e.g., setting selectedTaskId or isCreatingNewTask)
+      if (actionType === 'filter') {
+        // For filters, always close any open edit/create form
         setSelectedTaskId(null);
         setIsCreatingNewTask(false);
       }
-      setIsTaskFormDirty(false);
+      // For 'newTask', actionCallback has already set isCreatingNewTask = true and selectedTaskId = null.
+      // For 'editTask', actionCallback has already set selectedTaskId.
+      // No need to reset selectedTaskId or isCreatingNewTask again for 'newTask' or 'editTask' here.
+      setIsTaskFormDirty(false); // Always reset dirty state if not prompting
     }
   };
 
@@ -347,7 +354,8 @@ function TasksClientContent() {
       if (isMobile && openMobile) {
         toggleMobileSidebar();
       } else if (!isMobile && desktopOpen) {
-        toggleDesktopSidebar(); 
+        // Optionally close desktop sidebar too if desired, or leave as is
+        // toggleDesktopSidebar(); 
       }
     };
     handleActionWithDirtyCheck(action, 'tasks.unsavedChanges.descriptionFilter', 'tasks.unsavedChanges.button.discardAndFilter', 'filter');
@@ -374,7 +382,7 @@ function TasksClientContent() {
   const handleCancelEdit = () => {
     if (isTaskFormDirty) {
         setPendingAction({
-            type: 'editTask', 
+            type: 'editTask', // Or a more generic 'cancel' type if needed
             callback: () => {
                 setSelectedTaskId(null);
                 setIsCreatingNewTask(false);
@@ -436,8 +444,10 @@ function TasksClientContent() {
     if (selectedTask?.id) {
         try {
             await updateTaskInContext(selectedTask.id, updates);
+            // No toast here, main save will handle it or specific action will.
             return true;
         } catch (error) {
+            // Optionally toast here if intermediate save failure is critical to show immediately
             return false;
         }
     }
@@ -446,6 +456,7 @@ function TasksClientContent() {
 
   const handleDeleteTask = async () => {
     if (!selectedTask || !selectedTask.id) return;
+    // This function is called from TaskForm, no need to manage isDeleting state here
     try {
         await deleteTaskInContext(selectedTask.id);
         toast({ title: t('success'), description: t('toast.task.deleted') });
@@ -505,7 +516,7 @@ function TasksClientContent() {
   
   const ActiveFilterIconComponent = useMemo(() => {
     const selectedOption = taskTypeFilterOptions.find(opt => opt.value === activeTaskTypeFilter);
-    const IconComponent = selectedOption ? selectedOption.icon : LayoutGrid;
+    const IconComponent = selectedOption ? selectedOption.icon : LayoutGrid; // Fallback to LayoutGrid
     return <IconComponent className="h-4 w-4" />;
   }, [activeTaskTypeFilter, taskTypeFilterOptions]);
 
@@ -687,25 +698,24 @@ function TasksClientContent() {
                             totalDaysInRangeForLabel = differenceInCalendarDays(eDate, sDate) + 1;
                             const now = new Date();
                             
-                            const isTaskTodayAndTomorrow = isToday(sDate) && isTomorrow(eDate) && totalDaysInRangeForLabel === 2;
-                            const isTaskYesterdayAndToday = isYesterday(sDate) && isToday(eDate) && totalDaysInRangeForLabel === 2;
-                            const isTaskOnlyToday = isToday(sDate) && isToday(eDate) && totalDaysInRangeForLabel === 1;
+                            const isTaskTodayOnly = isToday(sDate) && isToday(eDate) && totalDaysInRangeForLabel === 1;
+                            const isTaskYesterdayToday = isYesterday(sDate) && isToday(eDate) && totalDaysInRangeForLabel === 2;
+                            const isTaskTodayTomorrow = isToday(sDate) && isTomorrow(eDate) && totalDaysInRangeForLabel === 2;
 
-                           if (isTaskTodayAndTomorrow || isTaskYesterdayAndToday || isTaskOnlyToday) {
-                                const taskStartDateTime = startOfDay(sDate); // Use startOfDay for accurate start
-                                const taskEndDateTime = endOfDay(eDate);   // Use endOfDay for accurate end
+                           if (isTaskTodayOnly || isTaskYesterdayToday || isTaskTodayTomorrow) {
+                                const taskStartDateTime = startOfDay(sDate);
+                                const taskEndDateTime = endOfDay(eDate);
                                 const totalDurationInMs = taskEndDateTime.getTime() - taskStartDateTime.getTime();
                                 
                                 if (totalDurationInMs > 0) {
                                     let elapsedMs = now.getTime() - taskStartDateTime.getTime();
-                                    elapsedMs = Math.max(0, Math.min(elapsedMs, totalDurationInMs)); // Clamp elapsed time
+                                    elapsedMs = Math.max(0, Math.min(elapsedMs, totalDurationInMs));
                                     const remainingMs = totalDurationInMs - elapsedMs;
                                     currentRemainingPercentage = (remainingMs / totalDurationInMs) * 100;
                                 } else {
-                                    // If total duration is zero or negative (shouldn't happen with valid dates), handle it
                                     currentRemainingPercentage = (now >= taskEndDateTime) ? 0 : 100;
                                 }
-                            } else { // For tasks longer than 2 days or not fitting the specific patterns
+                            } else { 
                                 if (now > endOfDay(eDate)) {
                                     currentRemainingPercentage = 0;
                                 } else if (now < startOfDay(sDate)) {
@@ -715,7 +725,7 @@ function TasksClientContent() {
                                     currentRemainingPercentage = totalDaysInRangeForLabel > 0 ? (daysEffectivelyRemaining / totalDaysInRangeForLabel) * 100 : 0;
                                 }
                             }
-                            currentRemainingPercentage = Math.max(0, Math.min(currentRemainingPercentage, 100)); // Ensure percentage is between 0 and 100
+                            currentRemainingPercentage = Math.max(0, Math.min(currentRemainingPercentage, 100));
 
                             statusIcon = <TaskDurationPie
                                             remainingPercentage={currentRemainingPercentage}
@@ -725,7 +735,7 @@ function TasksClientContent() {
                                             className="mx-1 flex-shrink-0"
                                          />;
                             const durationTextKey: TranslationKeys = totalDaysInRangeForLabel === 1 ? 'task.display.totalDurationDay' : 'task.display.totalDurationDaysPlural';
-                            statusIconTooltipContent = <p>{formatDateStringForDisplay(sDate, today, dateFnsLocale, true)} - {formatDateStringForDisplay(eDate, today, dateFnsLocale, true)} ({t(durationTextKey, {count: totalDaysInRangeForLabel})})</p>;
+                            statusIconTooltipContent = <p>{formatDateStringForDisplay(sDate, today, dateFnsLocale, true)} - {formatDateStringForDisplay(eDate, today, dateFnsLocale, true)} {t(durationTextKey, {count: totalDaysInRangeForLabel})}</p>;
                         }
                     } else if (timeStatus === 'active') { 
                          statusIcon = <Zap className="h-4 w-4 text-green-500 mx-1 flex-shrink-0" />;
@@ -858,21 +868,26 @@ function TasksClientContent() {
               })}
             </ul>
           </div>
-          {showEditPanel && (
-            <div className={cn("flex flex-col bg-card shadow-md w-full md:max-w-none md:mx-0 md:w-1/2 md:border-l")}>
-              <TaskForm
-                key={selectedTaskId || 'new-task'} 
-                mode={isCreatingNewTask ? 'create' : 'edit'}
-                initialData={isCreatingNewTask ? defaultNewTaskData : selectedTask}
-                onSubmit={handleMainFormSubmit}
-                isLoading={isSubmittingForm}
-                onCancel={handleCancelEdit}
-                onIntermediateSave={selectedTask ? handleIntermediateFormSave : undefined} 
-                onDelete={selectedTask ? handleDeleteTask : undefined} 
-                onDirtyChange={setIsTaskFormDirty}
-              />
-            </div>
-          )}
+          <div
+            className={cn(
+              "flex flex-col bg-card shadow-md md:border-l",
+              showEditPanel ? "w-full md:w-1/2 md:max-w-none" : "hidden"
+            )}
+          >
+            {showEditPanel && (
+                <TaskForm
+                    key={selectedTaskId || 'new-task'} 
+                    mode={isCreatingNewTask ? 'create' : 'edit'}
+                    initialData={isCreatingNewTask ? defaultNewTaskData : selectedTask}
+                    onSubmit={handleMainFormSubmit}
+                    isLoading={isSubmittingForm}
+                    onCancel={handleCancelEdit}
+                    onIntermediateSave={selectedTask ? handleIntermediateFormSave : undefined} 
+                    onDelete={selectedTask ? handleDeleteTask : undefined} 
+                    onDirtyChange={setIsTaskFormDirty}
+                />
+            )}
+          </div>
         </div>
       </SidebarInset>
       
@@ -914,6 +929,7 @@ export default function TasksClient() {
     
 
     
+
 
 
 

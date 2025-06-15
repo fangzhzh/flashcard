@@ -41,6 +41,11 @@ export default function FlashcardsHubPage() {
             <ProgressDashboard />
 
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-2 xl:grid-cols-4">
+              <Link href="/review" passHref>
+                <Button variant="default" size="lg" className="w-full py-8 text-lg shadow-md hover:shadow-lg transition-shadow bg-accent text-accent-foreground hover:bg-accent/90">
+                  <ClipboardCheck className="mr-3 h-6 w-6" /> {t('flashcards.dashboard.button.review')}
+                </Button>
+              </Link>
               <Link href="/flashcards/new" passHref>
                 <Button size="lg" className="w-full py-8 text-lg shadow-md hover:shadow-lg transition-shadow">
                   <PlusCircle className="mr-3 h-6 w-6" /> {t('flashcards.dashboard.button.create')}
@@ -54,11 +59,6 @@ export default function FlashcardsHubPage() {
                <Link href="/flashcards" passHref>
                 <Button variant="outline" size="lg" className="w-full py-8 text-lg shadow-md hover:shadow-lg transition-shadow">
                   <Layers className="mr-3 h-6 w-6" /> {t('flashcards.dashboard.button.manageAll')}
-                </Button>
-              </Link>
-              <Link href="/review" passHref>
-                <Button variant="default" size="lg" className="w-full py-8 text-lg shadow-md hover:shadow-lg transition-shadow bg-accent text-accent-foreground hover:bg-accent/90">
-                  <ClipboardCheck className="mr-3 h-6 w-6" /> {t('flashcards.dashboard.button.review')}
                 </Button>
               </Link>
             </div>
@@ -79,3 +79,4 @@ export default function FlashcardsHubPage() {
     </PageContainer>
   );
 }
+

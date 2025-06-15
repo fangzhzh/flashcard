@@ -362,9 +362,9 @@ export default function TaskForm({
   return (
     <>
     <Form {...form}>
-      <form onSubmit={form.handleSubmit(onSubmit)} className="h-full flex flex-col p-4 md:p-6">
+      <form onSubmit={form.handleSubmit(onSubmit)} className="h-full flex flex-col p-4 md:p-6 w-full">
         {onCancel && (
-          <div className={cn("md:hidden mb-2 pt-2", mode === 'create' ? "" : "")}>
+          <div className={cn("md:hidden mb-2", mode === 'create' ? "" : "")}>
             <Button variant="ghost" onClick={onCancel} size="sm">
               <ArrowLeft className="mr-2 h-4 w-4" />
               {t('flashcard.form.page.button.back')}
@@ -570,6 +570,7 @@ export default function TaskForm({
                                         isLoadingDecks={isLoadingDecks}
                                         submitButtonTextKey="flashcard.form.button.create"
                                         onCancel={() => setIsNewFlashcardDialogOpen(false)}
+                                        cancelButtonTextKey="deck.item.delete.confirm.cancel"
                                     />
                                 </DialogContent>
                             </Dialog>
@@ -808,4 +809,3 @@ function SelectFlashcardDialog({
     </Dialog>
   );
 }
-

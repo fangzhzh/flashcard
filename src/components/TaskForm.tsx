@@ -9,7 +9,7 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import type { Task, RepeatFrequency, TimeInfo, ArtifactLink, ReminderInfo, Flashcard as FlashcardType, Deck, TaskType } from '@/types';
-import { Save, CalendarIcon, Link2, RotateCcw, Clock, Bell, Trash2, X, Loader2, FilePlus, ListChecks, Search, Edit3, Repeat, Briefcase, User, Coffee, Eye, FileEdit, ArrowLeft } from 'lucide-react'; // Added ArrowLeft
+import { Save, CalendarIcon, Link2, RotateCcw, Clock, Bell, Trash2, X, Loader2, FilePlus, ListChecks, Search, Edit3, Repeat, Briefcase, User, Coffee, Eye, FileEdit, ArrowLeft, FilePenLine } from 'lucide-react';
 import { useI18n, useCurrentLocale } from '@/lib/i18n/client';
 import { cn } from '@/lib/utils';
 import { format, parseISO, isValid, isToday, isTomorrow } from 'date-fns';
@@ -136,6 +136,7 @@ export default function TaskForm({
   const [isDeleting, setIsDeleting] = React.useState(false);
   const [isDateTimeReminderDialogOpen, setIsDateTimeReminderDialogOpen] = React.useState(false);
   const [isPreviewingDescription, setIsPreviewingDescription] = React.useState(false);
+  const [isPreviewingFlashcard, setIsPreviewingFlashcard] = React.useState(false);
 
   const taskTypeOptions: { value: TaskType; labelKey: string; icon: React.ElementType }[] = React.useMemo(() => [
     { value: 'innie', labelKey: 'task.type.innie', icon: Briefcase },
@@ -153,6 +154,7 @@ export default function TaskForm({
             setIsFetchingFlashcard(false);
         } else {
             setLinkedFlashcard(null);
+            setIsPreviewingFlashcard(false); 
         }
     };
     fetchCard();
@@ -253,6 +255,7 @@ export default function TaskForm({
             form.setValue('artifactLink', clearedArtifactLink);
             setLinkedFlashcard(null);
             setEditingFlashcardData(null);
+            setIsPreviewingFlashcard(false);
             toast({ title: t('success'), description: t('toast.task.linkRemovedAndTaskUpdated') });
         } else {
             toast({ title: t('error'), description: t('toast.task.error.intermediateSaveFailed'), variant: 'destructive' });
@@ -261,6 +264,7 @@ export default function TaskForm({
         form.setValue('artifactLink', clearedArtifactLink);
         setLinkedFlashcard(null);
         setEditingFlashcardData(null);
+        setIsPreviewingFlashcard(false);
         toast({ title: t('success'), description: t('toast.task.linkRemoved') });
     }
   };
@@ -464,26 +468,71 @@ export default function TaskForm({
                         </div>
                     )}
                     {!isFetchingFlashcard && watchedArtifactLink?.flashcardId && linkedFlashcard && (
-                         <div className="flex items-center justify-between text-sm">
-                            <span className="font-medium mr-1 text-foreground whitespace-nowrap">{t('task.form.artifactLink.flashcardPrefix')}</span>
-                            <Button
-                                variant="link"
-                                type="button"
-                                onClick={() => { setEditingFlashcardData(linkedFlashcard); setIsEditFlashcardDialogOpen(true); }}
-                                className="text-primary hover:underline truncate p-0 h-auto leading-tight flex-grow justify-start text-left"
-                                title={linkedFlashcard.front}
-                            >
-                                {linkedFlashcard.front}
-                            </Button>
-                            <div className="flex gap-1 flex-shrink-0 ml-2">
-                                <Button type="button" variant="ghost" size="xsIcon" onClick={() => setIsSelectFlashcardDialogOpen(true)} title={t('task.form.artifactLink.button.change')}>
-                                    <ListChecks className="h-4 w-4" />
-                                </Button>
-                                <Button type="button" variant="ghost" size="xsIcon" onClick={handleRemoveLink} title={t('task.form.artifactLink.button.remove')}>
-                                    <Trash2 className="h-4 w-4 text-destructive" />
-                                </Button>
-                            </div>
-                        </div>
+                         <>
+                            {isPreviewingFlashcard ? (
+                                <div
+                                    onClick={() => setIsPreviewingFlashcard(false)}
+                                    className="cursor-pointer space-y-3 p-2 bg-muted/30 rounded-md"
+                                    role="button"
+                                    tabIndex={0}
+                                    onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') setIsPreviewingFlashcard(false);}}
+                                    aria-label={t('task.form.description.editMode')}
+                                >
+                                    <div>
+                                        <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">{t('flashcard.form.label.front')}</p>
+                                        <div className="markdown-content whitespace-pre-wrap p-2 bg-background rounded-sm border mt-1 text-sm">
+                                            <ReactMarkdown remarkPlugins={[remarkGfm]}>{linkedFlashcard.front}</ReactMarkdown>
+                                        </div>
+                                    </div>
+                                    <div>
+                                        <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">{t('flashcard.form.label.back')}</p>
+                                        <div className="markdown-content whitespace-pre-wrap p-2 bg-background rounded-sm border mt-1 text-sm">
+                                            <ReactMarkdown remarkPlugins={[remarkGfm]}>{linkedFlashcard.back}</ReactMarkdown>
+                                        </div>
+                                    </div>
+                                    <div className="flex justify-end gap-1 mt-1">
+                                        <Button
+                                            type="button" variant="ghost" size="xsIcon"
+                                            onClick={(e) => { e.stopPropagation(); setEditingFlashcardData(linkedFlashcard); setIsEditFlashcardDialogOpen(true); }}
+                                            title={t('task.form.artifactLink.button.editLinkedFlashcard')}
+                                        > <FilePenLine className="h-4 w-4" /> </Button>
+                                        <Button
+                                            type="button" variant="ghost" size="xsIcon"
+                                            onClick={(e) => { e.stopPropagation(); setIsSelectFlashcardDialogOpen(true); }}
+                                            title={t('task.form.artifactLink.button.change')}
+                                        > <ListChecks className="h-4 w-4" /> </Button>
+                                        <Button
+                                            type="button" variant="ghost" size="xsIcon"
+                                            onClick={(e) => { e.stopPropagation(); handleRemoveLink(); }}
+                                            title={t('task.form.artifactLink.button.remove')}
+                                        > <Trash2 className="h-4 w-4 text-destructive" /> </Button>
+                                    </div>
+                                </div>
+                            ) : (
+                                <div className="flex items-center justify-between text-sm">
+                                    <span className="font-medium mr-1 text-foreground whitespace-nowrap">{t('task.form.artifactLink.flashcardPrefix')}</span>
+                                    <Button
+                                        variant="link" type="button"
+                                        onClick={() => setIsPreviewingFlashcard(true)}
+                                        className="text-primary hover:underline truncate p-0 h-auto leading-tight flex-grow justify-start text-left"
+                                        title={linkedFlashcard.front}
+                                    >
+                                        {linkedFlashcard.front}
+                                    </Button>
+                                    <div className="flex gap-1 flex-shrink-0 ml-2">
+                                        <Button type="button" variant="ghost" size="xsIcon" onClick={() => { setEditingFlashcardData(linkedFlashcard); setIsEditFlashcardDialogOpen(true); }} title={t('task.form.artifactLink.button.editLinkedFlashcard')}>
+                                            <FilePenLine className="h-4 w-4" />
+                                        </Button>
+                                        <Button type="button" variant="ghost" size="xsIcon" onClick={() => setIsSelectFlashcardDialogOpen(true)} title={t('task.form.artifactLink.button.change')}>
+                                            <ListChecks className="h-4 w-4" />
+                                        </Button>
+                                        <Button type="button" variant="ghost" size="xsIcon" onClick={handleRemoveLink} title={t('task.form.artifactLink.button.remove')}>
+                                            <Trash2 className="h-4 w-4 text-destructive" />
+                                        </Button>
+                                    </div>
+                                </div>
+                            )}
+                        </>
                     )}
                      {!isFetchingFlashcard && watchedArtifactLink?.flashcardId && !linkedFlashcard && (
                         <div className="space-y-1 text-sm">
@@ -590,7 +639,7 @@ export default function TaskForm({
                     {isLoading ? t('task.form.button.saving') : (mode === 'edit' ? t('task.form.button.update') : t('task.form.button.create'))}
                 </Button>
                 {onCancel && (
-                    <Button type="button" variant="ghost" onClick={onCancel} disabled={isLoading || isSubmittingNewFlashcard || isSubmittingEditedFlashcard || isFetchingFlashcard || isDeleting} size="sm" className="hidden md:inline-flex"> {/* Hide on mobile, show on md+ */}
+                    <Button type="button" variant="ghost" onClick={onCancel} disabled={isLoading || isSubmittingNewFlashcard || isSubmittingEditedFlashcard || isFetchingFlashcard || isDeleting} size="sm" className="hidden md:inline-flex">
                        <X className="mr-2 h-4 w-4" /> {t('deck.item.delete.confirm.cancel')}
                     </Button>
                 )}
@@ -756,5 +805,3 @@ function SelectFlashcardDialog({
     </Dialog>
   );
 }
-
-    

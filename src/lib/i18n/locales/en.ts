@@ -195,8 +195,6 @@ export default {
   'toast.batch.error.save': 'Failed to save batch flashcards.',
 
   // Review Page (src/app/[locale]/review/ReviewModeClient.tsx)
-  'review.pageTitle.default': 'Review Session',
-  'review.pageTitle.deck': 'Reviewing: {deckName}',
   'review.loading': 'Loading review session...',
   'review.noCards.title': 'No Flashcards Yet!',
   'review.noCards.description': 'Create some flashcards to start your learning journey.',
@@ -354,6 +352,7 @@ export default {
   'task.form.artifactLink.button.selectFlashcard': 'Select Flashcard',
   'task.form.artifactLink.button.change': 'Change',
   'task.form.artifactLink.button.remove': 'Remove',
+  'task.form.artifactLink.button.editLinkedFlashcard': 'Edit linked flashcard',
   'task.form.artifactLink.loadingFlashcard': 'Loading flashcard...',
   'task.form.artifactLink.flashcardNotFound': 'Flashcard not found.',
   'task.form.artifactLink.flashcardPrefix': 'Flashcard:',

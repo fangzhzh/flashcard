@@ -195,8 +195,6 @@ export default {
   'toast.batch.error.save': '保存批量抽认卡失败。',
 
   // Review Page (src/app/[locale]/review/ReviewModeClient.tsx)
-  'review.pageTitle.default': '复习会话',
-  'review.pageTitle.deck': '复习卡组: {deckName}',
   'review.loading': '加载复习会话中...',
   'review.noCards.title': '还没有抽认卡!',
   'review.noCards.description': '创建一些抽认卡来开始您的学习之旅吧。',
@@ -354,6 +352,7 @@ export default {
   'task.form.artifactLink.button.selectFlashcard': '选择抽认卡',
   'task.form.artifactLink.button.change': '更改',
   'task.form.artifactLink.button.remove': '移除',
+  'task.form.artifactLink.button.editLinkedFlashcard': '编辑关联的抽认卡',
   'task.form.artifactLink.loadingFlashcard': '加载抽认卡中...',
   'task.form.artifactLink.flashcardNotFound': '未找到抽认卡。',
   'task.form.artifactLink.flashcardPrefix': '抽认卡:',

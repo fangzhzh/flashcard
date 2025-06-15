@@ -26,17 +26,16 @@ const SIDEBAR_WIDTH = "16rem"
 const SIDEBAR_WIDTH_MOBILE = "18rem"
 const SIDEBAR_WIDTH_ICON = "3rem"
 
+
 type SidebarContext = {
   state: "expanded" | "collapsed"
-  open: boolean
+  open: boolean // Desktop sidebar open state
   setOpen: (open: boolean) => void
-  openMobile: boolean
+  openMobile: boolean // Mobile sidebar (Sheet) open state
   setOpenMobile: (open: boolean) => void
-  isMobile: boolean
+  isMobile: boolean | undefined // Can be undefined initially
   toggleMobileSidebar: () => void
   toggleDesktopSidebar: () => void
-  // Deprecated, use specific toggles
-  toggleSidebar: () => void
 }
 
 const SidebarContext = React.createContext<SidebarContext | null>(null)
@@ -46,16 +45,16 @@ function useSidebar() {
   if (!context) {
     throw new Error("useSidebar must be used within a SidebarProvider.")
   }
-
   return context
 }
 
 const SidebarProvider = React.forwardRef<
   HTMLDivElement,
   React.ComponentProps<"div"> & {
-    defaultOpen?: boolean
-    open?: boolean
-    onOpenChange?: (open: boolean) => void
+    defaultOpen?: boolean // For desktop sidebar
+    open?: boolean // Controlled desktop open state
+    onOpenChange?: (open: boolean) => void // For desktop
+    // Mobile open state is managed internally by default
   }
 >(
   (
@@ -70,67 +69,81 @@ const SidebarProvider = React.forwardRef<
     },
     ref
   ) => {
-    const isMobile = useIsMobile()
-    const [_openMobile, _setOpenMobile] = React.useState(false) // Internal state for mobile sheet
-    const openMobile = _openMobile; // Directly use internal state for now
+    const isMobileHookValue = useIsMobile() // This can be undefined initially
 
-    const [_open, _setOpen] = React.useState(defaultOpen)
-    const open = openProp ?? _open
+    // Internal state for mobile sheet
+    const [_openMobile, _setOpenMobile] = React.useState(false)
+
+    // Internal state for desktop sidebar (prefers controlled prop if available)
+    // Initialize _open based on cookie or defaultOpen, only if openProp is not provided
+    const [_open, _setInternalOpen] = React.useState(() => {
+        if (typeof window !== "undefined" && openProp === undefined) {
+            const savedState = document.cookie
+              .split("; ")
+              .find((row) => row.startsWith(`${SIDEBAR_COOKIE_NAME}=`))
+              ?.split("=")[1];
+            if (savedState) {
+              return savedState === "true";
+            }
+        }
+        return defaultOpen;
+    });
+    
+    const open = openProp ?? _open; // Use controlled prop if available, else internal state
 
     const setOpen = React.useCallback(
       (value: boolean | ((currentOpen: boolean) => boolean)) => {
-        const openState = typeof value === "function" ? value(openProp ?? _open) : value;
+        const newOpenState = typeof value === "function" ? value(open) : value;
         if (setOpenProp) {
-          setOpenProp(openState);
+          setOpenProp(newOpenState);
         } else {
-          _setOpen(openState);
+          _setInternalOpen(newOpenState);
         }
-        document.cookie = `${SIDEBAR_COOKIE_NAME}=${openState}; path=/; max-age=${SIDEBAR_COOKIE_MAX_AGE}`;
+        if (typeof window !== "undefined") {
+            document.cookie = `${SIDEBAR_COOKIE_NAME}=${newOpenState}; path=/; max-age=${SIDEBAR_COOKIE_MAX_AGE}`;
+        }
       },
-      [setOpenProp, openProp, _open]
+      [setOpenProp, open, _setInternalOpen]
     );
+    
+    // Effect to update internal state if defaultOpen prop changes and component is uncontrolled
+    React.useEffect(() => {
+        if (openProp === undefined && defaultOpen !== _open) {
+            _setInternalOpen(defaultOpen);
+        }
+    }, [defaultOpen, openProp, _open]);
+
 
     const setOpenMobile = React.useCallback(
-        (value: boolean | ((currentOpenMobile: boolean) => boolean)) => {
-            _setOpenMobile(typeof value === 'function' ? value(_openMobile) : value);
-        }, [_openMobile]
+      (value: boolean | ((currentOpenMobile: boolean) => boolean)) => {
+        _setOpenMobile(typeof value === 'function' ? value(_openMobile) : value);
+      },
+      [_openMobile] // _setOpenMobile is stable
     );
     
     const toggleMobileSidebar = React.useCallback(() => {
-        setOpenMobile((prev) => !prev);
-    }, [setOpenMobile]);
+        _setOpenMobile(prev => !prev);
+    }, [_setOpenMobile]);
 
     const toggleDesktopSidebar = React.useCallback(() => {
-        setOpen((prev) => !prev);
+        setOpen(prev => !prev); // Uses the unified setOpen which handles controlled/uncontrolled
     }, [setOpen]);
-
-    // Generic toggleSidebar for backward compatibility or generic use cases
-    // It now correctly uses the `isMobile` state from the provider's scope
-    const toggleSidebar = React.useCallback(() => {
-      if (isMobile) {
-        toggleMobileSidebar();
-      } else {
-        toggleDesktopSidebar();
-      }
-    }, [isMobile, toggleMobileSidebar, toggleDesktopSidebar]);
-
-
-    const state = open ? "expanded" : "collapsed"
+    
+    const state = open ? "expanded" : "collapsed";
 
     const contextValue = React.useMemo<SidebarContext>(
       () => ({
         state,
         open,
         setOpen,
-        isMobile,
-        openMobile,
+        isMobile: isMobileHookValue, // Pass through the value from the hook
+        openMobile: _openMobile,    // Use internal state for mobile
         setOpenMobile,
         toggleMobileSidebar,
         toggleDesktopSidebar,
-        toggleSidebar, // Keep if needed, or remove if all usages are specific
       }),
-      [state, open, setOpen, isMobile, openMobile, setOpenMobile, toggleMobileSidebar, toggleDesktopSidebar, toggleSidebar]
-    )
+      [state, open, setOpen, isMobileHookValue, _openMobile, setOpenMobile, toggleMobileSidebar, toggleDesktopSidebar]
+    );
 
     return (
       <SidebarContext.Provider value={contextValue}>
@@ -154,10 +167,11 @@ const SidebarProvider = React.forwardRef<
           </div>
         </TooltipProvider>
       </SidebarContext.Provider>
-    )
+    );
   }
-)
-SidebarProvider.displayName = "SidebarProvider"
+);
+SidebarProvider.displayName = "SidebarProvider";
+
 
 const Sidebar = React.forwardRef<
   HTMLDivElement,
@@ -195,7 +209,9 @@ const Sidebar = React.forwardRef<
       )
     }
 
-    if (isMobile) {
+    // isMobile can be undefined on initial server render / client hydration mismatch.
+    // Default to not rendering the mobile sheet if undefined, or handle as per your app's SSR strategy.
+    if (isMobile === true) { 
       return (
         <Sheet open={openMobile} onOpenChange={setOpenMobile} {...props}>
           <SheetContent
@@ -214,6 +230,11 @@ const Sidebar = React.forwardRef<
         </Sheet>
       )
     }
+    
+    if (isMobile === undefined) { // Or handle SSR case differently
+        return null; 
+    }
+
 
     return (
       <div
@@ -264,15 +285,13 @@ Sidebar.displayName = "Sidebar"
 const SidebarTrigger = React.forwardRef<
   React.ElementRef<typeof Button>,
   React.ComponentProps<typeof Button> & {
-    // Allow consumers to specify which toggle function to call if needed,
-    // though typically the component itself will decide based on isMobile.
-    // For this specific fix, we'll rely on separate triggers in TasksClient calling the specific toggles.
+    children?: React.ReactNode; 
   }
->(({ className, onClick, ...props }, ref) => {
-  // Generic SidebarTrigger might still use the general toggleSidebar,
-  // but specific instances (like in TasksClient) will override onClick.
-  const { toggleSidebar } = useSidebar(); 
-
+>(({ className, children, onClick, ...props }, ref) => {
+  // Note: The specific toggle logic (mobile vs desktop) is expected to be passed via `onClick`
+  // by the consumer (e.g., TasksClient.tsx), as SidebarTrigger itself doesn't know which
+  // sidebar (mobile sheet or desktop panel) it's supposed to control without more context.
+  // If onClick is not provided, it would need a more complex default behavior.
   return (
     <Button
       ref={ref}
@@ -280,21 +299,22 @@ const SidebarTrigger = React.forwardRef<
       variant="ghost"
       size="icon"
       className={cn("h-7 w-7", className)}
-      onClick={onClick || toggleSidebar} // Allow consumer to override onClick
+      onClick={onClick} // Relies on consumer to pass the correct toggle function
       {...props}
     >
-      <PanelLeft />
+      {children || <PanelLeft />} {/* Render children if provided, otherwise default PanelLeft */}
       <span className="sr-only">Toggle Sidebar</span>
     </Button>
   )
 })
 SidebarTrigger.displayName = "SidebarTrigger"
 
+
 const SidebarRail = React.forwardRef<
   HTMLButtonElement,
   React.ComponentProps<"button">
 >(({ className, ...props }, ref) => {
-  const { toggleDesktopSidebar } = useSidebar() // Desktop rail toggles desktop sidebar
+  const { toggleDesktopSidebar } = useSidebar() 
 
   return (
     <button
@@ -587,7 +607,7 @@ const SidebarMenuButton = React.forwardRef<
         <TooltipContent
           side="right"
           align="center"
-          hidden={state !== "collapsed" || isMobile}
+          hidden={state !== "collapsed" || isMobile === true} // Show tooltip only when desktop & collapsed, or if isMobile is undefined (safer)
           {...tooltip}
         />
       </Tooltip>
@@ -763,4 +783,3 @@ export {
   SidebarTrigger,
   useSidebar,
 }
-

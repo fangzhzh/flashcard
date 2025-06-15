@@ -223,7 +223,7 @@ function TasksClientContent() {
 
       const { timeInfo } = task;
       if (!timeInfo?.startDate || !isValid(parseISO(timeInfo.startDate))) {
-        return activeDateFilter === 'all';
+        return activeDateFilter === 'all'; 
       }
       
       const taskStartDate = startOfDay(parseISO(timeInfo.startDate));
@@ -233,7 +233,7 @@ function TasksClientContent() {
 
 
       let filterIntervalStart = startOfDay(today);
-      let filterIntervalEnd = endOfDay(today); 
+      let filterIntervalEnd = endOfDay(today);
 
       switch (activeDateFilter) {
         case 'today':
@@ -439,7 +439,8 @@ function TasksClientContent() {
   }
 
   const showEditPanel = selectedTaskId !== null || isCreatingNewTask;
-  const isMobile = typeof window !== 'undefined' && window.innerWidth < 768; // Simple check, useSidebar().isMobile is better if context is set up early
+  const isMobileView = typeof window !== 'undefined' && window.innerWidth < 768; 
+
 
   return (
     <div className="flex h-full">
@@ -448,7 +449,7 @@ function TasksClientContent() {
         side="left"
         variant="sidebar"
       >
-      {(isMobile && openMobile) || !isMobile ? ( // Render content if sidebar is open on mobile, or if it's desktop
+      {(isMobileView && openMobile) || !isMobileView ? ( 
           <React.Fragment>
             <SidebarHeader className="flex-shrink-0 p-2" />
             <SidebarContent className="pt-1">
@@ -463,10 +464,10 @@ function TasksClientContent() {
                           "justify-start",
                           draggedOverType === typeOpt.value && typeOpt.value !== 'all' && "ring-2 ring-primary ring-offset-1"
                       )}
-                      onDragOver={typeOpt.value !== 'all' && !isMobile ? handleDragOver : undefined}
-                      onDrop={typeOpt.value !== 'all' && !isMobile ? (e) => handleDropOnType(e, typeOpt.value as TaskType) : undefined}
-                      onDragEnter={typeOpt.value !== 'all' && !isMobile ? (e) => handleDragEnterType(e, typeOpt.value as TaskType | 'all') : undefined}
-                      onDragLeave={typeOpt.value !== 'all' && !isMobile ? handleDragLeaveType : undefined}
+                      onDragOver={typeOpt.value !== 'all' && !isMobileView ? handleDragOver : undefined}
+                      onDrop={typeOpt.value !== 'all' && !isMobileView ? (e) => handleDropOnType(e, typeOpt.value as TaskType) : undefined}
+                      onDragEnter={typeOpt.value !== 'all' && !isMobileView ? (e) => handleDragEnterType(e, typeOpt.value as TaskType | 'all') : undefined}
+                      onDragLeave={typeOpt.value !== 'all' && !isMobileView ? handleDragLeaveType : undefined}
                     >
                       <typeOpt.icon />
                       <span className="flex-grow">{t(typeOpt.labelKey)}</span>
@@ -592,11 +593,11 @@ function TasksClientContent() {
                 const charLimit = 40;
                 const ellipsisThreshold = charLimit + 3;
 
-                const displayTitle = isMobile && task.title.length > ellipsisThreshold 
+                const displayTitle = isMobileView && task.title.length > ellipsisThreshold 
                                      ? task.title.substring(0, charLimit) + "..." 
                                      : task.title;
                 
-                const displayDescription = task.description && isMobile && task.description.length > ellipsisThreshold 
+                const displayDescription = task.description && isMobileView && task.description.length > ellipsisThreshold 
                                            ? task.description.substring(0, charLimit) + "..." 
                                            : task.description;
 
@@ -604,11 +605,11 @@ function TasksClientContent() {
                 return (
                 <TooltipProvider key={task.id}>
                   <li
-                      draggable={!isMobile} // Disable drag on mobile
-                      onDragStart={!isMobile ? (e) => handleDragStart(e, task.id) : undefined}
+                      draggable={!isMobileView} 
+                      onDragStart={!isMobileView ? (e) => handleDragStart(e, task.id) : undefined}
                       className={cn(
                           "group flex items-center justify-between py-2.5 px-1 rounded-md hover:bg-muted",
-                          !isMobile && "cursor-grab", // Only show grab cursor on desktop
+                          !isMobileView && "cursor-grab", 
                           selectedTaskId === task.id && "bg-muted shadow-md" 
                       )}
                   >
@@ -724,6 +725,7 @@ export default function TasksClient() {
     
 
     
+
 
 
 

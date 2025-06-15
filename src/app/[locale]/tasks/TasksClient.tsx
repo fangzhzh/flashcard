@@ -6,7 +6,7 @@ import { useFlashcards } from '@/contexts/FlashcardsContext';
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
-import { Loader2, Info, ShieldAlert, PlayCircle, Zap, AlertTriangle, CalendarIcon, Hourglass, ListChecks, PanelLeft, Briefcase, User, Coffee, LayoutGrid, X, Save, Link2, RotateCcw, Clock, Bell, Trash2, FilePlus, Search, Edit3, Repeat } from 'lucide-react';
+import { Loader2, Info, ShieldAlert, PlayCircle, Zap, AlertTriangle, CalendarIcon, Hourglass, ListChecks, Briefcase, User, Coffee, LayoutGrid, X, Save, Link2, RotateCcw, Clock, Bell, Trash2, FilePlus, Search, Edit3, Repeat } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { useI18n, useCurrentLocale } from '@/lib/i18n/client';
 import type { Task, TimeInfo, TaskStatus, RepeatFrequency, ReminderType, TaskType, ArtifactLink, Flashcard as FlashcardType } from '@/types';
@@ -74,7 +74,7 @@ function TasksClientContent() {
   const today = startOfDay(new Date());
 
   const pomodoroContext = usePomodoro();
-  const { isMobile } = useSidebar();
+  const { isMobile, openMobile, toggleSidebar } = useSidebar();
 
 
   const [isSubmittingForm, setIsSubmittingForm] = useState(false);
@@ -235,24 +235,21 @@ function TasksClientContent() {
 
 
       let filterIntervalStart = startOfDay(today);
-      let filterIntervalEnd = endOfDay(today); // Default for 'today'
+      let filterIntervalEnd = endOfDay(today); 
 
       switch (activeDateFilter) {
         case 'today':
-          // filterIntervalStart is startOfDay(today)
-          // filterIntervalEnd is endOfDay(today) - already set
           break;
         case 'threeDays':
-          // filterIntervalStart is startOfDay(today)
           filterIntervalEnd = endOfDay(addDays(today, 2));
           break;
         case 'thisWeek':
           filterIntervalStart = startOfWeek(today, { weekStartsOn });
-          filterIntervalEnd = endOfWeek(today, { weekStartsOn }); // endOfWeek is already end-of-day inclusive
+          filterIntervalEnd = endOfWeek(today, { weekStartsOn }); 
           break;
         case 'twoWeeks': 
           filterIntervalStart = startOfWeek(today, { weekStartsOn });
-          filterIntervalEnd = endOfWeek(addDays(today, 7), { weekStartsOn }); // endOfWeek is already end-of-day inclusive
+          filterIntervalEnd = endOfWeek(addDays(today, 7), { weekStartsOn }); 
           break;
         default:
           return true; 
@@ -424,6 +421,13 @@ function TasksClientContent() {
       }
     }
   };
+  
+  const ActiveFilterIconComponent = useMemo(() => {
+    const selectedOption = taskTypeFilterOptions.find(opt => opt.value === activeTaskTypeFilter);
+    const IconComponent = selectedOption ? selectedOption.icon : LayoutGrid;
+    return <IconComponent className="h-4 w-4" />;
+  }, [activeTaskTypeFilter, taskTypeFilterOptions]);
+
 
   if (showSignInPrompt) {
     return (
@@ -522,11 +526,14 @@ function TasksClientContent() {
             "flex-col sm:flex-row sm:items-center sm:h-9" 
         )}>
             <div className="flex items-center gap-1 mb-1 sm:mb-0 self-start sm:self-center">
-                <SidebarTrigger className="md:hidden h-6 w-6" />
-                <SidebarTrigger className="hidden md:inline-flex h-6 w-6" />
+                <SidebarTrigger className="md:hidden h-6 w-6">
+                  {openMobile ? <X className="h-4 w-4" /> : ActiveFilterIconComponent}
+                </SidebarTrigger>
+                <SidebarTrigger className="hidden md:inline-flex h-6 w-6">
+                  {ActiveFilterIconComponent}
+                </SidebarTrigger>
             </div>
             
-            {/* Common Tabs structure, visibility controlled by responsive classes */}
             <Tabs
                 value={activeDateFilter}
                 onValueChange={(value) => setActiveDateFilter(value as TaskDateFilter)}
@@ -542,12 +549,10 @@ function TasksClientContent() {
             </Tabs>
         </header>
 
-        {/* Content area: list + optional panel */}
-        <div className="flex flex-1 mt-2"> {/* PARENT FLEX CONTAINER for list and edit panel */}
-          {/* Task List Area Wrapper */}
+        <div className="flex flex-1 mt-2"> 
           <div
             className={cn(
-              "p-1 md:pr-0", // Keep horizontal padding minimal for list area
+              "p-1 md:pr-0", 
               showEditPanel ? "hidden md:block md:w-1/2" : "w-full"
             )}
           >
@@ -714,7 +719,6 @@ function TasksClientContent() {
               })}
             </ul>
           </div>
-          {/* Edit Panel Area Wrapper */}
           {showEditPanel && (
             <div className={cn(
                 "bg-card flex flex-col shadow-md", 
@@ -747,7 +751,6 @@ function TasksClientContent() {
   );
 }
 
-// Default export that wraps TasksClientContent with SidebarProvider
 export default function TasksClient() {
   return (
     <SidebarProvider defaultOpen={false}>
@@ -758,6 +761,7 @@ export default function TasksClient() {
     
 
     
+
 
 
 

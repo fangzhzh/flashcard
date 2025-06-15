@@ -442,7 +442,7 @@ function TasksClientContent() {
 
 
   return (
-    <div className="flex h-full">
+    <div className="flex h-full w-full">
       <Sidebar
         collapsible="icon"
         side="left"
@@ -690,11 +690,7 @@ function TasksClientContent() {
             </ul>
           </div>
           {showEditPanel && (
-            <div className={cn(
-                "bg-card shadow-md", 
-                "w-full", 
-                "md:w-1/2 md:border-l" 
-            )}>
+            <div className={cn("bg-card shadow-md w-full md:max-w-none md:mx-0 md:w-1/2 md:border-l")}>
               <TaskForm
                 key={selectedTaskId || 'new-task'} 
                 mode={isCreatingNewTask ? 'create' : 'edit'}
@@ -732,6 +728,7 @@ export default function TasksClient() {
     
 
     
+
 
 
 

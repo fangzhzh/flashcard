@@ -6,7 +6,7 @@ import { useFlashcards } from '@/contexts/FlashcardsContext';
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
-import { Loader2, Info, ShieldAlert, PlayCircle, Zap, AlertTriangle, CalendarIcon, Hourglass, ListChecks, Briefcase, User, Coffee, LayoutGrid, X, Save, Link2, RotateCcw, Clock, Bell, Trash2, FilePlus, Search, Edit3, Repeat } from 'lucide-react';
+import { Loader2, Info, ShieldAlert, PlayCircle, Zap, AlertTriangle, CalendarIcon, Hourglass, ListChecks, Briefcase, User, Coffee, LayoutGrid, X, Save, Link2, RotateCcw, Clock, Bell, Trash2, FilePlus, Search, Edit3, Repeat, ArrowLeft } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { useI18n, useCurrentLocale } from '@/lib/i18n/client';
 import type { Task, TimeInfo, TaskStatus, RepeatFrequency, ReminderType, TaskType, ArtifactLink, Flashcard as FlashcardType } from '@/types';
@@ -303,17 +303,13 @@ function TasksClientContent() {
 
   const proceedWithPendingAction = () => {
     if (pendingAction) {
-      pendingAction.callback(); // Execute the stored action
+      pendingAction.callback(); 
 
-      // Conditionally reset states based on the action type
       if (pendingAction.type === 'filter' || pendingAction.type === 'newTask') {
         setSelectedTaskId(null);
-        setIsCreatingNewTask(false); // For 'newTask', callback already sets this. For 'filter', ensure it's false.
+        setIsCreatingNewTask(false); 
       }
-      // For 'editTask', selectedTaskId is set by the callback, and isCreatingNewTask is set to false by the callback.
-      // No need to reset selectedTaskId here for 'editTask'.
-
-      setIsTaskFormDirty(false); // Always reset dirty state after proceeding
+      setIsTaskFormDirty(false); 
     }
     setIsConfirmDiscardDialogOpen(false);
     setPendingAction(null);
@@ -329,22 +325,18 @@ function TasksClientContent() {
     if (showEditPanel && isTaskFormDirty) {
       setPendingAction({ type: actionType, callback: actionCallback, descriptionKey, confirmButtonKey });
       setIsConfirmDiscardDialogOpen(true);
-    } else { // Form not dirty or panel not open
-      actionCallback(); // Execute the action
+    } else { 
+      actionCallback(); 
 
-      // Conditionally reset states based on the action type
       if (actionType === 'filter') {
-        setSelectedTaskId(null); // Close edit panel when applying filter
+        setSelectedTaskId(null); 
         setIsCreatingNewTask(false);
       } else if (actionType === 'newTask') {
-        // actionCallback (handleCreateNewTask's inner action) already sets isCreatingNewTask=true.
-        // It also sets selectedTaskId=null.
-        // No further reset needed here for selectedTaskId or isCreatingNewTask.
+         // setSelectedTaskId(null) is handled by actionCallback for newTask
       } else if (actionType === 'editTask') {
-        // actionCallback (handleEditTask's inner action) already sets selectedTaskId and isCreatingNewTask=false.
-        // No reset needed here for selectedTaskId.
+        // For 'editTask', selectedTaskId is set by actionCallback, do not reset it here
       }
-      setIsTaskFormDirty(false); // Reset dirty state as the action has proceeded or form wasn't dirty
+      setIsTaskFormDirty(false);
     }
   };
 
@@ -359,14 +351,16 @@ function TasksClientContent() {
       if (isMobile && openMobile) {
         toggleMobileSidebar();
       } else if (!isMobile && desktopOpen) {
-        toggleDesktopSidebar();
+        // Only toggle desktop if it's open, to avoid opening a collapsed one.
+        // Or, if design is to always collapse on filter change:
+        toggleDesktopSidebar(); 
       }
     };
     handleActionWithDirtyCheck(action, 'tasks.unsavedChanges.descriptionFilter', 'tasks.unsavedChanges.button.discardAndFilter', 'filter');
   };
 
   const handleEditTask = (taskId: string) => {
-    if (selectedTaskId === taskId && showEditPanel && !isCreatingNewTask) return; // Already editing this task
+    if (selectedTaskId === taskId && showEditPanel && !isCreatingNewTask) return; 
 
     const action = () => {
       setIsCreatingNewTask(false);
@@ -386,7 +380,7 @@ function TasksClientContent() {
   const handleCancelEdit = () => {
     if (isTaskFormDirty) {
         setPendingAction({
-            type: 'editTask', // Treat as 'editTask' type for reset logic
+            type: 'editTask', 
             callback: () => {
                 setSelectedTaskId(null);
                 setIsCreatingNewTask(false);
@@ -436,7 +430,7 @@ function TasksClientContent() {
       }
       setSelectedTaskId(null); 
       setIsCreatingNewTask(false);
-      setIsTaskFormDirty(false); // Form is no longer dirty after successful save
+      setIsTaskFormDirty(false); 
     } catch (error) {
       toast({ title: t('error'), description: t('toast.task.error.save'), variant: "destructive" });
     } finally {
@@ -448,11 +442,6 @@ function TasksClientContent() {
     if (selectedTask?.id) {
         try {
             await updateTaskInContext(selectedTask.id, updates);
-            // If intermediate save is successful, the form might still be considered "dirty"
-            // relative to its *initial* load, but the latest changes are saved.
-            // We might want to re-fetch or re-initialize the form with this new data,
-            // or simply trust react-hook-form's `reset` if we call it after this.
-            // For now, just return success.
             return true;
         } catch (error) {
             return false;
@@ -789,7 +778,7 @@ function TasksClientContent() {
             </ul>
           </div>
           {showEditPanel && (
-            <div className={cn("bg-card shadow-md w-full md:max-w-none md:mx-0 md:w-1/2 md:border-l")}>
+            <div className={cn("flex flex-col bg-card shadow-md w-full md:max-w-none md:mx-0 md:w-1/2 md:border-l")}>
               <TaskForm
                 key={selectedTaskId || 'new-task'} 
                 mode={isCreatingNewTask ? 'create' : 'edit'}
@@ -844,6 +833,7 @@ export default function TasksClient() {
     
 
     
+
 
 
 

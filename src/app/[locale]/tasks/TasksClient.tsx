@@ -693,7 +693,7 @@ function TasksClientContent() {
           {showEditPanel && (
             <div className={cn(
                 "bg-card flex flex-col shadow-md", 
-                "w-full md:w-1/2 md:border-l" 
+                "w-full max-w-lg mx-auto md:w-1/2 md:max-w-none md:mx-0 md:border-l" 
             )}>
               <TaskForm
                 key={selectedTaskId || 'new-task'} 
@@ -732,6 +732,7 @@ export default function TasksClient() {
     
 
     
+
 
 
 

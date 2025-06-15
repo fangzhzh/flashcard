@@ -303,14 +303,22 @@ function TasksClientContent() {
 
   const proceedWithPendingAction = () => {
     if (pendingAction) {
-      pendingAction.callback();
-      setSelectedTaskId(null);
-      setIsCreatingNewTask(false);
-      setIsTaskFormDirty(false); // Reset dirty state
+      pendingAction.callback(); // Execute the stored action
+
+      // Conditionally reset states based on the action type
+      if (pendingAction.type === 'filter' || pendingAction.type === 'newTask') {
+        setSelectedTaskId(null);
+        setIsCreatingNewTask(false); // For 'newTask', callback already sets this. For 'filter', ensure it's false.
+      }
+      // For 'editTask', selectedTaskId is set by the callback, and isCreatingNewTask is set to false by the callback.
+      // No need to reset selectedTaskId here for 'editTask'.
+
+      setIsTaskFormDirty(false); // Always reset dirty state after proceeding
     }
     setIsConfirmDiscardDialogOpen(false);
     setPendingAction(null);
   };
+
 
   const handleActionWithDirtyCheck = (
     actionCallback: () => void,
@@ -321,11 +329,22 @@ function TasksClientContent() {
     if (showEditPanel && isTaskFormDirty) {
       setPendingAction({ type: actionType, callback: actionCallback, descriptionKey, confirmButtonKey });
       setIsConfirmDiscardDialogOpen(true);
-    } else {
-      actionCallback();
-      setSelectedTaskId(null); // Close panel if it was open but not dirty
-      setIsCreatingNewTask(false);
-      setIsTaskFormDirty(false);
+    } else { // Form not dirty or panel not open
+      actionCallback(); // Execute the action
+
+      // Conditionally reset states based on the action type
+      if (actionType === 'filter') {
+        setSelectedTaskId(null); // Close edit panel when applying filter
+        setIsCreatingNewTask(false);
+      } else if (actionType === 'newTask') {
+        // actionCallback (handleCreateNewTask's inner action) already sets isCreatingNewTask=true.
+        // It also sets selectedTaskId=null.
+        // No further reset needed here for selectedTaskId or isCreatingNewTask.
+      } else if (actionType === 'editTask') {
+        // actionCallback (handleEditTask's inner action) already sets selectedTaskId and isCreatingNewTask=false.
+        // No reset needed here for selectedTaskId.
+      }
+      setIsTaskFormDirty(false); // Reset dirty state as the action has proceeded or form wasn't dirty
     }
   };
 
@@ -367,7 +386,7 @@ function TasksClientContent() {
   const handleCancelEdit = () => {
     if (isTaskFormDirty) {
         setPendingAction({
-            type: 'editTask', // or a more generic 'cancelEdit'
+            type: 'editTask', // Treat as 'editTask' type for reset logic
             callback: () => {
                 setSelectedTaskId(null);
                 setIsCreatingNewTask(false);
@@ -601,7 +620,7 @@ function TasksClientContent() {
         <div className="flex flex-1 mt-2"> 
           <div
             className={cn(
-              "p-1 md:pr-0", 
+              "w-full", 
               showEditPanel ? "hidden md:block md:w-1/2" : "w-full"
             )}
           >
@@ -825,6 +844,7 @@ export default function TasksClient() {
     
 
     
+
 
 
 

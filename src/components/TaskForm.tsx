@@ -28,7 +28,6 @@ import {
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
-  AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogTrigger, DialogFooter } from "@/components/ui/dialog";
 import TaskDateTimeReminderDialog from '@/components/TaskDateTimeReminderDialog';
@@ -390,7 +389,7 @@ export default function TaskForm({
                 <FormItem>
                   <FormLabel className="text-lg sr-only">{t('task.form.label.title')}</FormLabel>
                   <FormControl>
-                    <Input placeholder={t('task.form.placeholder.title')} {...field} className="text-xl font-semibold border-0 shadow-none focus-visible:ring-0 focus-visible:ring-offset-0 h-auto py-1" />
+                    <Input placeholder={t('task.form.placeholder.title')} {...field} className="text-xl font-semibold border-0 shadow-none focus-visible:ring-0 focus-visible:ring-offset-0 h-auto py-1 w-full" />
                   </FormControl>
                   <FormMessage>{form.formState.errors.title && t(form.formState.errors.title.message as any)}</FormMessage>
                 </FormItem>
@@ -402,25 +401,39 @@ export default function TaskForm({
               name="type"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel className="text-base text-muted-foreground">{t('task.form.label.type')}</FormLabel>
-                  <Select onValueChange={field.onChange} defaultValue={field.value}>
-                    <FormControl>
-                      <SelectTrigger>
-                        <SelectValue placeholder={t('task.form.placeholder.type')} />
-                      </SelectTrigger>
-                    </FormControl>
-                    <SelectContent>
-                      {taskTypeOptions.map(option => (
-                        <SelectItem key={option.value} value={option.value}>
-                          <div className="flex items-center">
-                            <option.icon className="mr-2 h-4 w-4 text-muted-foreground" />
-                            {t(option.labelKey as any)}
-                          </div>
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                  <FormMessage>{form.formState.errors.type && t(form.formState.errors.type.message as any)}</FormMessage>
+                  <div className="flex items-center gap-2">
+                    <FormLabel className="text-sm text-muted-foreground whitespace-nowrap shrink-0">
+                      {t('task.form.label.type')}:
+                    </FormLabel>
+                    <div className="flex-grow">
+                      <Select 
+                        onValueChange={field.onChange} 
+                        value={field.value} 
+                        defaultValue={field.value} 
+                        disabled={isLoading}
+                        name={field.name}
+                      >
+                        <FormControl>
+                          <SelectTrigger id={field.name} className="w-full">
+                            <SelectValue placeholder={t('task.form.placeholder.type')} />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          {taskTypeOptions.map(option => (
+                            <SelectItem key={option.value} value={option.value}>
+                              <div className="flex items-center">
+                                <option.icon className="mr-2 h-4 w-4 text-muted-foreground" />
+                                {t(option.labelKey as any)}
+                              </div>
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </div>
+                  <FormMessage>
+                    {form.formState.errors.type && t(form.formState.errors.type.message as any)}
+                  </FormMessage>
                 </FormItem>
               )}
             />

@@ -395,6 +395,13 @@ export default {
   'toast.task.flashcardSelectedAndTaskUpdated': 'Flashcard selected and task updated.',
   'toast.task.linkRemoved': 'Link removed from task (will be saved with task).',
   'toast.task.linkRemovedAndTaskUpdated': 'Link removed and task updated.',
+
+  'task.form.checkin.enableLabel': 'Enable Check-in Mode',
+  'task.form.checkin.totalRequiredLabel': 'Total Check-ins Required',
+  'task.form.checkin.totalRequiredPlaceholder': 'e.g., 5',
+  'task.form.checkin.error.totalRequiredMin': 'Must be at least 1 check-in.',
+  'task.form.checkin.error.totalRequiredMax': 'Cannot exceed 100 check-ins.',
+
   'toast.task.error.flashcardLinkFailed': 'Failed to create or link new flashcard.',
   'toast.task.error.intermediateSaveFailed': 'Failed to update task with new link. Please try saving the entire task.',
   'toast.task.typeChanged': 'Task type changed to {type}.',

@@ -395,6 +395,13 @@ export default {
   'toast.task.flashcardSelectedAndTaskUpdated': '抽认卡已选择，任务已更新。',
   'toast.task.linkRemoved': '链接已从任务中移除（随任务保存）。',
   'toast.task.linkRemovedAndTaskUpdated': '链接已移除，任务已更新。',
+
+  'task.form.checkin.enableLabel': '启用打卡模式',
+  'task.form.checkin.totalRequiredLabel': '总打卡次数',
+  'task.form.checkin.totalRequiredPlaceholder': '例如：5',
+  'task.form.checkin.error.totalRequiredMin': '至少需要 1 次打卡。',
+  'task.form.checkin.error.totalRequiredMax': '打卡次数不能超过 100 次。',
+
   'toast.task.error.flashcardLinkFailed': '创建或链接新抽认卡失败。',
   'toast.task.error.intermediateSaveFailed': '更新任务链接失败。请尝试保存整个任务。',
   'toast.task.typeChanged': '任务类型已更改为 {type}。',

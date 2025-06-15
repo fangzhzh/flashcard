@@ -67,6 +67,12 @@ export interface ReminderInfo {
   type: ReminderType;
 }
 
+export interface CheckinInfo {
+  totalCheckinsRequired: number;
+  currentCheckins: number;
+  // lastCheckinDate?: string | null; // Consider for later to prevent multiple check-ins per day
+}
+
 export interface Task {
   id: string;
   userId: string;
@@ -78,6 +84,7 @@ export interface Task {
   timeInfo: TimeInfo;
   artifactLink: ArtifactLink;
   reminderInfo: ReminderInfo;
+  checkinInfo?: CheckinInfo | null; // New field for check-in tasks
   createdAt: string;
   updatedAt: string;
 }

@@ -8,8 +8,8 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
-import type { Task, RepeatFrequency, TimeInfo, ArtifactLink, ReminderInfo, Flashcard as FlashcardType, Deck, TaskType } from '@/types';
-import { Save, CalendarIcon, Link2, RotateCcw, Clock, Bell, Trash2, X, Loader2, FilePlus, ListChecks, Search, Edit3, Repeat, Briefcase, User, Coffee, Eye, FileEdit, ArrowLeft, FilePenLine } from 'lucide-react';
+import type { Task, RepeatFrequency, TimeInfo, ArtifactLink, ReminderInfo, Flashcard as FlashcardType, Deck, TaskType, CheckinInfo } from '@/types';
+import { Save, CalendarIcon, Link2, RotateCcw, Clock, Bell, Trash2, X, Loader2, FilePlus, ListChecks, Search, Edit3, Repeat, Briefcase, User, Coffee, Eye, FileEdit, ArrowLeft, FilePenLine, CheckSquare, Square } from 'lucide-react'; // Added CheckSquare, Square
 import { useI18n, useCurrentLocale } from '@/lib/i18n/client';
 import { cn } from '@/lib/utils';
 import { format, parseISO, isValid, isToday, isTomorrow } from 'date-fns';
@@ -28,13 +28,14 @@ import {
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
-  AlertDialogTrigger, // Added AlertDialogTrigger here
+  AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogTrigger, DialogFooter } from "@/components/ui/dialog";
 import TaskDateTimeReminderDialog from '@/components/TaskDateTimeReminderDialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
+import { Switch } from '@/components/ui/switch'; // Added Switch import
 
 const artifactLinkSchema = z.object({
   flashcardId: z.string().nullable().optional(),
@@ -70,6 +71,12 @@ const reminderInfoSchema = z.object({
   type: z.enum(['none', 'at_event_time', '5_minutes_before', '10_minutes_before', '15_minutes_before', '30_minutes_before', '1_hour_before', '1_day_before']).default('none'),
 });
 
+const checkinInfoSchema = z.object({
+  totalCheckinsRequired: z.number().min(1, 'task.form.checkin.error.totalRequiredMin').max(100, 'task.form.checkin.error.totalRequiredMax'),
+  currentCheckins: z.number().default(0),
+}).nullable().optional();
+
+
 const taskSchema = z.object({
   title: z.string().min(1, 'toast.task.error.titleRequired'),
   description: z.string().optional().nullable(),
@@ -78,6 +85,7 @@ const taskSchema = z.object({
   timeInfo: timeInfoSchema,
   artifactLink: artifactLinkSchema.default({ flashcardId: null }),
   reminderInfo: reminderInfoSchema.default({ type: 'none' }),
+  checkinInfo: checkinInfoSchema, // Added checkinInfo to the main schema
 });
 
 export type TaskFormData = z.infer<typeof taskSchema>;
@@ -119,10 +127,11 @@ export default function TaskForm({
       timeInfo: initialData?.timeInfo || { type: 'no_time', startDate: null, endDate: null, time: null },
       artifactLink: initialData?.artifactLink || { flashcardId: null },
       reminderInfo: initialData?.reminderInfo || { type: 'none' },
+      checkinInfo: initialData?.checkinInfo || null,
     },
   });
 
-  const { formState: { isDirty: currentFormIsDirty } } = form;
+  const { formState: { isDirty: currentFormIsDirty }, control, watch, setValue } = form;
 
   React.useEffect(() => {
     if (onDirtyChange) {
@@ -131,10 +140,13 @@ export default function TaskForm({
   }, [currentFormIsDirty, onDirtyChange]);
 
 
-  const watchedArtifactLink = useWatch({ control: form.control, name: "artifactLink" });
-  const watchedTimeInfo = useWatch({ control: form.control, name: "timeInfo" });
-  const watchedRepeat = useWatch({ control: form.control, name: "repeat" });
-  const watchedReminderInfo = useWatch({ control: form.control, name: "reminderInfo" });
+  const watchedArtifactLink = useWatch({ control, name: "artifactLink" });
+  const watchedTimeInfo = useWatch({ control, name: "timeInfo" });
+  const watchedRepeat = useWatch({ control, name: "repeat" });
+  const watchedReminderInfo = useWatch({ control, name: "reminderInfo" });
+  const watchedCheckinInfo = watch("checkinInfo"); // Watch for changes to show/hide related fields
+  const isCheckinModeEnabled = !!watchedCheckinInfo;
+
 
   const [linkedFlashcard, setLinkedFlashcard] = React.useState<FlashcardType | null | undefined>(undefined);
   const [isFetchingFlashcard, setIsFetchingFlashcard] = React.useState(false);
@@ -165,7 +177,7 @@ export default function TaskForm({
             setIsFetchingFlashcard(false);
         } else {
             setLinkedFlashcard(null);
-            setIsPreviewingFlashcard(false); 
+            setIsPreviewingFlashcard(false);
         }
     };
     fetchCard();
@@ -188,6 +200,7 @@ export default function TaskForm({
       timeInfo: normalizedTimeInfo,
       artifactLink: initialData?.artifactLink || { flashcardId: null },
       reminderInfo: initialData?.reminderInfo || { type: 'none' },
+      checkinInfo: initialData?.checkinInfo || null,
     };
     form.reset(dataForReset);
   }, [initialData, form]);
@@ -364,6 +377,14 @@ export default function TaskForm({
     form.setValue('reminderInfo', data.reminderInfo, { shouldValidate: true, shouldDirty: true });
   };
 
+  const handleCheckinModeChange = (checked: boolean) => {
+    if (checked) {
+      setValue("checkinInfo", { totalCheckinsRequired: 5, currentCheckins: 0 }, { shouldValidate: true, shouldDirty: true });
+    } else {
+      setValue("checkinInfo", null, { shouldValidate: true, shouldDirty: true });
+    }
+  };
+
   const timeDisplay = formatDateTimeDisplay();
   const repeatDisplay = formatRepeatDisplay();
   const reminderDisplay = formatReminderDisplay();
@@ -382,9 +403,10 @@ export default function TaskForm({
             </Button>
           </div>
         )}
-        <div className="min-h-0 space-y-4 overflow-y-auto pt-0 pb-4">
+        <ScrollArea className="flex-1 min-h-0 pb-4"> {/* Changed from div to ScrollArea for consistent scrollbar */}
+          <div className="space-y-4"> {/* Inner div for padding/spacing if ScrollArea needs it */}
             <FormField
-              control={form.control}
+              control={control}
               name="title"
               render={({ field }) => (
                 <FormItem>
@@ -398,19 +420,19 @@ export default function TaskForm({
             />
 
             <FormField
-              control={form.control}
+              control={control}
               name="type"
               render={({ field }) => (
                 <FormItem>
                   <div className="flex items-center gap-2">
-                    <FormLabel className="text-sm text-muted-foreground whitespace-nowrap shrink-0">
+                    <FormLabel htmlFor={field.name} className="text-sm text-muted-foreground whitespace-nowrap shrink-0">
                       {t('task.form.label.type')}:
                     </FormLabel>
                     <div className="flex-grow">
-                      <Select 
-                        onValueChange={field.onChange} 
-                        value={field.value} 
-                        defaultValue={field.value} 
+                      <Select
+                        onValueChange={field.onChange}
+                        value={field.value}
+                        defaultValue={field.value}
                         disabled={isLoading}
                         name={field.name}
                       >
@@ -477,6 +499,46 @@ export default function TaskForm({
                 <FormMessage>{form.formState.errors.timeInfo?.startDate?.message && t(form.formState.errors.timeInfo.startDate.message as any)}</FormMessage>
                 <FormMessage>{form.formState.errors.timeInfo?.endDate?.message && t(form.formState.errors.timeInfo.endDate.message as any)}</FormMessage>
                 <FormMessage>{form.formState.errors.timeInfo?.time?.message && t(form.formState.errors.timeInfo.time.message as any)}</FormMessage>
+            </FormItem>
+
+            {/* Check-in Mode Section */}
+            <FormItem className="space-y-3">
+              <div className="flex items-center space-x-2 p-3 border rounded-md">
+                <Switch
+                  id="checkinModeSwitch"
+                  checked={isCheckinModeEnabled}
+                  onCheckedChange={handleCheckinModeChange}
+                  aria-label={t('task.form.checkin.enableLabel')}
+                />
+                <Label htmlFor="checkinModeSwitch" className="text-sm font-normal">
+                  {t('task.form.checkin.enableLabel')}
+                </Label>
+              </div>
+
+              {isCheckinModeEnabled && (
+                <FormField
+                  control={control}
+                  name="checkinInfo.totalCheckinsRequired"
+                  render={({ field }) => (
+                    <FormItem className="pl-3">
+                      <FormLabel>{t('task.form.checkin.totalRequiredLabel')}</FormLabel>
+                      <FormControl>
+                        <Input
+                          type="number"
+                          {...field}
+                          value={field.value || ''}
+                          onChange={(e) => field.onChange(e.target.value === '' ? null : parseInt(e.target.value, 10))}
+                          placeholder={t('task.form.checkin.totalRequiredPlaceholder')}
+                          min="1"
+                          max="100"
+                        />
+                      </FormControl>
+                      <FormMessage>{form.formState.errors.checkinInfo?.totalCheckinsRequired?.message && t(form.formState.errors.checkinInfo.totalCheckinsRequired.message as any)}</FormMessage>
+                    </FormItem>
+                  )}
+                />
+              )}
+              <FormMessage>{form.formState.errors.checkinInfo?.root?.message && t(form.formState.errors.checkinInfo.root.message as any)}</FormMessage>
             </FormItem>
 
 
@@ -609,7 +671,7 @@ export default function TaskForm({
             </FormItem>
 
             <FormField
-              control={form.control}
+              control={control}
               name="description"
               render={({ field }) => (
                 <FormItem>
@@ -657,9 +719,10 @@ export default function TaskForm({
                 </FormItem>
               )}
             />
-        </div>
+          </div>
+        </ScrollArea>
 
-        <div className="flex-shrink-0 flex justify-between items-center pt-4 border-t">
+        <div className="flex-shrink-0 flex justify-between items-center pt-4 border-t mt-auto"> {/* Added mt-auto */}
             <div className="flex gap-2">
                 <Button type="submit" disabled={isLoading || isFetchingFlashcard || isSubmittingNewFlashcard || isSubmittingEditedFlashcard || isDeleting} className="min-w-[100px]" size="sm">
                     {isLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}

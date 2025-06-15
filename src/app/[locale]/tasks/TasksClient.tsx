@@ -13,7 +13,7 @@ import type { Task, TimeInfo, TaskStatus, RepeatFrequency, ReminderType, TaskTyp
 import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
 import TaskForm, { type TaskFormData } from '@/components/TaskForm';
 import { usePomodoro } from '@/contexts/PomodoroContext';
-import { format, parseISO, differenceInCalendarDays, isToday, isTomorrow, isValid, isSameYear, startOfDay, addDays, startOfWeek, endOfWeek, areIntervalsOverlapping } from 'date-fns';
+import { format, parseISO, differenceInCalendarDays, isToday, isTomorrow, isValid, isSameYear, startOfDay, addDays, startOfWeek, endOfWeek, areIntervalsOverlapping, endOfDay } from 'date-fns';
 import { enUS } from 'date-fns/locale/en-US';
 import { zhCN } from 'date-fns/locale/zh-CN';
 import { cn } from '@/lib/utils';
@@ -227,34 +227,39 @@ function TasksClientContent() {
       if (!timeInfo?.startDate || !isValid(parseISO(timeInfo.startDate))) {
         return activeDateFilter === 'all';
       }
+      
       const taskStartDate = startOfDay(parseISO(timeInfo.startDate));
-      const taskEndDate = timeInfo.endDate && isValid(parseISO(timeInfo.endDate)) ? startOfDay(parseISO(timeInfo.endDate)) : taskStartDate;
+      const taskEffectiveEndDate = timeInfo.endDate && isValid(parseISO(timeInfo.endDate)) 
+                                  ? endOfDay(parseISO(timeInfo.endDate)) 
+                                  : endOfDay(taskStartDate);
 
-      let filterIntervalStart = today;
-      let filterIntervalEnd = today;
+
+      let filterIntervalStart = startOfDay(today);
+      let filterIntervalEnd = endOfDay(today); // Default for 'today'
 
       switch (activeDateFilter) {
         case 'today':
-          // filterIntervalStart and filterIntervalEnd are already 'today'
+          // filterIntervalStart is startOfDay(today)
+          // filterIntervalEnd is endOfDay(today) - already set
           break;
         case 'threeDays':
-          filterIntervalEnd = addDays(today, 2); // Today, Tomorrow, Day after tomorrow
+          // filterIntervalStart is startOfDay(today)
+          filterIntervalEnd = endOfDay(addDays(today, 2));
           break;
         case 'thisWeek':
           filterIntervalStart = startOfWeek(today, { weekStartsOn });
-          filterIntervalEnd = endOfWeek(today, { weekStartsOn });
+          filterIntervalEnd = endOfWeek(today, { weekStartsOn }); // endOfWeek is already end-of-day inclusive
           break;
         case 'twoWeeks': 
-          // The twoWeeks filter should cover the current week and the next week.
-          filterIntervalStart = startOfWeek(today, { weekStartsOn }); // Start of current week
-          filterIntervalEnd = endOfWeek(addDays(today, 7), { weekStartsOn }); // End of next week
+          filterIntervalStart = startOfWeek(today, { weekStartsOn });
+          filterIntervalEnd = endOfWeek(addDays(today, 7), { weekStartsOn }); // endOfWeek is already end-of-day inclusive
           break;
         default:
           return true; 
       }
       
       return areIntervalsOverlapping(
-        { start: taskStartDate, end: taskEndDate },
+        { start: taskStartDate, end: taskEffectiveEndDate },
         {start: filterIntervalStart, end: filterIntervalEnd }
       );
     };
@@ -512,44 +517,29 @@ function TasksClientContent() {
       </Sidebar>
 
       <SidebarInset className="flex flex-1 flex-col overflow-y-auto">
-        <header className="flex-shrink-0 flex flex-col sm:flex-row sm:items-center px-2 py-1 border-b sticky top-0 bg-background z-10 gap-1 sm:h-9">
-          <div className="flex items-center gap-1 mb-1 sm:mb-0 self-start sm:self-center">
-             <SidebarTrigger className="md:hidden h-6 w-6" />
-             <SidebarTrigger className="hidden md:inline-flex h-6 w-6" />
-          </div>
-          
-          {/* Desktop Date Filters */}
-          <div className="hidden sm:block sm:ml-1">
+        <header className={cn(
+            "flex-shrink-0 flex px-2 py-1 border-b sticky top-0 bg-background z-10 gap-1",
+            "flex-col sm:flex-row sm:items-center sm:h-9" 
+        )}>
+            <div className="flex items-center gap-1 mb-1 sm:mb-0 self-start sm:self-center">
+                <SidebarTrigger className="md:hidden h-6 w-6" />
+                <SidebarTrigger className="hidden md:inline-flex h-6 w-6" />
+            </div>
+            
+            {/* Common Tabs structure, visibility controlled by responsive classes */}
             <Tabs
-              value={activeDateFilter}
-              onValueChange={(value) => setActiveDateFilter(value as TaskDateFilter)}
-              className="h-auto" 
+                value={activeDateFilter}
+                onValueChange={(value) => setActiveDateFilter(value as TaskDateFilter)}
+                className="w-full sm:ml-1 h-auto" 
             >
-              <TabsList className="flex flex-wrap w-full justify-start items-center h-auto rounded-md bg-muted p-1 text-muted-foreground gap-1">
-                <TabsTrigger value="all" className="py-1.5 text-xs px-2.5">{t('tasks.filter.all')}</TabsTrigger>
-                <TabsTrigger value="today" className="py-1.5 text-xs px-2.5">{t('tasks.filter.today')}</TabsTrigger>
-                <TabsTrigger value="threeDays" className="py-1.5 text-xs px-2.5">{t('tasks.filter.threeDays')}</TabsTrigger>
-                <TabsTrigger value="thisWeek" className="py-1.5 text-xs px-2.5">{t('tasks.filter.thisWeek')}</TabsTrigger>
-                <TabsTrigger value="twoWeeks" className="py-1.5 text-xs px-2.5">{t('tasks.filter.twoWeeks')}</TabsTrigger>
-              </TabsList>
+                <TabsList className="flex flex-wrap w-full justify-start items-center h-auto rounded-md bg-muted p-1 text-muted-foreground gap-1">
+                    <TabsTrigger value="all" className="py-1.5 text-xs px-2.5">{t('tasks.filter.all')}</TabsTrigger>
+                    <TabsTrigger value="today" className="py-1.5 text-xs px-2.5">{t('tasks.filter.today')}</TabsTrigger>
+                    <TabsTrigger value="threeDays" className="py-1.5 text-xs px-2.5">{t('tasks.filter.threeDays')}</TabsTrigger>
+                    <TabsTrigger value="thisWeek" className="py-1.5 text-xs px-2.5">{t('tasks.filter.thisWeek')}</TabsTrigger>
+                    <TabsTrigger value="twoWeeks" className="py-1.5 text-xs px-2.5">{t('tasks.filter.twoWeeks')}</TabsTrigger>
+                </TabsList>
             </Tabs>
-          </div>
-
-          {/* Mobile Date Filters */}
-          <div className="sm:hidden w-full">
-            <Tabs
-              value={activeDateFilter}
-              onValueChange={(value) => setActiveDateFilter(value as TaskDateFilter)}
-            >
-              <TabsList className="flex flex-wrap w-full justify-start items-center h-auto rounded-md bg-muted p-1 text-muted-foreground gap-1">
-                <TabsTrigger value="all" className="py-1.5 text-xs px-2.5">{t('tasks.filter.all')}</TabsTrigger>
-                <TabsTrigger value="today" className="py-1.5 text-xs px-2.5">{t('tasks.filter.today')}</TabsTrigger>
-                <TabsTrigger value="threeDays" className="py-1.5 text-xs px-2.5">{t('tasks.filter.threeDays')}</TabsTrigger>
-                <TabsTrigger value="thisWeek" className="py-1.5 text-xs px-2.5">{t('tasks.filter.thisWeek')}</TabsTrigger>
-                <TabsTrigger value="twoWeeks" className="py-1.5 text-xs px-2.5">{t('tasks.filter.twoWeeks')}</TabsTrigger>
-              </TabsList>
-            </Tabs>
-          </div>
         </header>
 
         {/* Content area: list + optional panel */}
@@ -557,7 +547,7 @@ function TasksClientContent() {
           {/* Task List Area Wrapper */}
           <div
             className={cn(
-              "p-1 md:pr-0",
+              "p-1 md:pr-0", // Keep horizontal padding minimal for list area
               showEditPanel ? "hidden md:block md:w-1/2" : "w-full"
             )}
           >
@@ -768,6 +758,7 @@ export default function TasksClient() {
     
 
     
+
 
 
 

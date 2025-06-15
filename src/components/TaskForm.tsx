@@ -35,7 +35,8 @@ import TaskDateTimeReminderDialog from '@/components/TaskDateTimeReminderDialog'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
-import { Switch } from '@/components/ui/switch'; // Added Switch import
+import { Switch } from '@/components/ui/switch';
+import { Label } from '@/components/ui/label'; // Added Label import
 
 const artifactLinkSchema = z.object({
   flashcardId: z.string().nullable().optional(),
@@ -403,7 +404,7 @@ export default function TaskForm({
             </Button>
           </div>
         )}
-        <ScrollArea className="flex-1 min-h-0 pb-4"> {/* Changed from div to ScrollArea for consistent scrollbar */}
+        <ScrollArea className="min-h-0 pb-4"> {/* Changed from div to ScrollArea for consistent scrollbar, remove flex-1 */}
           <div className="space-y-4"> {/* Inner div for padding/spacing if ScrollArea needs it */}
             <FormField
               control={control}

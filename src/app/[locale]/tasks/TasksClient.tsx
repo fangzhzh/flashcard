@@ -74,7 +74,7 @@ function TasksClientContent() {
   const today = startOfDay(new Date());
 
   const pomodoroContext = usePomodoro();
-  const { isMobile, openMobile, toggleSidebar } = useSidebar();
+  const { openMobile, toggleMobileSidebar, toggleDesktopSidebar } = useSidebar();
 
 
   const [isSubmittingForm, setIsSubmittingForm] = useState(false);
@@ -210,16 +210,14 @@ function TasksClientContent() {
   }, [t, dateFnsLocale, formatDateStringForDisplay, today]);
 
   const filteredAndSortedTasks = useMemo(() => {
-    const weekStartsOn = currentLocale === 'zh' ? 1 : 0; // Monday for Chinese, Sunday for English
+    const weekStartsOn = currentLocale === 'zh' ? 1 : 0; 
 
     let currentTasks = tasks;
 
-    // 1. Filter by Task Type
     if (activeTaskTypeFilter !== 'all') {
       currentTasks = currentTasks.filter(task => task.type === activeTaskTypeFilter);
     }
 
-    // 2. Filter by Date Range
     const dateFilterFn = (task: Task): boolean => {
       if (activeDateFilter === 'all') return true;
 
@@ -239,6 +237,7 @@ function TasksClientContent() {
 
       switch (activeDateFilter) {
         case 'today':
+          // filterIntervalStart and filterIntervalEnd already cover today
           break;
         case 'threeDays':
           filterIntervalEnd = endOfDay(addDays(today, 2));
@@ -263,25 +262,21 @@ function TasksClientContent() {
 
     currentTasks = currentTasks.filter(dateFilterFn);
 
-    // 3. Sort
     return [...currentTasks].sort((a, b) => {
-      // Completed tasks to the bottom
       if (a.status === 'completed' && b.status !== 'completed') return 1;
       if (a.status !== 'completed' && b.status === 'completed') return -1;
 
-      // Sort by start date (earliest first)
       const aDate = a.timeInfo?.startDate && isValid(parseISO(a.timeInfo.startDate)) ? parseISO(a.timeInfo.startDate) : null;
       const bDate = b.timeInfo?.startDate && isValid(parseISO(b.timeInfo.startDate)) ? parseISO(b.timeInfo.startDate) : null;
 
       if (aDate && bDate) {
           if (aDate < bDate) return -1;
           if (aDate > bDate) return 1;
-      } else if (aDate) { // Tasks with dates before tasks without dates
+      } else if (aDate) { 
           return -1;
       } else if (bDate) {
           return 1;
       }
-      // Fallback to creation date if dates are the same or both null (newest first)
       return (b.createdAt && a.createdAt) ? (new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()) : 0;
     });
   }, [tasks, activeDateFilter, activeTaskTypeFilter, today, currentLocale]);
@@ -310,7 +305,6 @@ function TasksClientContent() {
     const newStatus: TaskStatus = task.status === 'completed' ? 'pending' : 'completed';
     try {
       await updateTaskInContext(task.id, { status: newStatus });
-      // Optionally, toast for success
     } catch (error) {
       toast({ title: t('error'), description: t('toast.task.error.save'), variant: "destructive" });
     }
@@ -323,15 +317,12 @@ function TasksClientContent() {
     }
     const pomodoroState = pomodoroContext.sessionState;
     const startFn = pomodoroContext.startPomodoro;
-    // Use user's preferred duration if available, otherwise default to 25
     const duration = pomodoroState?.userPreferredDurationMinutes || 25;
-    startFn(duration, taskTitle); // Pass task title
+    startFn(duration, taskTitle); 
     toast({ title: t('pomodoro.button.start'), description: t('task.pomodoroStartedFor', { title: taskTitle }) });
-    // Navigate to pomodoro page
     router.push(`/${currentLocale}/timer`);
   };
 
-  // Main form submission (create new or update existing)
   const handleMainFormSubmit = async (data: TaskFormData) => {
     setIsSubmittingForm(true);
     try {
@@ -382,7 +373,6 @@ function TasksClientContent() {
     { value: 'blackout', labelKey: 'task.type.blackout', icon: Coffee, count: taskCounts.blackout },
   ], [t, taskCounts]);
 
-  // Drag and Drop Handlers
   const handleDragStart = (event: React.DragEvent<HTMLLIElement>, taskId: string) => {
     event.dataTransfer.setData("application/task-id", taskId);
     event.dataTransfer.effectAllowed = "move";
@@ -449,6 +439,7 @@ function TasksClientContent() {
   }
 
   const showEditPanel = selectedTaskId !== null || isCreatingNewTask;
+  const isMobile = typeof window !== 'undefined' && window.innerWidth < 768; // Simple check, useSidebar().isMobile is better if context is set up early
 
   return (
     <div className="flex h-full">
@@ -457,7 +448,7 @@ function TasksClientContent() {
         side="left"
         variant="sidebar"
       >
-      {isMobile ? (
+      {(isMobile && openMobile) || !isMobile ? ( // Render content if sidebar is open on mobile, or if it's desktop
           <React.Fragment>
             <SidebarHeader className="flex-shrink-0 p-2" />
             <SidebarContent className="pt-1">
@@ -472,6 +463,10 @@ function TasksClientContent() {
                           "justify-start",
                           draggedOverType === typeOpt.value && typeOpt.value !== 'all' && "ring-2 ring-primary ring-offset-1"
                       )}
+                      onDragOver={typeOpt.value !== 'all' && !isMobile ? handleDragOver : undefined}
+                      onDrop={typeOpt.value !== 'all' && !isMobile ? (e) => handleDropOnType(e, typeOpt.value as TaskType) : undefined}
+                      onDragEnter={typeOpt.value !== 'all' && !isMobile ? (e) => handleDragEnterType(e, typeOpt.value as TaskType | 'all') : undefined}
+                      onDragLeave={typeOpt.value !== 'all' && !isMobile ? handleDragLeaveType : undefined}
                     >
                       <typeOpt.icon />
                       <span className="flex-grow">{t(typeOpt.labelKey)}</span>
@@ -484,40 +479,7 @@ function TasksClientContent() {
             </SidebarContent>
             <SidebarFooter className="flex-shrink-0" />
           </React.Fragment>
-        ) : (
-           <div className={cn("flex flex-col", "h-full overflow-hidden")}>
-            <SidebarHeader className="flex-shrink-0 p-2">
-            </SidebarHeader>
-            <SidebarContent className="pt-1"> 
-              <SidebarMenu>
-                {taskTypeFilterOptions.map(typeOpt => (
-                  <SidebarMenuItem key={typeOpt.value}>
-                    <SidebarMenuButton
-                      onClick={() => setActiveTaskTypeFilter(typeOpt.value as TaskType | 'all')}
-                      isActive={activeTaskTypeFilter === typeOpt.value}
-                      tooltip={{ children: t(typeOpt.labelKey), side: 'right', align: 'center' }}
-                      className={cn(
-                          "justify-start",
-                          draggedOverType === typeOpt.value && typeOpt.value !== 'all' && "ring-2 ring-primary ring-offset-1"
-                      )}
-                      onDragOver={typeOpt.value !== 'all' ? handleDragOver : undefined}
-                      onDrop={typeOpt.value !== 'all' ? (e) => handleDropOnType(e, typeOpt.value as TaskType) : undefined}
-                      onDragEnter={typeOpt.value !== 'all' ? (e) => handleDragEnterType(e, typeOpt.value as TaskType | 'all') : undefined}
-                      onDragLeave={typeOpt.value !== 'all' ? handleDragLeaveType : undefined}
-                    >
-                      <typeOpt.icon />
-                      <span className="flex-grow">{t(typeOpt.labelKey)}</span>
-                      <span className="text-xs text-muted-foreground ml-auto pr-1">{typeOpt.count}</span>
-                    </SidebarMenuButton>
-                  </SidebarMenuItem>
-                ))}
-                <SidebarSeparator className="my-2" />
-              </SidebarMenu>
-            </SidebarContent>
-            <SidebarFooter className="flex-shrink-0">
-            </SidebarFooter>
-          </div>
-        )}
+        ) : null }
       </Sidebar>
 
       <SidebarInset className="flex flex-1 flex-col overflow-y-auto">
@@ -526,10 +488,10 @@ function TasksClientContent() {
             "flex-col sm:flex-row sm:items-center sm:h-9" 
         )}>
             <div className="flex items-center gap-1 mb-1 sm:mb-0 self-start sm:self-center">
-                <SidebarTrigger className="md:hidden h-6 w-6">
+                <SidebarTrigger className="md:hidden h-6 w-6" onClick={toggleMobileSidebar}>
                   {openMobile ? <X className="h-4 w-4" /> : ActiveFilterIconComponent}
                 </SidebarTrigger>
-                <SidebarTrigger className="hidden md:inline-flex h-6 w-6">
+                <SidebarTrigger className="hidden md:inline-flex h-6 w-6" onClick={toggleDesktopSidebar}>
                   {ActiveFilterIconComponent}
                 </SidebarTrigger>
             </div>
@@ -642,10 +604,11 @@ function TasksClientContent() {
                 return (
                 <TooltipProvider key={task.id}>
                   <li
-                      draggable="true"
-                      onDragStart={(e) => handleDragStart(e, task.id)}
+                      draggable={!isMobile} // Disable drag on mobile
+                      onDragStart={!isMobile ? (e) => handleDragStart(e, task.id) : undefined}
                       className={cn(
-                          "group flex items-center justify-between py-2.5 px-1 rounded-md hover:bg-muted cursor-grab",
+                          "group flex items-center justify-between py-2.5 px-1 rounded-md hover:bg-muted",
+                          !isMobile && "cursor-grab", // Only show grab cursor on desktop
                           selectedTaskId === task.id && "bg-muted shadow-md" 
                       )}
                   >
@@ -761,6 +724,7 @@ export default function TasksClient() {
     
 
     
+
 
 
 

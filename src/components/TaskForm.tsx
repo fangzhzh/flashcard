@@ -361,17 +361,17 @@ export default function TaskForm({
 
   return (
     <>
-    {onCancel && (
-      <div className="md:hidden mb-2 px-2 pt-2">
-        <Button variant="ghost" onClick={onCancel} size="sm">
-          <ArrowLeft className="mr-2 h-4 w-4" />
-          {t('flashcard.form.page.button.back')}
-        </Button>
-      </div>
-    )}
     <Form {...form}>
-      <form onSubmit={form.handleSubmit(onSubmit)} className="h-full flex flex-col p-2">
-        <div className="flex-0 min-h-0 space-y-4 overflow-y-auto px-2 pt-0 pb-4"> {/* Changed pt-2 to pt-0 */}
+      <form onSubmit={form.handleSubmit(onSubmit)} className="h-full flex flex-col">
+        {onCancel && (
+          <div className="md:hidden mb-2 px-2 pt-2">
+            <Button variant="ghost" onClick={onCancel} size="sm">
+              <ArrowLeft className="mr-2 h-4 w-4" />
+              {t('flashcard.form.page.button.back')}
+            </Button>
+          </div>
+        )}
+        <div className="flex-0 min-h-0 space-y-4 overflow-y-auto px-2 pt-0 pb-4">
             <FormField
               control={form.control}
               name="title"
@@ -633,7 +633,7 @@ export default function TaskForm({
             />
         </div>
 
-        <div className="flex-shrink-0 flex justify-between items-center pt-4 border-t">
+        <div className="flex-shrink-0 flex justify-between items-center pt-4 border-t px-2">
             <div className="flex gap-2">
                 <Button type="submit" disabled={isLoading || isFetchingFlashcard || isSubmittingNewFlashcard || isSubmittingEditedFlashcard || isDeleting} className="min-w-[100px]" size="sm">
                     {isLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}
@@ -808,3 +808,4 @@ function SelectFlashcardDialog({
     </Dialog>
   );
 }
+

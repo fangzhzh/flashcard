@@ -15,6 +15,7 @@ import remarkGfm from 'remark-gfm';
 import { useI18n, useCurrentLocale } from '@/lib/i18n/client';
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { useSearchParams, useRouter } from 'next/navigation';
+import { cn } from '@/lib/utils';
 
 
 const MASTERED_MULTIPLIER = 2;
@@ -354,7 +355,7 @@ export default function ReviewModeClient() {
   const currentCardLang = detectLanguage(currentCardText);
 
   return (
-    <div className="flex flex-col items-center pt-2">
+    <div className="flex flex-col items-center pt-2 flex-1 overflow-y-auto pb-6">
       <h1 className="text-2xl font-semibold tracking-tight mb-6 text-center">{pageTitle}</h1>
       <p className="text-muted-foreground mb-4">{t('review.cardProgress', { currentIndex: currentCardIndex + 1, totalCards: reviewQueue.length })}</p>      
       <Card className="w-full max-w-3xl min-h-[350px] flex flex-col shadow-xl transition-all duration-500 ease-in-out transform hover:scale-[1.01]">
@@ -408,8 +409,8 @@ export default function ReviewModeClient() {
     </div>
   );
 }
-
     
+
 
 
 

@@ -13,7 +13,7 @@ import type { Task, TimeInfo, TaskStatus, RepeatFrequency, ReminderType, TaskTyp
 import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
 import TaskForm, { type TaskFormData } from '@/components/TaskForm';
 import { usePomodoro } from '@/contexts/PomodoroContext';
-import { format, parseISO, differenceInCalendarDays, isToday, isTomorrow, isValid, isSameYear, startOfDay, addDays, startOfWeek, endOfWeek, areIntervalsOverlapping, endOfDay } from 'date-fns';
+import { format, parseISO, differenceInCalendarDays, isToday, isTomorrow, isValid, isSameYear, startOfDay, addDays, startOfWeek, endOfWeek, areIntervalsOverlapping, endOfDay, isYesterday } from 'date-fns';
 import { enUS } from 'date-fns/locale/en-US';
 import { zhCN } from 'date-fns/locale/zh-CN';
 import { cn } from '@/lib/utils';
@@ -303,13 +303,14 @@ function TasksClientContent() {
 
   const proceedWithPendingAction = () => {
     if (pendingAction) {
-      pendingAction.callback(); 
+      pendingAction.callback();
 
       if (pendingAction.type === 'filter' || pendingAction.type === 'newTask') {
         setSelectedTaskId(null);
-        setIsCreatingNewTask(false); 
+        setIsCreatingNewTask(false);
       }
-      setIsTaskFormDirty(false); 
+      // For 'editTask', selectedTaskId is handled by the callback itself.
+      setIsTaskFormDirty(false);
     }
     setIsConfirmDiscardDialogOpen(false);
     setPendingAction(null);
@@ -325,17 +326,14 @@ function TasksClientContent() {
     if (showEditPanel && isTaskFormDirty) {
       setPendingAction({ type: actionType, callback: actionCallback, descriptionKey, confirmButtonKey });
       setIsConfirmDiscardDialogOpen(true);
-    } else { 
-      actionCallback(); 
+    } else {
+      actionCallback();
 
-      if (actionType === 'filter') {
-        setSelectedTaskId(null); 
+      if (actionType === 'filter' || actionType === 'newTask') {
+        setSelectedTaskId(null);
         setIsCreatingNewTask(false);
-      } else if (actionType === 'newTask') {
-         // setSelectedTaskId(null) is handled by actionCallback for newTask
-      } else if (actionType === 'editTask') {
-        // For 'editTask', selectedTaskId is set by actionCallback, do not reset it here
       }
+      // For 'editTask', selectedTaskId is handled by the callback.
       setIsTaskFormDirty(false);
     }
   };
@@ -351,8 +349,6 @@ function TasksClientContent() {
       if (isMobile && openMobile) {
         toggleMobileSidebar();
       } else if (!isMobile && desktopOpen) {
-        // Only toggle desktop if it's open, to avoid opening a collapsed one.
-        // Or, if design is to always collapse on filter change:
         toggleDesktopSidebar(); 
       }
     };
@@ -627,6 +623,8 @@ function TasksClientContent() {
                 const { visibleLabel, tooltipLabel, timeStatus } = formatTimeLabel(task.timeInfo);
                 let statusIcon: React.ReactNode = null;
                 let statusIconTooltipContent: React.ReactNode | null = null;
+                let currentRemainingPercentage = 0;
+                let totalDaysInRangeForLabel = 0;
                 
                 if (task.status !== 'completed') {
                     if (timeStatus === 'upcoming' && task.timeInfo?.startDate) {
@@ -645,36 +643,56 @@ function TasksClientContent() {
                             }
                             statusIcon = <Hourglass className={hourglassBaseClassName} style={hourglassStyle} />;
                             statusIconTooltipContent = <p>{t('task.display.status.upcoming')}</p>;
-
                         }
                     } else if (timeStatus === 'active' && task.timeInfo?.type === 'date_range' && task.timeInfo.startDate && task.timeInfo.endDate) {
                         const sDate = parseISO(task.timeInfo.startDate);
                         const eDate = parseISO(task.timeInfo.endDate);
-                        if (isValid(sDate) && isValid(eDate) && eDate >= sDate) {
-                            const totalDaysInRange = differenceInCalendarDays(eDate, sDate) + 1;
-                            let daysRemainingIncludingToday = differenceInCalendarDays(eDate, today) + 1;
-                            let currentRemainingPercentage = 0;
 
-                            if (today > eDate) { 
-                                currentRemainingPercentage = 0;
-                            } else if (today < sDate) { 
-                                currentRemainingPercentage = 100;
-                            } else { 
-                               if (totalDaysInRange > 0) {
-                                 currentRemainingPercentage = (daysRemainingIncludingToday / totalDaysInRange) * 100;
-                               }
+                        if (isValid(sDate) && isValid(eDate) && eDate >= sDate) {
+                            totalDaysInRangeForLabel = differenceInCalendarDays(eDate, sDate) + 1;
+                            const now = new Date();
+
+                            const isTaskTodayAndTomorrow = isToday(sDate) && isTomorrow(eDate) && totalDaysInRangeForLabel === 2;
+                            const isTaskYesterdayAndToday = isYesterday(sDate) && isToday(eDate) && totalDaysInRangeForLabel === 2;
+                            const isTaskOnlyToday = isToday(sDate) && isToday(eDate) && totalDaysInRangeForLabel === 1;
+
+                            if (isTaskTodayAndTomorrow || isTaskYesterdayAndToday || isTaskOnlyToday) {
+                                const taskStartDateTime = startOfDay(sDate);
+                                const taskEndDateTime = endOfDay(eDate);
+                                const totalDurationInMs = taskEndDateTime.getTime() - taskStartDateTime.getTime();
+
+                                if (totalDurationInMs > 0) {
+                                    let elapsedMs = now.getTime() - taskStartDateTime.getTime();
+                                    elapsedMs = Math.max(0, Math.min(elapsedMs, totalDurationInMs));
+                                    const remainingMs = totalDurationInMs - elapsedMs;
+                                    currentRemainingPercentage = (remainingMs / totalDurationInMs) * 100;
+                                } else {
+                                    currentRemainingPercentage = (now >= taskEndDateTime) ? 0 : 100;
+                                }
+                            } else {
+                                if (now > endOfDay(eDate)) {
+                                    currentRemainingPercentage = 0;
+                                } else if (now < startOfDay(sDate)) {
+                                    currentRemainingPercentage = 100;
+                                } else {
+                                    const daysEffectivelyRemaining = differenceInCalendarDays(eDate, startOfDay(now)) + 1;
+                                    if (totalDaysInRangeForLabel > 0) {
+                                        currentRemainingPercentage = (daysEffectivelyRemaining / totalDaysInRangeForLabel) * 100;
+                                    } else {
+                                        currentRemainingPercentage = 0;
+                                    }
+                                }
                             }
                             currentRemainingPercentage = Math.max(0, Math.min(currentRemainingPercentage, 100));
-
                             statusIcon = <TaskDurationPie
                                             remainingPercentage={currentRemainingPercentage}
-                                            totalDurationDays={totalDaysInRange}
+                                            totalDurationDays={totalDaysInRangeForLabel}
                                             variant="active"
                                             size={16}
                                             className="mx-1 flex-shrink-0"
                                          />;
-                            const durationTextKey: TranslationKeys = totalDaysInRange === 1 ? 'task.display.totalDurationDay' : 'task.display.totalDurationDaysPlural';
-                            statusIconTooltipContent = <p>{formatDateStringForDisplay(sDate, today, dateFnsLocale, true)} - {formatDateStringForDisplay(eDate, today, dateFnsLocale, true)} ({t(durationTextKey, {count: totalDaysInRange})})</p>;
+                            const durationTextKey: TranslationKeys = totalDaysInRangeForLabel === 1 ? 'task.display.totalDurationDay' : 'task.display.totalDurationDaysPlural';
+                            statusIconTooltipContent = <p>{formatDateStringForDisplay(sDate, today, dateFnsLocale, true)} - {formatDateStringForDisplay(eDate, today, dateFnsLocale, true)} ({t(durationTextKey, {count: totalDaysInRangeForLabel})})</p>;
                         }
                     } else if (timeStatus === 'active') { 
                          statusIcon = <Zap className="h-4 w-4 text-green-500 mx-1 flex-shrink-0" />;
@@ -833,6 +851,7 @@ export default function TasksClient() {
     
 
     
+
 
 
 

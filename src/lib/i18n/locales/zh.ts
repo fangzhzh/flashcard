@@ -237,7 +237,6 @@ export default {
   'pomodoro.settings.durationPlaceholder': '例如：25',
   'pomodoro.settings.durationError': '时长必须在 1 到 120 分钟之间。',
   'pomodoro.settings.toggleHint': '点击计时器以切换设置（空闲时）',
-  'pomodoro.settings.button.saveDuration': '保存',
   'pomodoro.button.start': '开始',
   'pomodoro.button.pause': '暂停',
   'pomodoro.button.continue': '继续',
@@ -479,4 +478,3 @@ export default {
   'error': '错误',
 
 } as const;
-

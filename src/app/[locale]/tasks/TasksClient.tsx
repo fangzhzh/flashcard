@@ -74,7 +74,7 @@ function TasksClientContent() {
   const today = startOfDay(new Date());
 
   const pomodoroContext = usePomodoro();
-  const { openMobile, toggleMobileSidebar, toggleDesktopSidebar } = useSidebar();
+  const { isMobile, openMobile, toggleMobileSidebar, open: desktopOpen, toggleDesktopSidebar } = useSidebar();
 
 
   const [isSubmittingForm, setIsSubmittingForm] = useState(false);
@@ -439,7 +439,7 @@ function TasksClientContent() {
   }
 
   const showEditPanel = selectedTaskId !== null || isCreatingNewTask;
-  const isMobileView = typeof window !== 'undefined' && window.innerWidth < 768; 
+  const isMobileLayout = typeof window !== 'undefined' && window.innerWidth < 768; 
 
 
   return (
@@ -449,7 +449,7 @@ function TasksClientContent() {
         side="left"
         variant="sidebar"
       >
-      {(isMobileView && openMobile) || !isMobileView ? ( 
+      {(isMobileLayout && openMobile) || !isMobileLayout ? ( 
           <React.Fragment>
             <SidebarHeader className="flex-shrink-0 p-2" />
             <SidebarContent className="pt-1">
@@ -457,17 +457,24 @@ function TasksClientContent() {
                 {taskTypeFilterOptions.map(typeOpt => (
                   <SidebarMenuItem key={typeOpt.value}>
                     <SidebarMenuButton
-                      onClick={() => setActiveTaskTypeFilter(typeOpt.value as TaskType | 'all')}
+                      onClick={() => {
+                        setActiveTaskTypeFilter(typeOpt.value as TaskType | 'all');
+                        if (isMobile && openMobile) {
+                          toggleMobileSidebar();
+                        } else if (!isMobile && desktopOpen) {
+                          toggleDesktopSidebar();
+                        }
+                      }}
                       isActive={activeTaskTypeFilter === typeOpt.value}
                       tooltip={{ children: t(typeOpt.labelKey), side: 'right', align: 'center' }}
                       className={cn(
                           "justify-start",
                           draggedOverType === typeOpt.value && typeOpt.value !== 'all' && "ring-2 ring-primary ring-offset-1"
                       )}
-                      onDragOver={typeOpt.value !== 'all' && !isMobileView ? handleDragOver : undefined}
-                      onDrop={typeOpt.value !== 'all' && !isMobileView ? (e) => handleDropOnType(e, typeOpt.value as TaskType) : undefined}
-                      onDragEnter={typeOpt.value !== 'all' && !isMobileView ? (e) => handleDragEnterType(e, typeOpt.value as TaskType | 'all') : undefined}
-                      onDragLeave={typeOpt.value !== 'all' && !isMobileView ? handleDragLeaveType : undefined}
+                      onDragOver={typeOpt.value !== 'all' && !isMobileLayout ? handleDragOver : undefined}
+                      onDrop={typeOpt.value !== 'all' && !isMobileLayout ? (e) => handleDropOnType(e, typeOpt.value as TaskType) : undefined}
+                      onDragEnter={typeOpt.value !== 'all' && !isMobileLayout ? (e) => handleDragEnterType(e, typeOpt.value as TaskType | 'all') : undefined}
+                      onDragLeave={typeOpt.value !== 'all' && !isMobileLayout ? handleDragLeaveType : undefined}
                     >
                       <typeOpt.icon />
                       <span className="flex-grow">{t(typeOpt.labelKey)}</span>
@@ -593,11 +600,11 @@ function TasksClientContent() {
                 const charLimit = 40;
                 const ellipsisThreshold = charLimit + 3;
 
-                const displayTitle = isMobileView && task.title.length > ellipsisThreshold 
+                const displayTitle = isMobileLayout && task.title.length > ellipsisThreshold 
                                      ? task.title.substring(0, charLimit) + "..." 
                                      : task.title;
                 
-                const displayDescription = task.description && isMobileView && task.description.length > ellipsisThreshold 
+                const displayDescription = task.description && isMobileLayout && task.description.length > ellipsisThreshold 
                                            ? task.description.substring(0, charLimit) + "..." 
                                            : task.description;
 
@@ -605,11 +612,11 @@ function TasksClientContent() {
                 return (
                 <TooltipProvider key={task.id}>
                   <li
-                      draggable={!isMobileView} 
-                      onDragStart={!isMobileView ? (e) => handleDragStart(e, task.id) : undefined}
+                      draggable={!isMobileLayout} 
+                      onDragStart={!isMobileLayout ? (e) => handleDragStart(e, task.id) : undefined}
                       className={cn(
                           "group flex items-center justify-between py-2.5 px-1 rounded-md hover:bg-muted",
-                          !isMobileView && "cursor-grab", 
+                          !isMobileLayout && "cursor-grab", 
                           selectedTaskId === task.id && "bg-muted shadow-md" 
                       )}
                   >
@@ -725,6 +732,7 @@ export default function TasksClient() {
     
 
     
+
 
 
 

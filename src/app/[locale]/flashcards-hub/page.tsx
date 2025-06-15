@@ -4,15 +4,16 @@ import Link from 'next/link';
 import PageContainer from '@/components/PageContainer';
 import ProgressDashboard from '@/components/ProgressDashboard';
 import { Button } from '@/components/ui/button';
-import { Layers, ClipboardCheck, PlusCircle, ShieldAlert, Library } from 'lucide-react';
-import { useI18n } from '@/lib/i18n/client';
+import { Layers, ClipboardCheck, PlusCircle, ShieldAlert, Library, ListChecks } from 'lucide-react'; // Added ListChecks
+import { useI18n, useCurrentLocale } from '@/lib/i18n/client'; // Added useCurrentLocale
 import { useAuth } from '@/contexts/AuthContext';
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Loader2 } from 'lucide-react';
 
 
-export default function FlashcardsHubPage() { 
+export default function FlashcardsHubPage() {
   const t = useI18n();
+  const currentLocale = useCurrentLocale(); // Added
   const { user, loading: authLoading } = useAuth();
 
   if (authLoading) {
@@ -27,9 +28,9 @@ export default function FlashcardsHubPage() {
 
   return (
     <PageContainer>
-      <div className="flex-1 space-y-8 overflow-y-auto pb-8 pt-6"> {/* Added pt-6 for top spacing */}
+      <div className="flex-1 space-y-8 overflow-y-auto pb-20 pt-6"> {/* Increased pb to 20 for FAB spacing */}
         <h1 className="text-3xl font-bold tracking-tight">{t('flashcards.dashboard.welcome')}</h1>
-        
+
         {!user ? (
            <Alert variant="destructive" className="my-8">
             <ShieldAlert className="h-5 w-5" />
@@ -64,7 +65,7 @@ export default function FlashcardsHubPage() {
             </div>
           </>
         )}
-        
+
         <div className="mt-12 p-6 bg-card border rounded-lg shadow">
           <h2 className="text-2xl font-semibold mb-4">{t('flashcards.dashboard.howTo.title')}</h2>
           <ul className="list-decimal pl-5 space-y-1 text-muted-foreground">
@@ -76,7 +77,17 @@ export default function FlashcardsHubPage() {
         </div>
 
       </div>
+      {user && (
+        <Link href={`/${currentLocale}/tasks/new`} passHref>
+            <Button
+                variant="default"
+                className="fixed bottom-6 right-6 z-40 rounded-full h-14 w-14 p-0 shadow-lg"
+                title={t('tasks.button.create')}
+            >
+                <ListChecks className="h-7 w-7" />
+            </Button>
+        </Link>
+      )}
     </PageContainer>
   );
 }
-

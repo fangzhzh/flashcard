@@ -7,7 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import type { Flashcard, PerformanceRating, Deck } from '@/types';
 import { useToast } from '@/hooks/use-toast';
-import { RefreshCw, CheckCircle2, SkipForward, RotateCcw, PlayCircle, ThumbsUp, PlusCircle, Layers, LayoutDashboard, Loader2, ShieldAlert, Volume2, Library } from 'lucide-react';
+import { RefreshCw, CheckCircle2, SkipForward, RotateCcw, PlayCircle, ThumbsUp, PlusCircle, Layers, LayoutDashboard, Loader2, ShieldAlert, Volume2, Library, ListChecks } from 'lucide-react'; // Added ListChecks
 import { formatISO, addDays } from 'date-fns';
 import Link from 'next/link';
 import ReactMarkdown from 'react-markdown';
@@ -56,7 +56,7 @@ export default function ReviewModeClient() {
       setCurrentDeck(null);
     }
   }, [deckIdFromParams, getDeckById, contextLoading, toast, router, currentLocale, t]);
-  
+
   const allCardsForCurrentScope = useMemo(() => {
     if (!deckIdFromParams) return allFlashcardsFromContext;
     return allFlashcardsFromContext.filter(card => card.deckId === deckIdFromParams);
@@ -139,7 +139,7 @@ export default function ReviewModeClient() {
         interval: newInterval,
         status: newStatus,
       });
-      
+
       // const performanceTranslationMap = {
       //   'Mastered': t('review.button.progress.mastered'),
       //   'Later': t('review.button.progress.later'),
@@ -156,7 +156,7 @@ export default function ReviewModeClient() {
         setCurrentCardIndex(currentCardIndex + 1);
         setIsFlipped(false);
       } else {
-        setReviewQueue([]); 
+        setReviewQueue([]);
       }
     } catch (error) {
       console.error("Error updating flashcard schedule:", error);
@@ -170,7 +170,7 @@ export default function ReviewModeClient() {
       setIsSubmittingProgress(false);
     }
   };
-  
+
   if (authLoading || (contextLoading && user) || (isSeeding && user) || (deckIdFromParams && !currentDeck && !contextLoading)) {
     return (
       <div className="flex flex-col items-center justify-center min-h-[calc(100vh-10rem)] p-4 text-center">
@@ -192,7 +192,7 @@ export default function ReviewModeClient() {
     );
   }
 
-  const pageTitle = currentDeck 
+  const pageTitle = currentDeck
     ? t('review.pageTitle.deck', { deckName: currentDeck.name })
     : t('review.pageTitle.default');
 
@@ -200,7 +200,7 @@ export default function ReviewModeClient() {
   if (!isSessionStarted) {
     if (allCardsForCurrentScope.length === 0) {
       return (
-        <div className="flex flex-col items-center justify-center min-h-[calc(100vh-10rem)] p-4 text-center">
+        <div className="flex flex-col items-center justify-center min-h-[calc(100vh-10rem)] p-4 text-center pb-20"> {/* Added pb-20 */}
           <ThumbsUp className="w-24 h-24 text-green-500 mb-6" />
           <h2 className="text-3xl font-semibold mb-4">
             {currentDeck ? t('review.noCardsInDeck.title') : t('review.noCards.title')}
@@ -220,12 +220,23 @@ export default function ReviewModeClient() {
                 </Button>
             </Link>
            )}
+           {user && (
+            <Link href={`/${currentLocale}/tasks/new`} passHref>
+                <Button
+                    variant="default"
+                    className="fixed bottom-6 right-6 z-40 rounded-full h-14 w-14 p-0 shadow-lg"
+                    title={t('tasks.button.create')}
+                >
+                    <ListChecks className="h-7 w-7" />
+                </Button>
+            </Link>
+          )}
         </div>
       );
     }
 
     return (
-      <div className="flex flex-col items-center justify-center min-h-[calc(100vh-10rem)] p-4 text-center">
+      <div className="flex flex-col items-center justify-center min-h-[calc(100vh-10rem)] p-4 text-center pb-20"> {/* Added pb-20 */}
         <PlayCircle className="w-24 h-24 text-primary mb-6" />
         <h2 className="text-3xl font-semibold mb-4">
           {currentDeck ? t('review.ready.title.deck', {deckName: currentDeck.name}) : t('review.ready.title')}
@@ -233,7 +244,7 @@ export default function ReviewModeClient() {
 
         {dueCardsForCurrentScope.length > 0 ? (
           <p className="text-muted-foreground mb-4 text-lg">
-             {currentDeck 
+             {currentDeck
                 ? t('review.ready.due.text.deck', { count: dueCardsForCurrentScope.length })
                 : t('review.ready.due.text', { count: dueCardsForCurrentScope.length })}
           </p>
@@ -277,13 +288,24 @@ export default function ReviewModeClient() {
                 {currentDeck ? t('review.tip.noSpacedRepetition.deck') : t('review.tip.noSpacedRepetition')}
             </p>
         )}
+        {user && (
+          <Link href={`/${currentLocale}/tasks/new`} passHref>
+              <Button
+                  variant="default"
+                  className="fixed bottom-6 right-6 z-40 rounded-full h-14 w-14 p-0 shadow-lg"
+                  title={t('tasks.button.create')}
+              >
+                  <ListChecks className="h-7 w-7" />
+              </Button>
+          </Link>
+        )}
       </div>
     );
   }
 
   if (reviewQueue.length === 0 && isSessionStarted) {
     return (
-      <div className="flex flex-col items-center justify-center min-h-[calc(100vh-10rem)] p-4 text-center">
+      <div className="flex flex-col items-center justify-center min-h-[calc(100vh-10rem)] p-4 text-center pb-20"> {/* Added pb-20 */}
         <ThumbsUp className="w-24 h-24 text-green-500 mb-6" />
         <h2 className="text-3xl font-semibold mb-4">
             {currentDeck ? t('review.sessionComplete.title.deck') : t('review.sessionComplete.title')}
@@ -316,7 +338,7 @@ export default function ReviewModeClient() {
             disabled={allCardsForCurrentScope.length === 0}
           >
             <Layers className="mr-3 h-6 w-6" />
-            {currentDeck 
+            {currentDeck
                 ? t('review.sessionComplete.button.reviewDeckAgain', { count: allCardsForCurrentScope.length })
                 : t('review.sessionComplete.button.reviewAllAgain', { count: allCardsForCurrentScope.length })}
           </Button>
@@ -327,6 +349,17 @@ export default function ReviewModeClient() {
             </Button>
           </Link>
         </div>
+        {user && (
+          <Link href={`/${currentLocale}/tasks/new`} passHref>
+              <Button
+                  variant="default"
+                  className="fixed bottom-6 right-6 z-40 rounded-full h-14 w-14 p-0 shadow-lg"
+                  title={t('tasks.button.create')}
+              >
+                  <ListChecks className="h-7 w-7" />
+              </Button>
+          </Link>
+        )}
       </div>
     );
   }
@@ -339,9 +372,9 @@ export default function ReviewModeClient() {
       </div>
     );
   }
-  
+
   if (!currentCard && !isSessionStarted) { // Should not be reached if other guards are correct
-      return null; 
+      return null;
   }
 
 
@@ -350,13 +383,13 @@ export default function ReviewModeClient() {
     { labelKey: 'review.button.progress.later', rating: 'Later', icon: SkipForward, variant: 'secondary' },
     { labelKey: 'review.button.progress.mastered', rating: 'Mastered', icon: CheckCircle2, variant: 'default' },
   ];
-  
+
   const currentCardText = isFlipped ? currentCard.back : currentCard.front;
   const currentCardLang = detectLanguage(currentCardText);
 
   return (
-    <div className="flex flex-col items-center pt-2 flex-1 overflow-y-auto pb-6">
-      <p className="text-muted-foreground mb-4">{t('review.cardProgress', { currentIndex: currentCardIndex + 1, totalCards: reviewQueue.length })}</p>      
+    <div className="flex flex-col items-center pt-2 flex-1 overflow-y-auto pb-20"> {/* Added pb-20 */}
+      <p className="text-muted-foreground mb-4">{t('review.cardProgress', { currentIndex: currentCardIndex + 1, totalCards: reviewQueue.length })}</p>
       <Card className="w-full max-w-3xl min-h-[350px] flex flex-col shadow-xl transition-all duration-500 ease-in-out transform hover:scale-[1.01]">
         <CardHeader className="flex items-center justify-center p-4 sm:p-6">
           <div className="flex items-start w-full">
@@ -372,7 +405,7 @@ export default function ReviewModeClient() {
               size="icon"
               className="ml-4 flex-shrink-0"
               onClick={(e) => {
-                e.stopPropagation(); 
+                e.stopPropagation();
                 handleSpeak(currentCardText, currentCardLang);
               }}
               title={t('review.speakContent' as any, { defaultValue: "Speak content"})}
@@ -382,7 +415,7 @@ export default function ReviewModeClient() {
             </Button>
           </div>
         </CardHeader>
-        <CardContent className="p-4 sm:p-6 border-t"> 
+        <CardContent className="p-4 sm:p-6 border-t">
           <Button onClick={handleFlip} variant="outline" className="w-full text-lg py-6 mb-6" disabled={isSubmittingProgress}>
             <RefreshCw className={`mr-2 h-5 w-5 ${isFlipped ? 'animate-pulse' : ''}`} />
             {isFlipped ? t('review.button.flip.showQuestion') : t('review.button.flip.showAnswer')}
@@ -405,13 +438,17 @@ export default function ReviewModeClient() {
         )}
       </Card>
       {isSubmittingProgress && <p className="mt-4 text-primary animate-pulse">{t('review.processing')}</p>}
+      {user && (
+        <Link href={`/${currentLocale}/tasks/new`} passHref>
+            <Button
+                variant="default"
+                className="fixed bottom-6 right-6 z-40 rounded-full h-14 w-14 p-0 shadow-lg"
+                title={t('tasks.button.create')}
+            >
+                <ListChecks className="h-7 w-7" />
+            </Button>
+        </Link>
+      )}
     </div>
   );
 }
-    
-
-
-
-
-
-

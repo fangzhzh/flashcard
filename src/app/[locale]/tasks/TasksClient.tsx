@@ -6,10 +6,10 @@ import { useFlashcards } from '@/contexts/FlashcardsContext';
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
-import { Loader2, Info, ShieldAlert, PlayCircle, Zap, AlertTriangle, CalendarIcon, Hourglass, ListChecks, Briefcase, User, Coffee, LayoutGrid, X, Save, Link2, RotateCcw, Clock, Bell, Trash2, FilePlus, Search, Edit3, Repeat, ArrowLeft } from 'lucide-react';
+import { Loader2, Info, ShieldAlert, PlayCircle, Zap, AlertTriangle, CalendarIcon, Hourglass, ListChecks, Briefcase, User, Coffee, LayoutGrid, X, Save, Link2, RotateCcw, Clock, Bell, Trash2, FilePlus, Search, Edit3, Repeat, ArrowLeft, CheckSquare } from 'lucide-react'; // Added CheckSquare
 import { useToast } from '@/hooks/use-toast';
 import { useI18n, useCurrentLocale } from '@/lib/i18n/client';
-import type { Task, TimeInfo, TaskStatus, RepeatFrequency, ReminderType, TaskType, ArtifactLink, Flashcard as FlashcardType } from '@/types';
+import type { Task, TimeInfo, TaskStatus, RepeatFrequency, ReminderType, TaskType, ArtifactLink, Flashcard as FlashcardType, CheckinInfo } from '@/types'; // Added CheckinInfo
 import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
 import TaskForm, { type TaskFormData } from '@/components/TaskForm';
 import { usePomodoro } from '@/contexts/PomodoroContext';
@@ -44,7 +44,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-
+import { Progress } from '@/components/ui/progress'; // Added Progress
 
 type TranslationKeys = keyof typeof import('@/lib/i18n/locales/en').default;
 
@@ -99,6 +99,7 @@ function TasksClientContent() {
   const [isTaskFormDirty, setIsTaskFormDirty] = useState(false);
   const [isConfirmDiscardDialogOpen, setIsConfirmDiscardDialogOpen] = useState(false);
   const [pendingAction, setPendingAction] = useState<{ type: 'filter' | 'newTask' | 'editTask', callback: () => void, descriptionKey: TranslationKeys, confirmButtonKey: TranslationKeys } | null>(null);
+  const [isCheckingIn, setIsCheckingIn] = useState<Record<string, boolean>>({});
 
 
   useEffect(() => {
@@ -122,6 +123,7 @@ function TasksClientContent() {
     timeInfo: { type: 'no_time' as 'no_time', startDate: null, endDate: null, time: null },
     artifactLink: { flashcardId: null as string | null },
     reminderInfo: { type: 'none' as ReminderType },
+    checkinInfo: null,
   }), [activeTaskTypeFilter]);
 
   const selectedTask = useMemo(() => {
@@ -304,12 +306,10 @@ function TasksClientContent() {
   const proceedWithPendingAction = () => {
     if (pendingAction) {
       pendingAction.callback();
-
       if (pendingAction.type === 'filter' || pendingAction.type === 'newTask') {
         setSelectedTaskId(null);
         setIsCreatingNewTask(false);
       }
-      // For 'editTask', selectedTaskId is handled by the callback itself.
       setIsTaskFormDirty(false);
     }
     setIsConfirmDiscardDialogOpen(false);
@@ -328,12 +328,10 @@ function TasksClientContent() {
       setIsConfirmDiscardDialogOpen(true);
     } else {
       actionCallback();
-
       if (actionType === 'filter' || actionType === 'newTask') {
         setSelectedTaskId(null);
         setIsCreatingNewTask(false);
       }
-      // For 'editTask', selectedTaskId is handled by the callback.
       setIsTaskFormDirty(false);
     }
   };
@@ -511,6 +509,43 @@ function TasksClientContent() {
     return <IconComponent className="h-4 w-4" />;
   }, [activeTaskTypeFilter, taskTypeFilterOptions]);
 
+  const handleCheckIn = async (task: Task) => {
+    if (!task.checkinInfo || typeof task.checkinInfo.totalCheckinsRequired !== 'number') return;
+    if (task.status === 'completed' || task.checkinInfo.currentCheckins >= task.checkinInfo.totalCheckinsRequired) return;
+
+    setIsCheckingIn(prev => ({ ...prev, [task.id]: true }));
+
+    const newCurrentCheckins = (task.checkinInfo.currentCheckins || 0) + 1;
+    const updatedCheckinInfo: CheckinInfo = {
+      ...task.checkinInfo,
+      currentCheckins: newCurrentCheckins,
+    };
+
+    let newStatus: TaskStatus = task.status;
+    if (newCurrentCheckins >= task.checkinInfo.totalCheckinsRequired) {
+      newStatus = 'completed';
+    }
+
+    try {
+      await updateTaskInContext(task.id, { checkinInfo: updatedCheckinInfo, status: newStatus });
+      if (newStatus === 'completed') {
+        toast({ title: t('success'), description: t('toast.task.checkInCompleted', { title: task.title }) });
+      } else {
+        toast({
+          title: t('success'),
+          description: t('toast.task.checkedIn', {
+            current: newCurrentCheckins,
+            total: task.checkinInfo.totalCheckinsRequired,
+          }),
+        });
+      }
+    } catch (error) {
+      toast({ title: t('error'), description: t('toast.task.error.checkInFailed'), variant: "destructive" });
+    } finally {
+      setIsCheckingIn(prev => ({ ...prev, [task.id]: false }));
+    }
+  };
+
 
   if (showSignInPrompt) {
     return (
@@ -651,39 +686,37 @@ function TasksClientContent() {
                         if (isValid(sDate) && isValid(eDate) && eDate >= sDate) {
                             totalDaysInRangeForLabel = differenceInCalendarDays(eDate, sDate) + 1;
                             const now = new Date();
-
+                            
                             const isTaskTodayAndTomorrow = isToday(sDate) && isTomorrow(eDate) && totalDaysInRangeForLabel === 2;
                             const isTaskYesterdayAndToday = isYesterday(sDate) && isToday(eDate) && totalDaysInRangeForLabel === 2;
                             const isTaskOnlyToday = isToday(sDate) && isToday(eDate) && totalDaysInRangeForLabel === 1;
 
-                            if (isTaskTodayAndTomorrow || isTaskYesterdayAndToday || isTaskOnlyToday) {
-                                const taskStartDateTime = startOfDay(sDate);
-                                const taskEndDateTime = endOfDay(eDate);
+                           if (isTaskTodayAndTomorrow || isTaskYesterdayAndToday || isTaskOnlyToday) {
+                                const taskStartDateTime = startOfDay(sDate); // Use startOfDay for accurate start
+                                const taskEndDateTime = endOfDay(eDate);   // Use endOfDay for accurate end
                                 const totalDurationInMs = taskEndDateTime.getTime() - taskStartDateTime.getTime();
-
+                                
                                 if (totalDurationInMs > 0) {
                                     let elapsedMs = now.getTime() - taskStartDateTime.getTime();
-                                    elapsedMs = Math.max(0, Math.min(elapsedMs, totalDurationInMs));
+                                    elapsedMs = Math.max(0, Math.min(elapsedMs, totalDurationInMs)); // Clamp elapsed time
                                     const remainingMs = totalDurationInMs - elapsedMs;
                                     currentRemainingPercentage = (remainingMs / totalDurationInMs) * 100;
                                 } else {
+                                    // If total duration is zero or negative (shouldn't happen with valid dates), handle it
                                     currentRemainingPercentage = (now >= taskEndDateTime) ? 0 : 100;
                                 }
-                            } else {
+                            } else { // For tasks longer than 2 days or not fitting the specific patterns
                                 if (now > endOfDay(eDate)) {
                                     currentRemainingPercentage = 0;
                                 } else if (now < startOfDay(sDate)) {
                                     currentRemainingPercentage = 100;
                                 } else {
                                     const daysEffectivelyRemaining = differenceInCalendarDays(eDate, startOfDay(now)) + 1;
-                                    if (totalDaysInRangeForLabel > 0) {
-                                        currentRemainingPercentage = (daysEffectivelyRemaining / totalDaysInRangeForLabel) * 100;
-                                    } else {
-                                        currentRemainingPercentage = 0;
-                                    }
+                                    currentRemainingPercentage = totalDaysInRangeForLabel > 0 ? (daysEffectivelyRemaining / totalDaysInRangeForLabel) * 100 : 0;
                                 }
                             }
-                            currentRemainingPercentage = Math.max(0, Math.min(currentRemainingPercentage, 100));
+                            currentRemainingPercentage = Math.max(0, Math.min(currentRemainingPercentage, 100)); // Ensure percentage is between 0 and 100
+
                             statusIcon = <TaskDurationPie
                                             remainingPercentage={currentRemainingPercentage}
                                             totalDurationDays={totalDaysInRangeForLabel}
@@ -713,26 +746,41 @@ function TasksClientContent() {
                                            ? task.description.substring(0, charLimit) + "..." 
                                            : task.description;
 
+                const isCheckInTask = task.checkinInfo && typeof task.checkinInfo.totalCheckinsRequired === 'number';
+                const canCheckIn = isCheckInTask && task.status !== 'completed' && task.checkinInfo!.currentCheckins < task.checkinInfo!.totalCheckinsRequired;
 
                 return (
                 <TooltipProvider key={task.id}>
                   <li
-                      draggable={!isMobile} 
-                      onDragStart={!isMobile ? (e) => handleDragStart(e, task.id) : undefined}
+                      draggable={!isMobile && !isCheckInTask} // Disable drag for check-in tasks or on mobile
+                      onDragStart={!isMobile && !isCheckInTask ? (e) => handleDragStart(e, task.id) : undefined}
                       className={cn(
                           "group flex items-center justify-between py-2.5 px-1 rounded-md hover:bg-muted",
-                          !isMobile && "cursor-grab", 
+                          !isMobile && !isCheckInTask && "cursor-grab", 
                           selectedTaskId === task.id && "bg-muted shadow-md" 
                       )}
                   >
                     <div className="flex items-center flex-1 min-w-0 mr-2">
-                       <Checkbox
-                          id={`task-${task.id}`}
-                          checked={task.status === 'completed'}
-                          onCheckedChange={() => handleToggleTaskCompletion(task)}
-                          className="mr-2 flex-shrink-0"
-                          aria-label={t('task.item.toggleCompletionAria', {title: task.title})}
-                        />
+                       {isCheckInTask ? (
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="mr-2 h-8 w-8 flex-shrink-0 p-1"
+                            onClick={() => handleCheckIn(task)}
+                            disabled={!canCheckIn || isCheckingIn[task.id]}
+                            title={t('task.item.checkInAria', { title: task.title })}
+                          >
+                            {isCheckingIn[task.id] ? <Loader2 className="h-4 w-4 animate-spin" /> : <CheckSquare className="h-5 w-5 text-primary" />}
+                          </Button>
+                        ) : (
+                          <Checkbox
+                            id={`task-${task.id}`}
+                            checked={task.status === 'completed'}
+                            onCheckedChange={() => handleToggleTaskCompletion(task)}
+                            className="mr-2 flex-shrink-0"
+                            aria-label={t('task.item.toggleCompletionAria', {title: task.title})}
+                          />
+                        )}
                       <div className="flex-1 min-w-0 cursor-pointer overflow-hidden" onClick={() => handleEditTask(task.id)}>
                         <p className={cn(
                             "text-base font-medium", 
@@ -747,6 +795,21 @@ function TasksClientContent() {
                             )} title={task.description ?? undefined}>
                             {displayDescription}
                           </p>
+                        )}
+                        {isCheckInTask && task.checkinInfo && (
+                          <div className="mt-1.5 flex items-center gap-2">
+                            <Progress
+                              value={(task.checkinInfo.currentCheckins / task.checkinInfo.totalCheckinsRequired) * 100}
+                              className="h-1.5 flex-grow" // Made slimmer
+                              aria-label={t('task.item.checkInProgressAria', {
+                                current: task.checkinInfo.currentCheckins,
+                                total: task.checkinInfo.totalCheckinsRequired
+                              })}
+                            />
+                            <span className="text-xs text-muted-foreground">
+                              {task.checkinInfo.currentCheckins}/{task.checkinInfo.totalCheckinsRequired}
+                            </span>
+                          </div>
                         )}
                       </div>
                     </div>
@@ -851,6 +914,7 @@ export default function TasksClient() {
     
 
     
+
 
 
 

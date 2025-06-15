@@ -401,6 +401,11 @@ export default {
   'task.form.checkin.totalRequiredPlaceholder': 'e.g., 5',
   'task.form.checkin.error.totalRequiredMin': 'Must be at least 1 check-in.',
   'task.form.checkin.error.totalRequiredMax': 'Cannot exceed 100 check-ins.',
+  'task.item.checkInAria': 'Check in for task: {title}',
+  'task.item.checkInProgressAria': 'Check-in progress: {current} of {total}',
+  'toast.task.checkedIn': 'Checked in! ({current}/{total})',
+  'toast.task.checkInCompleted': "Task '{title}' completed after final check-in!",
+  'toast.task.error.checkInFailed': 'Failed to record check-in.',
 
   'toast.task.error.flashcardLinkFailed': 'Failed to create or link new flashcard.',
   'toast.task.error.intermediateSaveFailed': 'Failed to update task with new link. Please try saving the entire task.',

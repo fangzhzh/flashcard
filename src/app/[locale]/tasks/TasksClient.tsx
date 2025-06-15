@@ -34,6 +34,16 @@ import {
   SidebarSeparator,
   useSidebar,
 } from '@/components/ui/sidebar';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
 
 type TranslationKeys = keyof typeof import('@/lib/i18n/locales/en').default;
@@ -85,6 +95,10 @@ function TasksClientContent() {
   const [draggedOverType, setDraggedOverType] = useState<TaskType | null>(null);
 
   const [taskCounts, setTaskCounts] = useState({ innie: 0, outie: 0, blackout: 0, all: 0 });
+
+  const [isTaskFormDirty, setIsTaskFormDirty] = useState(false);
+  const [isConfirmDiscardDialogOpen, setIsConfirmDiscardDialogOpen] = useState(false);
+  const [pendingAction, setPendingAction] = useState<{ type: 'filter' | 'newTask' | 'editTask', callback: () => void, descriptionKey: TranslationKeys, confirmButtonKey: TranslationKeys } | null>(null);
 
 
   useEffect(() => {
@@ -285,20 +299,88 @@ function TasksClientContent() {
                            (!authLoading && user && (isLoadingTasks || contextOverallLoading || isSeeding));
 
   const showSignInPrompt = !authLoading && !user;
+  const showEditPanel = selectedTaskId !== null || isCreatingNewTask;
 
-  const handleEditTask = (taskId: string) => {
-    setIsCreatingNewTask(false);
-    setSelectedTaskId(taskId);
+  const proceedWithPendingAction = () => {
+    if (pendingAction) {
+      pendingAction.callback();
+      setSelectedTaskId(null);
+      setIsCreatingNewTask(false);
+      setIsTaskFormDirty(false); // Reset dirty state
+    }
+    setIsConfirmDiscardDialogOpen(false);
+    setPendingAction(null);
   };
 
+  const handleActionWithDirtyCheck = (
+    actionCallback: () => void,
+    descriptionKey: TranslationKeys,
+    confirmButtonKey: TranslationKeys,
+    actionType: 'filter' | 'newTask' | 'editTask'
+  ) => {
+    if (showEditPanel && isTaskFormDirty) {
+      setPendingAction({ type: actionType, callback: actionCallback, descriptionKey, confirmButtonKey });
+      setIsConfirmDiscardDialogOpen(true);
+    } else {
+      actionCallback();
+      setSelectedTaskId(null); // Close panel if it was open but not dirty
+      setIsCreatingNewTask(false);
+      setIsTaskFormDirty(false);
+    }
+  };
+
+  const handleDateFilterChange = (newFilterValue: TaskDateFilter) => {
+    const action = () => setActiveDateFilter(newFilterValue);
+    handleActionWithDirtyCheck(action, 'tasks.unsavedChanges.descriptionFilter', 'tasks.unsavedChanges.button.discardAndFilter', 'filter');
+  };
+
+  const handleTaskTypeFilterChange = (newFilterValue: TaskType | 'all') => {
+    const action = () => {
+      setActiveTaskTypeFilter(newFilterValue);
+      if (isMobile && openMobile) {
+        toggleMobileSidebar();
+      } else if (!isMobile && desktopOpen) {
+        toggleDesktopSidebar();
+      }
+    };
+    handleActionWithDirtyCheck(action, 'tasks.unsavedChanges.descriptionFilter', 'tasks.unsavedChanges.button.discardAndFilter', 'filter');
+  };
+
+  const handleEditTask = (taskId: string) => {
+    if (selectedTaskId === taskId && showEditPanel && !isCreatingNewTask) return; // Already editing this task
+
+    const action = () => {
+      setIsCreatingNewTask(false);
+      setSelectedTaskId(taskId);
+    };
+    handleActionWithDirtyCheck(action, 'tasks.unsavedChanges.descriptionEditTask', 'tasks.unsavedChanges.button.discardAndEdit', 'editTask');
+  };
+  
   const handleCreateNewTask = () => {
-    setSelectedTaskId(null);
-    setIsCreatingNewTask(true);
+    const action = () => {
+      setSelectedTaskId(null);
+      setIsCreatingNewTask(true);
+    };
+    handleActionWithDirtyCheck(action, 'tasks.unsavedChanges.descriptionNewTask', 'tasks.unsavedChanges.button.discardAndCreate', 'newTask');
   };
 
   const handleCancelEdit = () => {
-    setSelectedTaskId(null);
-    setIsCreatingNewTask(false);
+    if (isTaskFormDirty) {
+        setPendingAction({
+            type: 'editTask', // or a more generic 'cancelEdit'
+            callback: () => {
+                setSelectedTaskId(null);
+                setIsCreatingNewTask(false);
+                setIsTaskFormDirty(false);
+            },
+            descriptionKey: 'tasks.unsavedChanges.descriptionCancelEdit',
+            confirmButtonKey: 'tasks.unsavedChanges.button.discard'
+        });
+        setIsConfirmDiscardDialogOpen(true);
+    } else {
+        setSelectedTaskId(null);
+        setIsCreatingNewTask(false);
+    }
   };
 
   const handleToggleTaskCompletion = async (task: Task) => {
@@ -329,12 +411,13 @@ function TasksClientContent() {
       if (isCreatingNewTask) {
         await addTaskInContext(data);
         toast({ title: t('success'), description: t('toast.task.created') });
-        setIsCreatingNewTask(false); 
       } else if (selectedTask) {
         await updateTaskInContext(selectedTask.id, data);
         toast({ title: t('success'), description: t('toast.task.updated') });
-        setSelectedTaskId(null); 
       }
+      setSelectedTaskId(null); 
+      setIsCreatingNewTask(false);
+      setIsTaskFormDirty(false); // Form is no longer dirty after successful save
     } catch (error) {
       toast({ title: t('error'), description: t('toast.task.error.save'), variant: "destructive" });
     } finally {
@@ -346,6 +429,11 @@ function TasksClientContent() {
     if (selectedTask?.id) {
         try {
             await updateTaskInContext(selectedTask.id, updates);
+            // If intermediate save is successful, the form might still be considered "dirty"
+            // relative to its *initial* load, but the latest changes are saved.
+            // We might want to re-fetch or re-initialize the form with this new data,
+            // or simply trust react-hook-form's `reset` if we call it after this.
+            // For now, just return success.
             return true;
         } catch (error) {
             return false;
@@ -361,6 +449,7 @@ function TasksClientContent() {
         toast({ title: t('success'), description: t('toast.task.deleted') });
         setSelectedTaskId(null); 
         setIsCreatingNewTask(false);
+        setIsTaskFormDirty(false);
     } catch (error) {
         toast({ title: t('error'), description: t('toast.task.error.delete'), variant: "destructive" });
     }
@@ -438,8 +527,6 @@ function TasksClientContent() {
     );
   }
 
-  const showEditPanel = selectedTaskId !== null || isCreatingNewTask;
-
 
   return (
     <div className="flex h-full w-full">
@@ -456,14 +543,7 @@ function TasksClientContent() {
                 {taskTypeFilterOptions.map(typeOpt => (
                   <SidebarMenuItem key={typeOpt.value}>
                     <SidebarMenuButton
-                      onClick={() => {
-                        setActiveTaskTypeFilter(typeOpt.value as TaskType | 'all');
-                        if (isMobile && openMobile) {
-                          toggleMobileSidebar();
-                        } else if (!isMobile && desktopOpen) {
-                          toggleDesktopSidebar();
-                        }
-                      }}
+                      onClick={() => handleTaskTypeFilterChange(typeOpt.value)}
                       isActive={activeTaskTypeFilter === typeOpt.value}
                       tooltip={{ children: t(typeOpt.labelKey), side: 'right', align: 'center' }}
                       className={cn(
@@ -505,7 +585,7 @@ function TasksClientContent() {
             
             <Tabs
                 value={activeDateFilter}
-                onValueChange={(value) => setActiveDateFilter(value as TaskDateFilter)}
+                onValueChange={(value) => handleDateFilterChange(value as TaskDateFilter)}
                 className="w-full sm:ml-1 h-auto" 
             >
                 <TabsList className="flex flex-wrap w-full justify-start items-center h-auto rounded-md bg-muted p-1 text-muted-foreground gap-1">
@@ -700,6 +780,7 @@ function TasksClientContent() {
                 onCancel={handleCancelEdit}
                 onIntermediateSave={selectedTask ? handleIntermediateFormSave : undefined} 
                 onDelete={selectedTask ? handleDeleteTask : undefined} 
+                onDirtyChange={setIsTaskFormDirty}
               />
             </div>
           )}
@@ -714,6 +795,22 @@ function TasksClientContent() {
       >
         <ListChecks className="h-7 w-7" /> 
       </Button>
+      <AlertDialog open={isConfirmDiscardDialogOpen} onOpenChange={setIsConfirmDiscardDialogOpen}>
+        <AlertDialogContent>
+            <AlertDialogHeader>
+            <AlertDialogTitle>{t('tasks.unsavedChanges.title')}</AlertDialogTitle>
+            <AlertDialogDescription>
+                {pendingAction ? t(pendingAction.descriptionKey) : ""}
+            </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+            <AlertDialogCancel onClick={() => setPendingAction(null)}>{t('tasks.unsavedChanges.button.stay')}</AlertDialogCancel>
+            <AlertDialogAction onClick={proceedWithPendingAction}>
+                {pendingAction ? t(pendingAction.confirmButtonKey) : ""}
+            </AlertDialogAction>
+            </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
@@ -728,6 +825,7 @@ export default function TasksClient() {
     
 
     
+
 
 
 

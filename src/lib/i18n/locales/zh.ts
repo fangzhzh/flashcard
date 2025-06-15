@@ -462,7 +462,20 @@ export default {
   'notifications.error.title': '通知错误',
   'notifications.error.description': '无法请求通知权限。',
 
+  'tasks.unsavedChanges.title': '未保存的更改',
+  'tasks.unsavedChanges.descriptionFilter': '您有未保存的更改。要放弃更改并应用新的筛选条件吗？',
+  'tasks.unsavedChanges.descriptionNewTask': '您有未保存的更改。要放弃更改并创建新任务吗？',
+  'tasks.unsavedChanges.descriptionEditTask': '您有未保存的更改。要放弃更改并编辑其他任务吗？',
+  'tasks.unsavedChanges.descriptionCancelEdit': '您有未保存的更改。要放弃更改并关闭表单吗？',
+  'tasks.unsavedChanges.button.stay': '留下',
+  'tasks.unsavedChanges.button.discardAndFilter': '放弃并筛选',
+  'tasks.unsavedChanges.button.discardAndCreate': '放弃并创建',
+  'tasks.unsavedChanges.button.discardAndEdit': '放弃并编辑',
+  'tasks.unsavedChanges.button.discard': '放弃',
+
+
   'success': '成功',
   'error': '错误',
 
 } as const;
+

@@ -454,7 +454,6 @@ export default {
   'task.form.dateTimeReminder.summary.noReminder': 'No reminder',
   'task.form.dateTimeReminder.summary.connector': ', ',
 
-
   'notifications.enabled.title': 'Notifications Enabled',
   'notifications.enabled.description': 'You will now receive notifications for Pomodoro sessions.',
   'notifications.denied.title': 'Notifications Denied',
@@ -462,7 +461,20 @@ export default {
   'notifications.error.title': 'Notification Error',
   'notifications.error.description': 'Could not request notification permission.',
 
+  'tasks.unsavedChanges.title': 'Unsaved Changes',
+  'tasks.unsavedChanges.descriptionFilter': 'You have unsaved changes. Discard changes and apply the new filter?',
+  'tasks.unsavedChanges.descriptionNewTask': 'You have unsaved changes. Discard changes and create a new task?',
+  'tasks.unsavedChanges.descriptionEditTask': 'You have unsaved changes. Discard changes and edit a different task?',
+  'tasks.unsavedChanges.descriptionCancelEdit': 'You have unsaved changes. Discard changes and close the form?',
+  'tasks.unsavedChanges.button.stay': 'Stay',
+  'tasks.unsavedChanges.button.discardAndFilter': 'Discard and Filter',
+  'tasks.unsavedChanges.button.discardAndCreate': 'Discard and Create',
+  'tasks.unsavedChanges.button.discardAndEdit': 'Discard and Edit',
+  'tasks.unsavedChanges.button.discard': 'Discard',
+
+
   'success': 'Success',
   'error': 'Error',
 
 } as const;
+

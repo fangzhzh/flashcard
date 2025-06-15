@@ -90,6 +90,7 @@ interface TaskFormProps {
   onCancel?: () => void;
   onIntermediateSave?: (updates: Partial<TaskFormData>) => Promise<boolean>;
   onDelete?: () => Promise<void>;
+  onDirtyChange?: (isDirty: boolean) => void; // New prop
 }
 
 export default function TaskForm({
@@ -99,7 +100,8 @@ export default function TaskForm({
   mode,
   onCancel,
   onIntermediateSave,
-  onDelete
+  onDelete,
+  onDirtyChange
 }: TaskFormProps) {
   const t = useI18n();
   const { toast } = useToast();
@@ -119,6 +121,15 @@ export default function TaskForm({
       reminderInfo: initialData?.reminderInfo || { type: 'none' },
     },
   });
+
+  const { formState: { isDirty: currentFormIsDirty } } = form;
+
+  React.useEffect(() => {
+    if (onDirtyChange) {
+      onDirtyChange(currentFormIsDirty);
+    }
+  }, [currentFormIsDirty, onDirtyChange]);
+
 
   const watchedArtifactLink = useWatch({ control: form.control, name: "artifactLink" });
   const watchedTimeInfo = useWatch({ control: form.control, name: "timeInfo" });
@@ -362,7 +373,7 @@ export default function TaskForm({
   return (
     <>
     <Form {...form}>
-      <form onSubmit={form.handleSubmit(onSubmit)} className="h-full flex flex-col p-4 md:p-6 w-full">
+      <form onSubmit={form.handleSubmit(onSubmit)} className="h-full flex flex-col w-full">
         {onCancel && (
           <div className={cn("md:hidden mb-2", mode === 'create' ? "" : "")}>
             <Button variant="ghost" onClick={onCancel} size="sm">
@@ -809,3 +820,4 @@ function SelectFlashcardDialog({
     </Dialog>
   );
 }
+

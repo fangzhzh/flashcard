@@ -9,7 +9,7 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import type { Task, RepeatFrequency, TimeInfo, ArtifactLink, ReminderInfo, Flashcard as FlashcardType, Deck, TaskType } from '@/types';
-import { Save, CalendarIcon, Link2, RotateCcw, Clock, Bell, Trash2, X, Loader2, FilePlus, ListChecks, Search, Edit3, Repeat, Briefcase, User, Coffee, Eye, FileEdit } from 'lucide-react';
+import { Save, CalendarIcon, Link2, RotateCcw, Clock, Bell, Trash2, X, Loader2, FilePlus, ListChecks, Search, Edit3, Repeat, Briefcase, User, Coffee, Eye, FileEdit, ArrowLeft } from 'lucide-react'; // Added ArrowLeft
 import { useI18n, useCurrentLocale } from '@/lib/i18n/client';
 import { cn } from '@/lib/utils';
 import { format, parseISO, isValid, isToday, isTomorrow } from 'date-fns';
@@ -357,9 +357,17 @@ export default function TaskForm({
 
   return (
     <>
+    {onCancel && (
+      <div className="md:hidden mb-2 px-2 pt-2">
+        <Button variant="ghost" onClick={onCancel} size="sm">
+          <ArrowLeft className="mr-2 h-4 w-4" />
+          {t('flashcard.form.page.button.back')}
+        </Button>
+      </div>
+    )}
     <Form {...form}>
       <form onSubmit={form.handleSubmit(onSubmit)} className="h-full flex flex-col p-2">
-        <div className="flex-0 min-h-0 space-y-4 overflow-y-auto px-2 pt-2 pb-4">
+        <div className="flex-0 min-h-0 space-y-4 overflow-y-auto px-2 pt-0 pb-4"> {/* Changed pt-2 to pt-0 */}
             <FormField
               control={form.control}
               name="title"
@@ -582,7 +590,7 @@ export default function TaskForm({
                     {isLoading ? t('task.form.button.saving') : (mode === 'edit' ? t('task.form.button.update') : t('task.form.button.create'))}
                 </Button>
                 {onCancel && (
-                    <Button type="button" variant="ghost" onClick={onCancel} disabled={isLoading || isSubmittingNewFlashcard || isSubmittingEditedFlashcard || isFetchingFlashcard || isDeleting} size="sm">
+                    <Button type="button" variant="ghost" onClick={onCancel} disabled={isLoading || isSubmittingNewFlashcard || isSubmittingEditedFlashcard || isFetchingFlashcard || isDeleting} size="sm" className="hidden md:inline-flex"> {/* Hide on mobile, show on md+ */}
                        <X className="mr-2 h-4 w-4" /> {t('deck.item.delete.confirm.cancel')}
                     </Button>
                 )}
@@ -749,3 +757,4 @@ function SelectFlashcardDialog({
   );
 }
 
+    

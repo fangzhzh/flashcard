@@ -7,7 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Play, Pause, RotateCcw, Settings2, Eraser, Coffee, SkipForward } from 'lucide-react'; // Removed ClipboardPlus
+import { Play, Pause, RotateCcw, Settings2, Eraser, Coffee, SkipForward, Save } from 'lucide-react'; // Removed ClipboardPlus, Added Save
 import { useI18n, useCurrentLocale } from '@/lib/i18n/client';
 import { usePomodoroLocal } from '@/contexts/PomodoroLocalContext';
 import { cn } from '@/lib/utils';
@@ -163,20 +163,30 @@ export default function PomodoroLocalClient() {
             </CardHeader>
             <CardContent className="space-y-3">
               <Label htmlFor="pomodoroDuration">{t('pomodoro.settings.durationLabel')}</Label>
-              <div className="flex items-center gap-3">
+              <div className="flex items-stretch gap-2"> {/* Changed to items-stretch */}
                 <Input
                   type="number"
                   id="pomodoroDuration"
                   value={durationInput === 0 ? '' : durationInput}
                   onChange={handleDurationInputChange}
-                  onBlur={handleDurationSettingsSave}
                   placeholder={t('pomodoro.settings.durationPlaceholder')}
-                  className="text-base"
+                  className="text-base flex-grow" /* Added flex-grow */
                   min="1"
                   max="120"
                   disabled={timerIsActive || isResting}
                 />
-                <Button onClick={handleResetSettings} variant="outline" size="icon" title={t('pomodoro.button.reset')} disabled={timerIsActive || isResting}>
+                <Button 
+                  onClick={handleDurationSettingsSave} 
+                  variant="outline" 
+                  size="default" /* Changed from icon to allow text */
+                  title={t('pomodoro.settings.button.saveDuration')}
+                  disabled={timerIsActive || isResting || durationInput <= 0 || durationInput > 120 || durationInput === (sessionState?.userPreferredDurationMinutes ?? DEFAULT_POMODORO_MINUTES_DISPLAY)}
+                  className="h-auto" /* Ensure button height matches input */
+                >
+                  <Save className="mr-2 h-4 w-4"/> {/* Icon for save button */}
+                  {t('pomodoro.settings.button.saveDuration')}
+                </Button>
+                <Button onClick={handleResetSettings} variant="outline" size="icon" title={t('pomodoro.button.reset')} disabled={timerIsActive || isResting} className="h-auto"> {/* Ensure button height matches input */}
                   <Eraser className="h-5 w-5"/>
                 </Button>
               </div>

@@ -237,6 +237,7 @@ export default {
   'pomodoro.settings.durationPlaceholder': 'e.g., 25',
   'pomodoro.settings.durationError': 'Duration must be between 1 and 120 minutes.',
   'pomodoro.settings.toggleHint': 'Click timer to toggle settings (when idle)',
+  'pomodoro.settings.button.saveDuration': 'Save',
   'pomodoro.button.start': 'Start',
   'pomodoro.button.pause': 'Pause',
   'pomodoro.button.continue': 'Continue',

@@ -9,7 +9,7 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import type { Task, RepeatFrequency, TimeInfo, ArtifactLink, ReminderInfo, Flashcard as FlashcardType, Deck, TaskType, CheckinInfo } from '@/types';
-import { Save, CalendarIcon, Link2, RotateCcw, Clock, Bell, Trash2, X, Loader2, FilePlus, ListChecks, Search, Edit3, Repeat, Briefcase, User, Coffee, Eye, FileEdit, ArrowLeft, FilePenLine, CheckSquare, Square } from 'lucide-react'; // Added CheckSquare, Square
+import { Save, CalendarIcon, Link2, RotateCcw, Clock, Bell, Trash2, X, Loader2, FilePlus, ListChecks, Search, Edit3, Repeat, Briefcase, User, Coffee, Eye, FileEdit, ArrowLeft, FilePenLine, CheckSquare, Square } from 'lucide-react';
 import { useI18n, useCurrentLocale } from '@/lib/i18n/client';
 import { cn } from '@/lib/utils';
 import { format, parseISO, isValid, isToday, isTomorrow } from 'date-fns';
@@ -36,7 +36,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { Switch } from '@/components/ui/switch';
-import { Label } from '@/components/ui/label'; // Added Label import
+import { Label } from '@/components/ui/label';
 
 const artifactLinkSchema = z.object({
   flashcardId: z.string().nullable().optional(),
@@ -86,7 +86,7 @@ const taskSchema = z.object({
   timeInfo: timeInfoSchema,
   artifactLink: artifactLinkSchema.default({ flashcardId: null }),
   reminderInfo: reminderInfoSchema.default({ type: 'none' }),
-  checkinInfo: checkinInfoSchema, // Added checkinInfo to the main schema
+  checkinInfo: checkinInfoSchema,
 });
 
 export type TaskFormData = z.infer<typeof taskSchema>;
@@ -145,7 +145,7 @@ export default function TaskForm({
   const watchedTimeInfo = useWatch({ control, name: "timeInfo" });
   const watchedRepeat = useWatch({ control, name: "repeat" });
   const watchedReminderInfo = useWatch({ control, name: "reminderInfo" });
-  const watchedCheckinInfo = watch("checkinInfo"); // Watch for changes to show/hide related fields
+  const watchedCheckinInfo = watch("checkinInfo");
   const isCheckinModeEnabled = !!watchedCheckinInfo;
 
 
@@ -404,8 +404,8 @@ export default function TaskForm({
             </Button>
           </div>
         )}
-        <ScrollArea className="min-h-0 pb-4"> {/* Changed from div to ScrollArea for consistent scrollbar, remove flex-1 */}
-          <div className="space-y-4"> {/* Inner div for padding/spacing if ScrollArea needs it */}
+        <ScrollArea className="min-h-0 pb-4">
+          <div className="space-y-4">
             <FormField
               control={control}
               name="title"
@@ -421,7 +421,7 @@ export default function TaskForm({
             />
 
             <FormField
-              control={control}
+              control={form.control}
               name="type"
               render={({ field }) => (
                 <FormItem>
@@ -502,7 +502,6 @@ export default function TaskForm({
                 <FormMessage>{form.formState.errors.timeInfo?.time?.message && t(form.formState.errors.timeInfo.time.message as any)}</FormMessage>
             </FormItem>
 
-            {/* Check-in Mode Section */}
             <FormItem className="space-y-3">
               <div className="flex items-center space-x-2 p-3 border rounded-md">
                 <Switch
@@ -723,7 +722,7 @@ export default function TaskForm({
           </div>
         </ScrollArea>
 
-        <div className="flex-shrink-0 flex justify-between items-center pt-4 border-t mt-auto"> {/* Added mt-auto */}
+        <div className="flex-shrink-0 flex justify-between items-center pt-4 border-t">
             <div className="flex gap-2">
                 <Button type="submit" disabled={isLoading || isFetchingFlashcard || isSubmittingNewFlashcard || isSubmittingEditedFlashcard || isDeleting} className="min-w-[100px]" size="sm">
                     {isLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}

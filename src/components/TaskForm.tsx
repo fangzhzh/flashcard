@@ -362,7 +362,7 @@ export default function TaskForm({
   return (
     <>
     <Form {...form}>
-      <form onSubmit={form.handleSubmit(onSubmit)} className="h-full flex flex-col">
+      <form onSubmit={form.handleSubmit(onSubmit)} className="h-full flex flex-col p-4 md:p-6">
         {onCancel && (
           <div className={cn("md:hidden mb-2 pt-2", mode === 'create' ? "" : "")}>
             <Button variant="ghost" onClick={onCancel} size="sm">
@@ -371,7 +371,7 @@ export default function TaskForm({
             </Button>
           </div>
         )}
-        <div className="flex-0 min-h-0 space-y-4 overflow-y-auto pt-0 pb-4">
+        <div className="flex-1 min-h-0 space-y-4 overflow-y-auto pt-0 pb-4">
             <FormField
               control={form.control}
               name="title"
@@ -379,7 +379,7 @@ export default function TaskForm({
                 <FormItem>
                   <FormLabel className="text-lg sr-only">{t('task.form.label.title')}</FormLabel>
                   <FormControl>
-                    <Input placeholder={t('task.form.placeholder.title')} {...field} className="text-xl font-semibold border-0 shadow-none focus-visible:ring-0 focus-visible:ring-offset-0 px-0 h-auto py-1" />
+                    <Input placeholder={t('task.form.placeholder.title')} {...field} className="text-xl font-semibold border-0 shadow-none focus-visible:ring-0 focus-visible:ring-offset-0 h-auto py-1" />
                   </FormControl>
                   <FormMessage>{form.formState.errors.title && t(form.formState.errors.title.message as any)}</FormMessage>
                 </FormItem>
@@ -808,3 +808,4 @@ function SelectFlashcardDialog({
     </Dialog>
   );
 }
+

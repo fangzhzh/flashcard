@@ -439,7 +439,6 @@ function TasksClientContent() {
   }
 
   const showEditPanel = selectedTaskId !== null || isCreatingNewTask;
-  const isMobileLayout = typeof window !== 'undefined' && window.innerWidth < 768; 
 
 
   return (
@@ -449,7 +448,7 @@ function TasksClientContent() {
         side="left"
         variant="sidebar"
       >
-      {(isMobileLayout && openMobile) || !isMobileLayout ? ( 
+      {(isMobile && openMobile) || !isMobile ? ( 
           <React.Fragment>
             <SidebarHeader className="flex-shrink-0 p-2" />
             <SidebarContent className="pt-1">
@@ -471,10 +470,10 @@ function TasksClientContent() {
                           "justify-start",
                           draggedOverType === typeOpt.value && typeOpt.value !== 'all' && "ring-2 ring-primary ring-offset-1"
                       )}
-                      onDragOver={typeOpt.value !== 'all' && !isMobileLayout ? handleDragOver : undefined}
-                      onDrop={typeOpt.value !== 'all' && !isMobileLayout ? (e) => handleDropOnType(e, typeOpt.value as TaskType) : undefined}
-                      onDragEnter={typeOpt.value !== 'all' && !isMobileLayout ? (e) => handleDragEnterType(e, typeOpt.value as TaskType | 'all') : undefined}
-                      onDragLeave={typeOpt.value !== 'all' && !isMobileLayout ? handleDragLeaveType : undefined}
+                      onDragOver={typeOpt.value !== 'all' && !isMobile ? handleDragOver : undefined}
+                      onDrop={typeOpt.value !== 'all' && !isMobile ? (e) => handleDropOnType(e, typeOpt.value as TaskType) : undefined}
+                      onDragEnter={typeOpt.value !== 'all' && !isMobile ? (e) => handleDragEnterType(e, typeOpt.value as TaskType | 'all') : undefined}
+                      onDragLeave={typeOpt.value !== 'all' && !isMobile ? handleDragLeaveType : undefined}
                     >
                       <typeOpt.icon />
                       <span className="flex-grow">{t(typeOpt.labelKey)}</span>
@@ -600,11 +599,11 @@ function TasksClientContent() {
                 const charLimit = 40;
                 const ellipsisThreshold = charLimit + 3;
 
-                const displayTitle = isMobileLayout && task.title.length > ellipsisThreshold 
+                const displayTitle = isMobile && task.title.length > ellipsisThreshold 
                                      ? task.title.substring(0, charLimit) + "..." 
                                      : task.title;
                 
-                const displayDescription = task.description && isMobileLayout && task.description.length > ellipsisThreshold 
+                const displayDescription = task.description && isMobile && task.description.length > ellipsisThreshold 
                                            ? task.description.substring(0, charLimit) + "..." 
                                            : task.description;
 
@@ -612,11 +611,11 @@ function TasksClientContent() {
                 return (
                 <TooltipProvider key={task.id}>
                   <li
-                      draggable={!isMobileLayout} 
-                      onDragStart={!isMobileLayout ? (e) => handleDragStart(e, task.id) : undefined}
+                      draggable={!isMobile} 
+                      onDragStart={!isMobile ? (e) => handleDragStart(e, task.id) : undefined}
                       className={cn(
                           "group flex items-center justify-between py-2.5 px-1 rounded-md hover:bg-muted",
-                          !isMobileLayout && "cursor-grab", 
+                          !isMobile && "cursor-grab", 
                           selectedTaskId === task.id && "bg-muted shadow-md" 
                       )}
                   >
@@ -693,7 +692,8 @@ function TasksClientContent() {
           {showEditPanel && (
             <div className={cn(
                 "bg-card shadow-md", 
-                "w-full md:w-1/2 md:border-l" 
+                "w-full", 
+                "md:w-1/2 md:border-l" 
             )}>
               <TaskForm
                 key={selectedTaskId || 'new-task'} 
@@ -732,6 +732,7 @@ export default function TasksClient() {
     
 
     
+
 
 
 

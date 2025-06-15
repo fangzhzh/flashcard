@@ -480,13 +480,13 @@ export default function TaskForm({
                                 >
                                     <div>
                                         <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">{t('flashcard.form.label.front')}</p>
-                                        <div className="markdown-content whitespace-pre-wrap p-2 bg-background rounded-sm border mt-1 text-sm">
+                                        <div className="markdown-content whitespace-pre-wrap p-2 bg-background rounded-sm border mt-1 text-sm overflow-x-auto">
                                             <ReactMarkdown remarkPlugins={[remarkGfm]}>{linkedFlashcard.front}</ReactMarkdown>
                                         </div>
                                     </div>
                                     <div>
                                         <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">{t('flashcard.form.label.back')}</p>
-                                        <div className="markdown-content whitespace-pre-wrap p-2 bg-background rounded-sm border mt-1 text-sm">
+                                        <div className="markdown-content whitespace-pre-wrap p-2 bg-background rounded-sm border mt-1 text-sm overflow-x-auto">
                                             <ReactMarkdown remarkPlugins={[remarkGfm]}>{linkedFlashcard.back}</ReactMarkdown>
                                         </div>
                                     </div>
@@ -569,6 +569,7 @@ export default function TaskForm({
                                         isLoading={isSubmittingNewFlashcard}
                                         isLoadingDecks={isLoadingDecks}
                                         submitButtonTextKey="flashcard.form.button.create"
+                                        onCancel={() => setIsNewFlashcardDialogOpen(false)}
                                     />
                                 </DialogContent>
                             </Dialog>
@@ -701,6 +702,8 @@ export default function TaskForm({
               isLoading={isSubmittingEditedFlashcard}
               isLoadingDecks={isLoadingDecks}
               submitButtonTextKey="flashcard.form.button.update"
+              onCancel={() => { setIsEditFlashcardDialogOpen(false); setEditingFlashcardData(null); }}
+              cancelButtonTextKey="deck.item.delete.confirm.cancel"
             />
           </DialogContent>
         </Dialog>

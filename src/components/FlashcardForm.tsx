@@ -9,10 +9,11 @@ import { Textarea } from '@/components/ui/textarea';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage, FormDescription } from '@/components/ui/form';
 import type { Flashcard, Deck } from '@/types';
 import { Card, CardContent, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
-import { Save, Library } from 'lucide-react';
+import { Save, Library, X } from 'lucide-react'; // Added X for cancel
 import { useI18n } from '@/lib/i18n/client';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import Link from 'next/link';
+import { cn } from '@/lib/utils';
 
 const flashcardSchema = z.object({
   front: z.string().min(1, 'Front content is required').max(100000, { message: 'Front content is too long' }),
@@ -29,6 +30,8 @@ interface FlashcardFormProps {
   isLoading?: boolean;
   isLoadingDecks?: boolean;
   submitButtonTextKey?: keyof typeof import('@/lib/i18n/locales/en').default;
+  onCancel?: () => void; // New prop
+  cancelButtonTextKey?: keyof typeof import('@/lib/i18n/locales/en').default; // New prop
 }
 
 export default function FlashcardForm({
@@ -37,7 +40,9 @@ export default function FlashcardForm({
   decks,
   isLoading = false,
   isLoadingDecks = false,
-  submitButtonTextKey = 'flashcard.form.button.create'
+  submitButtonTextKey = 'flashcard.form.button.create',
+  onCancel,
+  cancelButtonTextKey = 'deck.item.delete.confirm.cancel' // Default to generic "Cancel"
 }: FlashcardFormProps) {
   const t = useI18n();
   const form = useForm<FlashcardFormData>({
@@ -135,8 +140,14 @@ export default function FlashcardForm({
               )}
             />
           </CardContent>
-          <CardFooter>
-            <Button type="submit" disabled={isLoading || isLoadingDecks} className="w-full text-lg py-3">
+          <CardFooter className={cn("flex", onCancel ? "justify-between" : "justify-end")}>
+            {onCancel && (
+              <Button type="button" variant="outline" onClick={onCancel} disabled={isLoading || isLoadingDecks}>
+                <X className="mr-2 h-4 w-4" />
+                {t(cancelButtonTextKey)}
+              </Button>
+            )}
+            <Button type="submit" disabled={isLoading || isLoadingDecks} className={cn(onCancel ? "" : "w-full", "text-lg py-3")}>
               <Save className="mr-2 h-5 w-5" />
               {isLoading ? t('flashcard.form.button.saving') : t(submitButtonTextKey)}
             </Button>

@@ -26,8 +26,8 @@ export default function FlashcardsHubPage() {
   }
 
   return (
-    <PageContainer> {/* Removed disableScroll={true} */}
-      <div className="space-y-8">
+    <PageContainer>
+      <div className="flex-1 space-y-8 overflow-y-auto pb-8 pt-6"> {/* Added pt-6 for top spacing */}
         <h1 className="text-3xl font-bold tracking-tight">{t('flashcards.dashboard.welcome')}</h1>
         
         {!user ? (

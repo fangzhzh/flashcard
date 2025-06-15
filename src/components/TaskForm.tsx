@@ -90,7 +90,7 @@ interface TaskFormProps {
   onCancel?: () => void;
   onIntermediateSave?: (updates: Partial<TaskFormData>) => Promise<boolean>;
   onDelete?: () => Promise<void>;
-  onDirtyChange?: (isDirty: boolean) => void; // New prop
+  onDirtyChange?: (isDirty: boolean) => void;
 }
 
 export default function TaskForm({
@@ -373,7 +373,7 @@ export default function TaskForm({
   return (
     <>
     <Form {...form}>
-      <form onSubmit={form.handleSubmit(onSubmit)} className="h-full flex flex-col w-full">
+      <form onSubmit={form.handleSubmit(onSubmit)} className="h-full flex flex-col w-full p-4 md:p-6">
         {onCancel && (
           <div className={cn("md:hidden mb-2", mode === 'create' ? "" : "")}>
             <Button variant="ghost" onClick={onCancel} size="sm">
@@ -382,7 +382,7 @@ export default function TaskForm({
             </Button>
           </div>
         )}
-        <div className="flex-1 min-h-0 space-y-4 overflow-y-auto pt-0 pb-4">
+        <div className="min-h-0 space-y-4 overflow-y-auto pt-0 pb-4">
             <FormField
               control={form.control}
               name="title"

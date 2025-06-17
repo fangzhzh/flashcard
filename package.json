@@ -53,7 +53,8 @@
     "zod": "^3.24.2",
     "@ducanh2912/next-pwa": "^10.2.7",
     "markmap-view": "0.15.4",
-    "markmap-lib": "0.15.4"
+    "markmap-lib": "0.15.4",
+    "markmap-common": "0.15.3"
   },
   "devDependencies": {
     "@types/node": "^20",

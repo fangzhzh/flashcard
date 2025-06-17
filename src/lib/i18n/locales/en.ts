@@ -403,6 +403,7 @@ export default {
   'task.form.checkin.error.totalRequiredMin': 'Must be at least 1 check-in.',
   'task.form.checkin.error.totalRequiredMax': 'Cannot exceed 100 check-ins.',
   'task.item.checkInAria': 'Check in for task: {title}',
+  'task.item.checkInStampTitle': 'Stamp check-in for: {title}',
   'task.item.checkInProgressAria': 'Check-in progress: {current} of {total}',
   'toast.task.checkedIn': 'Checked in! ({current}/{total})',
   'toast.task.checkInCompleted': "Task '{title}' completed after final check-in!",
@@ -494,4 +495,5 @@ export default {
   'error': 'Error',
 
 } as const;
+
 

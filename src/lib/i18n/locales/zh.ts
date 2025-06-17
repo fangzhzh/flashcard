@@ -403,6 +403,7 @@ export default {
   'task.form.checkin.error.totalRequiredMin': '至少需要 1 次打卡。',
   'task.form.checkin.error.totalRequiredMax': '打卡次数不能超过 100 次。',
   'task.item.checkInAria': '为任务打卡: {title}',
+  'task.item.checkInStampTitle': '为任务盖章打卡: {title}',
   'task.item.checkInProgressAria': '打卡进度: {current} / {total}',
   'toast.task.checkedIn': '已打卡! ({current}/{total})',
   'toast.task.checkInCompleted': "任务 '{title}' 在最后一次打卡后完成!",
@@ -494,4 +495,5 @@ export default {
   'error': '错误',
 
 } as const;
+
 

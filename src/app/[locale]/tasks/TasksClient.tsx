@@ -6,10 +6,10 @@ import { useFlashcards } from '@/contexts/FlashcardsContext';
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
-import { Loader2, Info, ShieldAlert, PlayCircle, Zap, AlertTriangle, CalendarIcon, Hourglass, ListChecks, Briefcase, User, Coffee, LayoutGrid, X, Save, Link2, RotateCcw, Clock, Bell, Trash2, FilePlus, Search, Edit3, Repeat, ArrowLeft, CheckSquare } from 'lucide-react'; // Added CheckSquare
+import { Loader2, Info, ShieldAlert, PlayCircle, Zap, AlertTriangle, CalendarIcon, Hourglass, ListChecks, Briefcase, User, Coffee, LayoutGrid, X, Save, Link2, RotateCcw, Clock, Bell, Trash2, FilePlus, Search, Edit3, Repeat, ArrowLeft, Stamp } from 'lucide-react'; // Changed CheckSquare to Stamp
 import { useToast } from '@/hooks/use-toast';
 import { useI18n, useCurrentLocale } from '@/lib/i18n/client';
-import type { Task, TimeInfo, TaskStatus, RepeatFrequency, ReminderType, TaskType, ArtifactLink, Flashcard as FlashcardType, CheckinInfo } from '@/types'; // Added CheckinInfo
+import type { Task, TimeInfo, TaskStatus, RepeatFrequency, ReminderType, TaskType, ArtifactLink, Flashcard as FlashcardType, CheckinInfo } from '@/types';
 import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
 import TaskForm, { type TaskFormData } from '@/components/TaskForm';
 import { usePomodoro } from '@/contexts/PomodoroContext';
@@ -44,7 +44,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { Progress } from '@/components/ui/progress'; // Added Progress
+import { Progress } from '@/components/ui/progress';
 
 type TranslationKeys = keyof typeof import('@/lib/i18n/locales/en').default;
 
@@ -473,7 +473,7 @@ function TasksClientContent() {
     { value: 'innie', labelKey: 'task.type.innie', icon: Briefcase, count: taskCounts.innie },
     { value: 'outie', labelKey: 'task.type.outie', icon: User, count: taskCounts.outie },
     { value: 'blackout', labelKey: 'task.type.blackout', icon: Coffee, count: taskCounts.blackout },
-  ], [t, taskCounts]);
+  ], [taskCounts]); // Removed t from dependencies
 
   const handleDragStart = (event: React.DragEvent<HTMLLIElement>, taskId: string) => {
     event.dataTransfer.setData("application/task-id", taskId);
@@ -778,9 +778,9 @@ function TasksClientContent() {
                             className="mr-2 h-8 w-8 flex-shrink-0 p-1"
                             onClick={() => handleCheckIn(task)}
                             disabled={!canCheckIn || isCheckingIn[task.id]}
-                            title={t('task.item.checkInAria', { title: task.title })}
+                            title={t('task.item.checkInStampTitle', { title: task.title })}
                           >
-                            {isCheckingIn[task.id] ? <Loader2 className="h-4 w-4 animate-spin" /> : <CheckSquare className="h-5 w-5 text-primary" />}
+                            {isCheckingIn[task.id] ? <Loader2 className="h-4 w-4 animate-spin" /> : <Stamp className="h-5 w-5 text-primary" />}
                           </Button>
                         ) : (
                           <Checkbox
@@ -929,6 +929,7 @@ export default function TasksClient() {
     
 
     
+
 
 
 

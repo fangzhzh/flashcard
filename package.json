@@ -52,8 +52,8 @@
     "uuid": "^10.0.0",
     "zod": "^3.24.2",
     "@ducanh2912/next-pwa": "^10.2.7",
-    "markmap-view": "^0.17.0",
-    "markmap-lib": "^0.17.0"
+    "markmap-view": "0.15.4",
+    "markmap-lib": "0.15.4"
   },
   "devDependencies": {
     "@types/node": "^20",
@@ -65,4 +65,3 @@
     "typescript": "^5"
   }
 }
-

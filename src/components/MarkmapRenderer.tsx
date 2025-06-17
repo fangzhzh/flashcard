@@ -50,7 +50,8 @@ const MarkmapRenderer: React.FC<MarkmapRendererProps> = ({ markdownContent }) =>
     // The SVG element itself will be cleaned up by React when the component unmounts.
   }, [markdownContent, transformer]); // transformer is stable, so this primarily re-runs on markdownContent change
 
-  return <svg ref={svgRef} className="w-full h-auto min-h-[300px] bg-background rounded-md border" />;
+  return <svg ref={svgRef} className="w-full h-full min-h-[300px] bg-background rounded-md border" />;
 };
 
 export default memo(MarkmapRenderer);
+

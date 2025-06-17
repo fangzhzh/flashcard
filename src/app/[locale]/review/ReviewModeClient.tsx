@@ -496,7 +496,7 @@ export default function ReviewModeClient() {
             </Button>
           </div>
         </CardHeader>
-        <CardContent className="p-4 sm:p-6 border-t">
+        <CardContent className="p-4 sm:p-6 border-t flex-grow"> {/* Added flex-grow */}
           <Button onClick={handleFlip} variant="outline" className="w-full text-lg py-6 mb-6" disabled={isSubmittingProgress}>
             <RefreshCw className={`mr-2 h-5 w-5 ${isFlipped ? 'animate-pulse' : ''}`} />
             {isFlipped ? t('review.button.flip.showQuestion') : t('review.button.flip.showAnswer')}
@@ -516,9 +516,16 @@ export default function ReviewModeClient() {
             </div>
           )}
            {isFlipped && backContentViewMode === 'mindmap' && (
-            <div className="mt-4 p-2 border rounded-md bg-muted/20 min-h-[200px]">
+            <div className="mt-4 p-2 border rounded-md bg-muted/20 min-h-[60vh] max-h-[75vh] overflow-y-auto">
                  <MarkmapRenderer markdownContent={currentCard.back} />
             </div>
+           )}
+           {isFlipped && backContentViewMode === 'markdown' && (
+             <div className="mt-4 markdown-content whitespace-pre-wrap">
+                <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                    {currentCard.back}
+                </ReactMarkdown>
+             </div>
            )}
         </CardContent>
         {isFlipped && (

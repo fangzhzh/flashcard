@@ -229,8 +229,7 @@ export default {
   'review.processing': 'Processing...',
   'review.speakContent': 'Speak content',
   'toast.progress.error': 'Could not save progress: {errorMessage}. Please try again.',
-  'review.button.viewAsMindmap': 'View as Mindmap',
-  'review.button.viewAsMarkdown': 'View as Markdown',
+  'review.button.openMindmap': 'View Mindmap',
 
 
   // Pomodoro Page & Context

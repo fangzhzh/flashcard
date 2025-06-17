@@ -229,8 +229,8 @@ export default {
   'review.processing': '处理中...',
   'review.speakContent': '朗读内容',
   'toast.progress.error': '无法保存进度：{errorMessage}。请稍后再试。',
-  'review.button.viewAsMindmap': '思维导图模式',
-  'review.button.viewAsMarkdown': 'Markdown模式',
+  'review.button.openMindmap': '查看思维导图',
+
 
   // Pomodoro Page & Context
   'pomodoro.title': '番茄钟计时器',

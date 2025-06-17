@@ -7,7 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import type { Flashcard, PerformanceRating, Deck } from '@/types';
 import { useToast } from '@/hooks/use-toast';
-import { RefreshCw, CheckCircle2, SkipForward, RotateCcw, PlayCircle, ThumbsUp, PlusCircle, Layers, LayoutDashboard, Loader2, ShieldAlert, Volume2, Library, ListChecks, Brain, FileText } from 'lucide-react';
+import { RefreshCw, CheckCircle2, SkipForward, RotateCcw, PlayCircle, ThumbsUp, PlusCircle, Layers, LayoutDashboard, Loader2, ShieldAlert, Volume2, Library, ListChecks, Brain, FileText, ArrowLeft } from 'lucide-react';
 import { formatISO, addDays } from 'date-fns';
 import Link from 'next/link';
 import ReactMarkdown from 'react-markdown';
@@ -43,7 +43,9 @@ export default function ReviewModeClient() {
   const [isSubmittingProgress, setIsSubmittingProgress] = useState(false);
   const [isSessionStarted, setIsSessionStarted] = useState(false);
   const [currentSessionType, setCurrentSessionType] = useState<'spaced' | 'all' | null>(null);
-  const [backContentViewMode, setBackContentViewMode] = useState<'markdown' | 'mindmap'>('markdown');
+  
+  const [isMindmapFullscreen, setIsMindmapFullscreen] = useState(false);
+  const [mindmapDataForFullscreen, setMindmapDataForFullscreen] = useState<string | null>(null);
   
   const { toast } = useToast();
   const t = useI18n();
@@ -113,7 +115,6 @@ export default function ReviewModeClient() {
         }
     }
     setCurrentCardIndex(initialCardIndex);
-    setBackContentViewMode('markdown'); 
 
     const initialIsFlipped = options?.restoredIsFlipped !== undefined ? options.restoredIsFlipped : false;
     setIsFlipped(initialIsFlipped);
@@ -182,9 +183,6 @@ export default function ReviewModeClient() {
 
   const handleFlip = () => {
     setIsFlipped(!isFlipped);
-    if (isFlipped) { 
-      setBackContentViewMode('markdown');
-    }
   };
 
   const handleSpeak = (text: string, lang?: string) => {
@@ -211,7 +209,7 @@ export default function ReviewModeClient() {
     return 'en-US';
   };
 
-  const handleProgress = async (performance: PerformanceRating) => {
+  const handleProgress = (performance: PerformanceRating) => {
     if (!currentCard || !user) return;
 
     setIsSubmittingProgress(true); 
@@ -220,7 +218,6 @@ export default function ReviewModeClient() {
     if (currentCardIndex < reviewQueue.length - 1) {
       setCurrentCardIndex(currentCardIndex + 1);
       setIsFlipped(false);
-      setBackContentViewMode('markdown');
     } else {
       setReviewQueue([]);
       setIsSessionStarted(false);
@@ -295,6 +292,22 @@ export default function ReviewModeClient() {
       </div>
     );
   }
+
+  if (isMindmapFullscreen && mindmapDataForFullscreen) {
+    return (
+      <div className="fixed inset-0 z-[60] flex flex-col bg-background p-4 sm:p-6">
+        <div className="mb-4 flex items-center">
+          <Button variant="outline" onClick={() => setIsMindmapFullscreen(false)}>
+            <ArrowLeft className="mr-2 h-4 w-4" /> {t('flashcard.form.page.button.back')}
+          </Button>
+        </div>
+        <div className="flex-grow overflow-auto rounded-md border bg-card">
+          <MarkmapRenderer markdownContent={mindmapDataForFullscreen} />
+        </div>
+      </div>
+    );
+  }
+
 
   if (!isSessionStarted) {
     if (allCardsForCurrentScope.length === 0) {
@@ -505,13 +518,16 @@ export default function ReviewModeClient() {
                 <Button
                     variant="ghost"
                     size="sm"
-                    onClick={() => setBackContentViewMode(prev => prev === 'markdown' ? 'mindmap' : 'markdown')}
-                    title={t(backContentViewMode === 'markdown' ? 'review.button.viewAsMindmap' : 'review.button.viewAsMarkdown')}
+                    onClick={() => {
+                        setMindmapDataForFullscreen(currentCard.back);
+                        setIsMindmapFullscreen(true);
+                    }}
+                    title={t('review.button.openMindmap')}
                     disabled={isSubmittingProgress}
                     className="text-sm"
                 >
-                    {backContentViewMode === 'markdown' ? <Brain className="mr-2 h-4 w-4" /> : <FileText className="mr-2 h-4 w-4" />}
-                    {backContentViewMode === 'markdown' ? t('review.button.viewAsMindmap') : t('review.button.viewAsMarkdown')}
+                    <Brain className="mr-2 h-4 w-4" />
+                    {t('review.button.openMindmap')}
                 </Button>
                 <Button
                   variant="ghost"
@@ -527,20 +543,11 @@ export default function ReviewModeClient() {
                 </Button>
               </div>
 
-              {backContentViewMode === 'mindmap' ? (
-                <div
-                  key={`${currentCard.id}-${backContentViewMode}`}
-                  className="mt-4 p-2 border rounded-md bg-muted/20 min-h-[60vh] max-h-[75vh] overflow-y-auto"
-                >
-                     <MarkmapRenderer markdownContent={currentCard.back} />
-                </div>
-               ) : (
-                 <div className="mt-4 markdown-content whitespace-pre-wrap">
-                    <ReactMarkdown remarkPlugins={[remarkGfm]}>
-                        {currentCard.back}
-                    </ReactMarkdown>
-                 </div>
-               )}
+              <div className="mt-4 markdown-content whitespace-pre-wrap">
+                  <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                      {currentCard.back}
+                  </ReactMarkdown>
+              </div>
             </>
            )}
         </CardContent>
@@ -575,5 +582,4 @@ export default function ReviewModeClient() {
     </div>
   );
 }
-
     

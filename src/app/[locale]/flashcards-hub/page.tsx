@@ -13,7 +13,7 @@ import { Loader2 } from 'lucide-react';
 
 export default function FlashcardsHubPage() {
   const t = useI18n();
-  const currentLocale = useCurrentLocale(); // Added
+  const currentLocale = useCurrentLocale();
   const { user, loading: authLoading } = useAuth();
 
   if (authLoading) {
@@ -78,7 +78,7 @@ export default function FlashcardsHubPage() {
 
       </div>
       {user && (
-        <Link href={`/${currentLocale}/tasks/new`} passHref>
+        <Link href={`/${currentLocale}/tasks/new?returnTo=/flashcards-hub`} passHref>
             <Button
                 variant="default"
                 className="fixed bottom-6 right-6 z-40 rounded-full h-14 w-14 p-0 shadow-lg"

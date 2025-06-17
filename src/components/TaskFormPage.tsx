@@ -21,6 +21,7 @@ interface TaskFormPageProps {
 export default function TaskFormPage({ mode }: TaskFormPageProps) {
   const router = useRouter();
   const params = useParams();
+  const searchParamsHook = useSearchParams(); // Renamed to avoid conflict with searchParams in useEffect
   const { user, loading: authLoading } = useAuth();
   const { 
     addTask, 
@@ -38,6 +39,9 @@ export default function TaskFormPage({ mode }: TaskFormPageProps) {
   const taskId = mode === 'edit' ? (params.id as string) : undefined;
 
   useEffect(() => {
+    // Use searchParamsHook here for reading initial deckId or other params for creation
+    const deckIdFromQuery = searchParamsHook.get('deckId'); // Example, if needed
+
     if (mode === 'edit' && taskId && !isLoadingTasks && user) {
       const task = getTaskById(taskId);
       if (task) {
@@ -55,10 +59,11 @@ export default function TaskFormPage({ mode }: TaskFormPageProps) {
         timeInfo: { type: 'no_time' },
         artifactLink: { flashcardId: null },
         reminderInfo: { type: 'none' },
+        // If deckIdFromQuery is relevant for new tasks, incorporate it here
       });
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [mode, taskId, getTaskById, router, toast, isLoadingTasks, user, params.locale]);
+  }, [mode, taskId, getTaskById, router, toast, isLoadingTasks, user, params.locale, searchParamsHook]);
 
   const handleSubmit = async (data: TaskFormData) => { 
     if (!user) {
@@ -74,7 +79,14 @@ export default function TaskFormPage({ mode }: TaskFormPageProps) {
         await updateTask(taskId, data); 
         toast({ title: t('success'), description: t('toast.task.updated') });
       }
-      router.push(`/${params.locale}/tasks`);
+
+      const returnToPath = searchParamsHook.get('returnTo');
+      if (returnToPath) {
+        router.push(`/${params.locale}${returnToPath}`);
+      } else {
+        router.push(`/${params.locale}/tasks`); // Default fallback
+      }
+
     } catch (error) {
       toast({ title: t('error'), description: t('toast.task.error.save'), variant: "destructive" });
       console.error("Failed to save task:", error);
@@ -142,4 +154,3 @@ export default function TaskFormPage({ mode }: TaskFormPageProps) {
     </PageContainer>
   );
 }
-

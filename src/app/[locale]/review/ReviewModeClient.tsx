@@ -140,18 +140,6 @@ export default function ReviewModeClient() {
         status: newStatus,
       });
 
-      // const performanceTranslationMap = {
-      //   'Mastered': t('review.button.progress.mastered'),
-      //   'Later': t('review.button.progress.later'),
-      //   'Try Again': t('review.button.progress.tryAgain'),
-      // };
-      // const translatedPerformance = performanceTranslationMap[performance] || performance;
-
-      // toast({
-      //   title: t('toast.progress.saved'),
-      //   description: t('toast.progress.saved.description', { performance: translatedPerformance, nextReviewDate: new Date(nextReviewDateString + 'T00:00:00').toLocaleDateString() }),
-      // });
-
       if (currentCardIndex < reviewQueue.length - 1) {
         setCurrentCardIndex(currentCardIndex + 1);
         setIsFlipped(false);
@@ -221,7 +209,7 @@ export default function ReviewModeClient() {
             </Link>
            )}
            {user && (
-            <Link href={`/${currentLocale}/tasks/new`} passHref>
+            <Link href={`/${currentLocale}/tasks/new?returnTo=/review`} passHref>
                 <Button
                     variant="default"
                     className="fixed bottom-6 right-6 z-40 rounded-full h-14 w-14 p-0 shadow-lg"
@@ -289,7 +277,7 @@ export default function ReviewModeClient() {
             </p>
         )}
         {user && (
-          <Link href={`/${currentLocale}/tasks/new`} passHref>
+          <Link href={`/${currentLocale}/tasks/new?returnTo=/review`} passHref>
               <Button
                   variant="default"
                   className="fixed bottom-6 right-6 z-40 rounded-full h-14 w-14 p-0 shadow-lg"
@@ -350,7 +338,7 @@ export default function ReviewModeClient() {
           </Link>
         </div>
         {user && (
-          <Link href={`/${currentLocale}/tasks/new`} passHref>
+          <Link href={`/${currentLocale}/tasks/new?returnTo=/review`} passHref>
               <Button
                   variant="default"
                   className="fixed bottom-6 right-6 z-40 rounded-full h-14 w-14 p-0 shadow-lg"
@@ -439,7 +427,7 @@ export default function ReviewModeClient() {
       </Card>
       {isSubmittingProgress && <p className="mt-4 text-primary animate-pulse">{t('review.processing')}</p>}
       {user && (
-        <Link href={`/${currentLocale}/tasks/new`} passHref>
+        <Link href={`/${currentLocale}/tasks/new?returnTo=/review`} passHref>
             <Button
                 variant="default"
                 className="fixed bottom-6 right-6 z-40 rounded-full h-14 w-14 p-0 shadow-lg"

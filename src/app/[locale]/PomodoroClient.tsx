@@ -29,7 +29,6 @@ export default function PomodoroClient() {
     continuePomodoro,
     giveUpPomodoro,
     updateUserPreferredDuration,
-    // updateNotes, // Removed as notes feature is being replaced
     isResting,
     restTimeLeftSeconds,
     skipRest,
@@ -71,15 +70,24 @@ export default function PomodoroClient() {
     if (!isNaN(newDuration) && newDuration > 0 && newDuration <= 120) {
       setDurationInput(newDuration);
     } else if (e.target.value === '') {
-      setDurationInput(0);
+      setDurationInput(0); // Allow temporarily empty input
     }
   };
 
   const handleDurationSettingsSave = () => {
      if (durationInput > 0 && durationInput <= 120) {
         updateUserPreferredDuration(durationInput);
+     } else if (durationInput === 0 && (sessionState?.userPreferredDurationMinutes ?? 0) !== 0) {
+        // If input is cleared to 0 but a valid duration was previously set,
+        // revert to that previous valid duration or default.
+        const previousValidDuration = sessionState?.userPreferredDurationMinutes && sessionState.userPreferredDurationMinutes > 0
+                                      ? sessionState.userPreferredDurationMinutes
+                                      : DEFAULT_POMODORO_MINUTES_DISPLAY;
+        setDurationInput(previousValidDuration);
+        updateUserPreferredDuration(previousValidDuration);
      }
   };
+
 
   const handleResetSettings = () => {
     const defaultDuration = DEFAULT_POMODORO_MINUTES_DISPLAY;
@@ -107,7 +115,7 @@ export default function PomodoroClient() {
        <Alert variant="destructive" className="mt-8 max-w-md mx-auto">
           <ShieldAlert className="h-5 w-5" />
           <AlertTitle>{t('error')}</AlertTitle>
-          <AlertDescription>{t('pomodoro.auth.required')}</AlertDescription>
+          <AlertDescription>{t('auth.pleaseSignIn')}</AlertDescription>
         </Alert>
     );
   }
@@ -209,7 +217,7 @@ export default function PomodoroClient() {
         </Card>
       )}
 
-      <Link href={`/${currentLocale}/tasks/new`} passHref>
+      <Link href={`/${currentLocale}/tasks/new?returnTo=/timer`} passHref>
         <Button
             variant="default"
             className="fixed bottom-6 right-6 z-40 rounded-full h-14 w-14 p-0 shadow-lg"

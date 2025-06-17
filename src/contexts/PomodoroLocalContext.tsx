@@ -8,6 +8,9 @@ import { useI18n } from '@/lib/i18n/client';
 const DEFAULT_POMODORO_MINUTES = 25;
 const DEFAULT_REST_MINUTES = 5;
 
+const POMODORO_COMPLETE_SOUND = '/sounds/pomodoro_complete.mp3';
+const BREAK_COMPLETE_SOUND = '/sounds/break_complete.mp3';
+
 interface LocalPomodoroSessionState extends Omit<PomodoroStateStructure, 'userId' | 'updatedAt'> {
   updatedAt: number;
   currentTaskTitle?: string | null;
@@ -31,6 +34,17 @@ interface PomodoroLocalContextType {
 }
 
 const PomodoroLocalContext = createContext<PomodoroLocalContextType | undefined>(undefined);
+
+const playSound = (soundUrl: string) => {
+  if (typeof window !== 'undefined') {
+    try {
+      const audio = new Audio(soundUrl);
+      audio.play().catch(error => console.warn(`Error playing sound ${soundUrl}:`, error));
+    } catch (error) {
+      console.warn(`Could not create audio element for ${soundUrl}:`, error);
+    }
+  }
+};
 
 export const PomodoroLocalProvider = ({ children }: { children: ReactNode }) => {
   const { toast } = useToast();
@@ -132,6 +146,8 @@ export const PomodoroLocalProvider = ({ children }: { children: ReactNode }) => 
       clearInterval(pomodoroIntervalRef.current);
       pomodoroIntervalRef.current = null;
     }
+    
+    playSound(POMODORO_COMPLETE_SOUND); // Play sound on Pomodoro completion
 
     const currentPreferredDuration = sessionState.userPreferredDurationMinutes || DEFAULT_POMODORO_MINUTES;
     const notesToPreserve = sessionState.notes || '';
@@ -240,6 +256,7 @@ export const PomodoroLocalProvider = ({ children }: { children: ReactNode }) => 
         if (prevSeconds <= 1) {
           clearInterval(intervalId);
           setIsResting(false);
+          playSound(BREAK_COMPLETE_SOUND); // Play sound on break completion
           if (typeof window !== 'undefined' && Notification.permission === "granted") {
             new Notification(t('pomodoro.rest.notification.title'), {
               body: t('pomodoro.rest.notification.body'),
@@ -281,7 +298,7 @@ export const PomodoroLocalProvider = ({ children }: { children: ReactNode }) => 
       currentSessionInitialDurationMinutes: durationMinutes,
       userPreferredDurationMinutes: prev.userPreferredDurationMinutes || durationMinutes,
       pausedTimeLeftSeconds: null,
-      currentTaskTitle: taskTitle || null, // Set task title
+      currentTaskTitle: taskTitle || null,
       updatedAt: Date.now(),
     }));
   };
@@ -325,7 +342,7 @@ export const PomodoroLocalProvider = ({ children }: { children: ReactNode }) => 
       status: 'idle',
       targetEndTime: null,
       pausedTimeLeftSeconds: null,
-      currentTaskTitle: null, // Clear task title
+      currentTaskTitle: null,
       updatedAt: Date.now(),
     }));
   };
@@ -394,5 +411,3 @@ export const usePomodoroLocal = () => {
   }
   return context;
 };
-
-    

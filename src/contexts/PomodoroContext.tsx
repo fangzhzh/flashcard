@@ -12,11 +12,14 @@ import BreakOptionsDialog from '@/components/BreakOptionsDialog';
 const DEFAULT_POMODORO_MINUTES = 25;
 const DEFAULT_REST_MINUTES = 5;
 
+const POMODORO_COMPLETE_SOUND = '/sounds/pomodoro_complete.mp3';
+const BREAK_COMPLETE_SOUND = '/sounds/break_complete.mp3';
+
 interface PomodoroContextType {
   sessionState: PomodoroSessionState | null;
   timeLeftSeconds: number;
   isLoading: boolean;
-  startPomodoro: (durationMinutes: number, taskTitle?: string) => Promise<void>; // Added taskTitle
+  startPomodoro: (durationMinutes: number, taskTitle?: string) => Promise<void>;
   pausePomodoro: () => Promise<void>;
   continuePomodoro: () => Promise<void>;
   giveUpPomodoro: () => Promise<void>;
@@ -31,6 +34,17 @@ interface PomodoroContextType {
 }
 
 const PomodoroContext = createContext<PomodoroContextType | undefined>(undefined);
+
+const playSound = (soundUrl: string) => {
+  if (typeof window !== 'undefined') {
+    try {
+      const audio = new Audio(soundUrl);
+      audio.play().catch(error => console.warn(`Error playing sound ${soundUrl}:`, error));
+    } catch (error) {
+      console.warn(`Could not create audio element for ${soundUrl}:`, error);
+    }
+  }
+};
 
 export const PomodoroProvider = ({ children }: { children: ReactNode }) => {
   const { user, loading: authLoading } = useAuth();
@@ -216,6 +230,8 @@ export const PomodoroProvider = ({ children }: { children: ReactNode }) => {
       pomodoroIntervalRef.current = null;
     }
 
+    playSound(POMODORO_COMPLETE_SOUND); // Play sound on Pomodoro completion
+
     const currentPreferredDuration = firestoreSessionState?.userPreferredDurationMinutes || DEFAULT_POMODORO_MINUTES;
     const notesToPreserve = firestoreSessionState?.notes || '';
     const newState: Omit<PomodoroSessionState, 'updatedAt'> & {updatedAt: FieldValue} = {
@@ -226,7 +242,7 @@ export const PomodoroProvider = ({ children }: { children: ReactNode }) => {
       currentSessionInitialDurationMinutes: currentPreferredDuration,
       userPreferredDurationMinutes: currentPreferredDuration,
       notes: notesToPreserve,
-      currentTaskTitle: null, // Clear task title when session ends
+      currentTaskTitle: null,
       updatedAt: serverTimestamp()
     };
 
@@ -331,6 +347,7 @@ export const PomodoroProvider = ({ children }: { children: ReactNode }) => {
         if (prevSeconds <= 1) {
           clearInterval(intervalId);
           setIsResting(false);
+          playSound(BREAK_COMPLETE_SOUND); // Play sound on break completion
           if (typeof window !== 'undefined' && Notification.permission === "granted") {
             new Notification(t('pomodoro.rest.notification.title'), {
               body: t('pomodoro.rest.notification.body'),
@@ -377,7 +394,7 @@ export const PomodoroProvider = ({ children }: { children: ReactNode }) => {
       userPreferredDurationMinutes: firestoreSessionState?.userPreferredDurationMinutes || durationMinutes,
       pausedTimeLeftSeconds: null,
       notes: firestoreSessionState?.notes || '',
-      currentTaskTitle: taskTitle || null, // Set task title
+      currentTaskTitle: taskTitle || null,
       updatedAt: serverTimestamp(),
     };
     await setDoc(docRef, newState, { merge: true }).catch(e => console.error("Error starting pomodoro:", e));
@@ -430,7 +447,7 @@ export const PomodoroProvider = ({ children }: { children: ReactNode }) => {
       status: 'idle',
       targetEndTime: null,
       pausedTimeLeftSeconds: null,
-      currentTaskTitle: null, // Clear task title
+      currentTaskTitle: null,
       updatedAt: serverTimestamp(),
     };
     await setDoc(docRef, updateData, { merge: true }).catch(e => console.error("Error giving up pomodoro:", e));

@@ -1,13 +1,13 @@
 
 "use client";
 
-import { useState, useEffect } from 'react'; // Added useEffect
-import { usePomodoro } from '@/contexts/PomodoroContext'; // This is the Firestore-backed context
-import { useAuth } from '@/contexts/AuthContext'; // To check if user is logged in
-import { usePathname } from 'next/navigation';
-import { useCurrentLocale } from '@/lib/i18n/client';
+import { useState, useEffect } from 'react';
+import { usePomodoro } from '@/contexts/PomodoroContext';
+import { useAuth } from '@/contexts/AuthContext';
+import { usePathname, useRouter } from 'next/navigation';
+import { useCurrentLocale, useI18n } from '@/lib/i18n/client';
 import { Button } from '@/components/ui/button';
-import { Pause, Play, Coffee } from 'lucide-react';
+import { Pause, Play, Coffee, TimerIcon } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 const formatTime = (seconds: number): string => {
@@ -17,20 +17,22 @@ const formatTime = (seconds: number): string => {
 };
 
 export default function FloatingPomodoroTimer() {
-  const { user } = useAuth(); // Check for user
-  const { 
-    sessionState, 
-    timeLeftSeconds, 
-    pausePomodoro, 
-    continuePomodoro, 
+  const { user } = useAuth();
+  const {
+    sessionState,
+    timeLeftSeconds,
+    pausePomodoro,
+    continuePomodoro,
     isResting,
     restTimeLeftSeconds
   } = usePomodoro();
-  
+
+  const t = useI18n();
+  const router = useRouter();
   const pathname = usePathname();
   const currentLocale = useCurrentLocale();
   const [isHovered, setIsHovered] = useState(false);
-  const [isVisible, setIsVisible] = useState(false); // Manage visibility
+  const [isVisible, setIsVisible] = useState(false);
 
   useEffect(() => {
     if (!user || !sessionState || !currentLocale) {
@@ -38,37 +40,68 @@ export default function FloatingPomodoroTimer() {
       return;
     }
 
-    let isMainPomodoroPage = false;
-    const defaultLocale = 'en'; 
+    let isMainTimerPage = false;
+    if (pathname === `/${currentLocale}/timer` || pathname === `/${currentLocale}`) {
+        isMainTimerPage = true;
+    }
+     // Handle root path specifically, as it also acts as a timer page (local)
     if (pathname === '/') {
-      isMainPomodoroPage = currentLocale === defaultLocale;
-    } else {
-      isMainPomodoroPage = pathname === `/${currentLocale}`;
-    }
-
-    // Also check for the /timer page for logged-in users
-    if (pathname === `/${currentLocale}/timer`) {
-        isMainPomodoroPage = true;
+        isMainTimerPage = true;
     }
 
 
-    if (isMainPomodoroPage) {
+    if (isMainTimerPage) {
       setIsVisible(false);
       return;
     }
 
-    // Conditions for visibility (user logged in, not on main page, timer active or resting)
+    // Show if user is logged in, not on a main timer page, AND
+    // (timer is running/paused OR is resting OR is idle)
     const timerActiveOrResting = (sessionState.status === 'running' || sessionState.status === 'paused') || isResting;
-    setIsVisible(timerActiveOrResting);
+    const timerIsIdleAndNotResting = sessionState.status === 'idle' && !isResting;
+
+    setIsVisible(timerActiveOrResting || timerIsIdleAndNotResting);
 
   }, [user, sessionState, pathname, currentLocale, isResting]);
 
 
-  if (!isVisible) { // Controlled by useEffect now
+  if (!isVisible) {
     return null;
   }
-  
-  // If resting, show rest timer in floating button
+
+  const handleIdleClick = () => {
+    router.push(`/${currentLocale}/timer`);
+  };
+
+  // Idle State
+  if (sessionState!.status === 'idle' && !isResting) {
+    const preferredDuration = sessionState!.userPreferredDurationMinutes || 25;
+    return (
+      <Button
+        variant="outline"
+        className={cn(
+          "fixed bottom-[6.5rem] right-6 z-50 rounded-full h-16 w-16 p-0 shadow-xl transition-all flex items-center justify-center",
+          "hover:scale-105 focus:scale-105",
+          "bg-background hover:bg-muted"
+        )}
+        onMouseEnter={() => setIsHovered(true)}
+        onMouseLeave={() => setIsHovered(false)}
+        onClick={handleIdleClick}
+        aria-label={t('pomodoro.button.start')}
+      >
+        {isHovered ? (
+          <span className="text-lg font-semibold tabular-nums">
+            {formatTime(preferredDuration * 60)}
+          </span>
+        ) : (
+          <TimerIcon className="h-7 w-7 text-primary" />
+        )}
+      </Button>
+    );
+  }
+
+
+  // Resting State
   if (isResting) {
     return (
       <Button
@@ -81,7 +114,6 @@ export default function FloatingPomodoroTimer() {
         onMouseEnter={() => setIsHovered(true)}
         onMouseLeave={() => setIsHovered(false)}
         aria-label="Rest Timer"
-        // onClick could skip rest or navigate, but for now it's display only
       >
         {isHovered ? (
             <Coffee className="h-7 w-7" />
@@ -94,14 +126,13 @@ export default function FloatingPomodoroTimer() {
     );
   }
 
-  // Existing logic for Pomodoro running/paused (if not resting)
-  // This part will only be reached if sessionState is not null (checked by isVisible logic)
+  // Pomodoro Running/Paused State (sessionState is guaranteed to be non-null here due to isVisible logic)
   const isActive = sessionState!.status === 'running';
   const isPaused = sessionState!.status === 'paused';
 
   return (
     <Button
-      variant={isActive ? "default" : "outline"} 
+      variant={isActive ? "default" : "outline"}
       className={cn(
         "fixed bottom-[6.5rem] right-6 z-50 rounded-full h-16 w-16 p-0 shadow-xl transition-all flex items-center justify-center",
         "hover:scale-105 focus:scale-105",
@@ -109,9 +140,9 @@ export default function FloatingPomodoroTimer() {
       )}
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
-      onClick={isActive ? (e) => { e.stopPropagation(); pausePomodoro(); } 
+      onClick={isActive ? (e) => { e.stopPropagation(); pausePomodoro(); }
                        : (e) => { e.stopPropagation(); continuePomodoro(); }}
-      aria-label={isActive ? "Pause Pomodoro" : (isPaused ? "Continue Pomodoro" : "Pomodoro Timer")}
+      aria-label={isActive ? t('pomodoro.button.pause') : (isPaused ? t('pomodoro.button.continue') : "Pomodoro Timer")}
     >
       {isHovered ? (
         isActive ? (
@@ -127,5 +158,3 @@ export default function FloatingPomodoroTimer() {
     </Button>
   );
 }
-
-    

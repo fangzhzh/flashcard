@@ -17,7 +17,15 @@ export default async function TasksPage() {
   const t = await getI18n();
   // Title and create button will be handled within TasksClient
   return (
-    <PageContainer>
+    <PageContainer className="flex-1 flex flex-col overflow-hidden !p-0 !max-w-full">
+      {/* 
+        Applied special classes to PageContainer for TasksPage:
+        - flex-1 flex flex-col: Makes it fill available vertical space from LocaleLayout.
+        - overflow-hidden: Prevents this container itself from scrolling.
+        - !p-0: Removes default padding from PageContainer (container, px, py).
+        - !max-w-full: Removes the max-width constraint from PageContainer.
+        This allows TasksClient to take full width and height.
+      */}
       <Suspense fallback={<TasksLoadingFallback />}>
         <TasksClient /> {/* This now correctly renders the wrapper with the provider */}
       </Suspense>

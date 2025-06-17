@@ -5,7 +5,7 @@
 
 body {
   font-family: var(--font-inter), Arial, Helvetica, sans-serif; /* Updated font variable */
-  overflow-y: hidden; /* Prevent vertical scrolling on the body */
+  /* overflow-y: hidden; */ /* REMOVED: Allow body to scroll by default */
 }
 
 @layer base {

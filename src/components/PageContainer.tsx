@@ -10,7 +10,7 @@ interface PageContainerProps {
 export default function PageContainer({ children, className }: PageContainerProps) {
   return (
     <div className={cn(
-        "container mx-auto px-4 sm:px-6 lg:px-8 h-full flex flex-col overflow-y-hidden",
+        "container mx-auto px-4 sm:px-6 lg:px-8 py-6", // Simplified: no height/overflow management by default
         className
       )}
     >

@@ -27,9 +27,9 @@ export default function RootLayout({
         <meta name="theme-color" content="#7E57C2" />
         <link rel="apple-touch-icon" href="/icons/icon-192x192.png" />
       </head>
-      <body className={`${inter.variable} antialiased`}>
-        <div className="h-screen flex flex-col overflow-x-hidden">
-          <main className="flex-1 flex flex-col overflow-hidden">{children}</main>
+      <body className={`${inter.variable} antialiased min-h-screen flex flex-col`}>
+        <div className="flex-1 flex flex-col"> {/* Wrapper to allow main to take remaining space */}
+          <main className="flex-1 flex flex-col">{children}</main>
         </div>
         <Toaster />
       </body>

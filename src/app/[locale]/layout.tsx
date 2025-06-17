@@ -35,9 +35,9 @@ export default function LocaleLayout({
       <AuthProvider>
         <FlashcardsProvider>
           <PomodoroProvider>
-            <div className="flex flex-col h-full"> {/* Root div takes full height */}
-              <Header /> {/* Header takes its natural height, effectively flex-shrink-0 */}
-              <div className="flex-1 overflow-hidden"> {/* This area takes remaining space and clips overflow */}
+            <div className="flex flex-col flex-1"> {/* Root div takes full height from parent (RootLayout) */}
+              <Header /> {/* Header takes its natural height */}
+              <div className="flex-1 overflow-y-auto min-h-0"> {/* This area scrolls */}
                 {children}
               </div>
               <FloatingPomodoroTimer />

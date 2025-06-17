@@ -25,11 +25,10 @@ const TRY_AGAIN_INTERVAL = 1; // 1 day
 const MIN_INTERVAL = 1; // 1 day
 const MAX_INTERVAL = 365; // 1 year
 
-// Renamed session storage keys for clarity and consistency
 const SESSION_STORAGE_PREFIX = 'flashflow_review_';
 const SS_DECK_ID = `${SESSION_STORAGE_PREFIX}deckId`;
 const SS_IS_SESSION_STARTED = `${SESSION_STORAGE_PREFIX}isSessionStarted`;
-const SS_CARD_ID = `${SESSION_STORAGE_PREFIX}cardId`; // Changed from SS_CARD_INDEX
+const SS_CARD_ID = `${SESSION_STORAGE_PREFIX}cardId`;
 const SS_IS_FLIPPED = `${SESSION_STORAGE_PREFIX}isFlipped`;
 const SS_SESSION_TYPE = `${SESSION_STORAGE_PREFIX}sessionType`;
 
@@ -97,9 +96,8 @@ export default function ReviewModeClient() {
       queueToSet = dueCardsForCurrentScope;
     } else {
       if (allCardsForCurrentScope.length === 0) return;
-      // Shuffle "all" queue for variety, unless restoring to a specific card
       queueToSet = options?.restoredCardId 
-                   ? [...allCardsForCurrentScope] // Don't shuffle if trying to restore specific card
+                   ? [...allCardsForCurrentScope] 
                    : [...allCardsForCurrentScope].sort(() => Math.random() - 0.5);
     }
 
@@ -115,7 +113,7 @@ export default function ReviewModeClient() {
         }
     }
     setCurrentCardIndex(initialCardIndex);
-    setBackContentViewMode('markdown'); // Reset view mode for new card/session
+    setBackContentViewMode('markdown'); 
 
     const initialIsFlipped = options?.restoredIsFlipped !== undefined ? options.restoredIsFlipped : false;
     setIsFlipped(initialIsFlipped);
@@ -184,7 +182,7 @@ export default function ReviewModeClient() {
 
   const handleFlip = () => {
     setIsFlipped(!isFlipped);
-    if (isFlipped) { // If was flipped and now showing front, reset view mode
+    if (isFlipped) { 
       setBackContentViewMode('markdown');
     }
   };
@@ -222,7 +220,7 @@ export default function ReviewModeClient() {
     if (currentCardIndex < reviewQueue.length - 1) {
       setCurrentCardIndex(currentCardIndex + 1);
       setIsFlipped(false);
-      setBackContentViewMode('markdown'); // Reset view mode for next card
+      setBackContentViewMode('markdown');
     } else {
       setReviewQueue([]);
       setIsSessionStarted(false);
@@ -474,12 +472,10 @@ export default function ReviewModeClient() {
       <Card className="w-full max-w-3xl min-h-[350px] flex flex-col shadow-xl transition-all duration-500 ease-in-out transform hover:scale-[1.01]">
         <CardHeader className="flex items-center justify-center p-4 sm:p-6">
           <div className="flex items-start w-full">
-            <div className="flex-grow">
-              <div className="markdown-content whitespace-pre-wrap">
+            <div className="flex-grow markdown-content whitespace-pre-wrap">
                 <ReactMarkdown remarkPlugins={[remarkGfm]}>
-                  {isFlipped ? backCardText : frontCardText}
+                  {frontCardText}
                 </ReactMarkdown>
-              </div>
             </div>
             <Button
               variant="ghost"
@@ -487,7 +483,7 @@ export default function ReviewModeClient() {
               className="ml-4 flex-shrink-0"
               onClick={(e) => {
                 e.stopPropagation();
-                handleSpeak(isFlipped ? backCardText : frontCardText, isFlipped ? backCardLang : frontCardLang);
+                handleSpeak(frontCardText, frontCardLang);
               }}
               title={t('review.speakContent' as any, { defaultValue: "Speak content"})}
               disabled={isSubmittingProgress}
@@ -496,38 +492,56 @@ export default function ReviewModeClient() {
             </Button>
           </div>
         </CardHeader>
-        <CardContent className="p-4 sm:p-6 border-t flex-grow"> {/* Added flex-grow */}
+
+        <CardContent className="p-4 sm:p-6 border-t flex-grow">
           <Button onClick={handleFlip} variant="outline" className="w-full text-lg py-6 mb-6" disabled={isSubmittingProgress}>
             <RefreshCw className={`mr-2 h-5 w-5 ${isFlipped ? 'animate-pulse' : ''}`} />
             {isFlipped ? t('review.button.flip.showQuestion') : t('review.button.flip.showAnswer')}
           </Button>
+          
           {isFlipped && (
-             <div className="flex justify-end mt-2">
+            <>
+              <div className="flex justify-between items-center mt-2 mb-4">
                 <Button
                     variant="ghost"
                     size="sm"
                     onClick={() => setBackContentViewMode(prev => prev === 'markdown' ? 'mindmap' : 'markdown')}
                     title={t(backContentViewMode === 'markdown' ? 'review.button.viewAsMindmap' : 'review.button.viewAsMarkdown')}
                     disabled={isSubmittingProgress}
+                    className="text-sm"
                 >
                     {backContentViewMode === 'markdown' ? <Brain className="mr-2 h-4 w-4" /> : <FileText className="mr-2 h-4 w-4" />}
                     {backContentViewMode === 'markdown' ? t('review.button.viewAsMindmap') : t('review.button.viewAsMarkdown')}
                 </Button>
-            </div>
-          )}
-           {isFlipped && backContentViewMode === 'mindmap' && (
-            <div className="mt-4 p-2 border rounded-md bg-muted/20 min-h-[60vh] max-h-[75vh] overflow-y-auto">
-                 <MarkmapRenderer markdownContent={currentCard.back} />
-            </div>
-           )}
-           {isFlipped && backContentViewMode === 'markdown' && (
-             <div className="mt-4 markdown-content whitespace-pre-wrap">
-                <ReactMarkdown remarkPlugins={[remarkGfm]}>
-                    {currentCard.back}
-                </ReactMarkdown>
-             </div>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    handleSpeak(backCardText, backCardLang);
+                  }}
+                  title={t('review.speakContent' as any, { defaultValue: "Speak content"})}
+                  disabled={isSubmittingProgress}
+                >
+                  <Volume2 className="h-6 w-6" />
+                </Button>
+              </div>
+
+              {backContentViewMode === 'mindmap' ? (
+                <div className="mt-4 p-2 border rounded-md bg-muted/20 min-h-[60vh] max-h-[75vh] overflow-y-auto">
+                     <MarkmapRenderer markdownContent={currentCard.back} />
+                </div>
+               ) : (
+                 <div className="mt-4 markdown-content whitespace-pre-wrap">
+                    <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                        {currentCard.back}
+                    </ReactMarkdown>
+                 </div>
+               )}
+            </>
            )}
         </CardContent>
+
         {isFlipped && (
           <CardFooter className="grid grid-cols-3 gap-3 p-4 sm:p-6 border-t">
             {progressOptions.map(opt => (

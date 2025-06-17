@@ -528,7 +528,10 @@ export default function ReviewModeClient() {
               </div>
 
               {backContentViewMode === 'mindmap' ? (
-                <div className="mt-4 p-2 border rounded-md bg-muted/20 min-h-[60vh] max-h-[75vh] overflow-y-auto">
+                <div
+                  key={`${currentCard.id}-${backContentViewMode}`}
+                  className="mt-4 p-2 border rounded-md bg-muted/20 min-h-[60vh] max-h-[75vh] overflow-y-auto"
+                >
                      <MarkmapRenderer markdownContent={currentCard.back} />
                 </div>
                ) : (
@@ -573,3 +576,4 @@ export default function ReviewModeClient() {
   );
 }
 
+    

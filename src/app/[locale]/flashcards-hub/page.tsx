@@ -4,17 +4,20 @@ import Link from 'next/link';
 import PageContainer from '@/components/PageContainer';
 import ProgressDashboard from '@/components/ProgressDashboard';
 import { Button } from '@/components/ui/button';
-import { Layers, ClipboardCheck, PlusCircle, ShieldAlert, Library, ListChecks } from 'lucide-react'; // Added ListChecks
-import { useI18n, useCurrentLocale } from '@/lib/i18n/client'; // Added useCurrentLocale
+import { Layers, ClipboardCheck, PlusCircle, ShieldAlert, Library, ListChecks } from 'lucide-react';
+import { useI18n, useCurrentLocale } from '@/lib/i18n/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Loader2 } from 'lucide-react';
+import { usePathname, useSearchParams } from 'next/navigation'; // Added usePathname, useSearchParams
 
 
 export default function FlashcardsHubPage() {
   const t = useI18n();
   const currentLocale = useCurrentLocale();
   const { user, loading: authLoading } = useAuth();
+  const pathname = usePathname(); // For constructing returnTo path
+  const searchParams = useSearchParams(); // For constructing returnTo path
 
   if (authLoading) {
      return (
@@ -25,6 +28,11 @@ export default function FlashcardsHubPage() {
       </PageContainer>
     );
   }
+
+  // Construct returnTo path including query parameters
+  const currentPathWithoutLocale = pathname.replace(`/${currentLocale}`, '') || '/';
+  const currentQueryString = searchParams.toString();
+  const returnToPath = currentPathWithoutLocale + (currentQueryString ? `?${currentQueryString}` : '');
 
   return (
     <PageContainer>
@@ -42,22 +50,22 @@ export default function FlashcardsHubPage() {
             <ProgressDashboard />
 
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-2 xl:grid-cols-4">
-              <Link href="/review" passHref>
+              <Link href={`/${currentLocale}/review`} passHref>
                 <Button variant="default" size="lg" className="w-full py-8 text-lg shadow-md hover:shadow-lg transition-shadow bg-accent text-accent-foreground hover:bg-accent/90">
                   <ClipboardCheck className="mr-3 h-6 w-6" /> {t('flashcards.dashboard.button.review')}
                 </Button>
               </Link>
-              <Link href="/flashcards/new" passHref>
+              <Link href={`/${currentLocale}/flashcards/new`} passHref>
                 <Button size="lg" className="w-full py-8 text-lg shadow-md hover:shadow-lg transition-shadow">
                   <PlusCircle className="mr-3 h-6 w-6" /> {t('flashcards.dashboard.button.create')}
                 </Button>
               </Link>
-              <Link href="/decks" passHref>
+              <Link href={`/${currentLocale}/decks`} passHref>
                 <Button variant="secondary" size="lg" className="w-full py-8 text-lg shadow-md hover:shadow-lg transition-shadow">
                   <Library className="mr-3 h-6 w-6" /> {t('flashcards.dashboard.button.decks')}
                 </Button>
               </Link>
-               <Link href="/flashcards" passHref>
+               <Link href={`/${currentLocale}/flashcards`} passHref>
                 <Button variant="outline" size="lg" className="w-full py-8 text-lg shadow-md hover:shadow-lg transition-shadow">
                   <Layers className="mr-3 h-6 w-6" /> {t('flashcards.dashboard.button.manageAll')}
                 </Button>
@@ -78,7 +86,7 @@ export default function FlashcardsHubPage() {
 
       </div>
       {user && (
-        <Link href={`/${currentLocale}/tasks/new?returnTo=/flashcards-hub`} passHref>
+        <Link href={`/${currentLocale}/tasks/new?returnTo=${encodeURIComponent(returnToPath)}`} passHref>
             <Button
                 variant="default"
                 className="fixed bottom-6 right-6 z-40 rounded-full h-14 w-14 p-0 shadow-lg"
@@ -91,3 +99,4 @@ export default function FlashcardsHubPage() {
     </PageContainer>
   );
 }
+

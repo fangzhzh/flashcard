@@ -13,6 +13,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { usePomodoro } from '@/contexts/PomodoroContext';
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { cn } from '@/lib/utils';
+import { usePathname, useSearchParams } from 'next/navigation'; // Added usePathname, useSearchParams
 
 const DEFAULT_POMODORO_MINUTES_DISPLAY = 25;
 
@@ -39,6 +40,9 @@ export default function PomodoroClient() {
   const [durationInput, setDurationInput] = useState(
     sessionState?.userPreferredDurationMinutes ?? DEFAULT_POMODORO_MINUTES_DISPLAY
   );
+
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
 
   useEffect(() => {
     if (sessionState) {
@@ -124,6 +128,11 @@ export default function PomodoroClient() {
   const timerIsIdle = sessionState?.status === 'idle' || !sessionState;
   const displayTime = isResting ? restTimeLeftSeconds : timeLeftSeconds;
   const currentTaskTitle = sessionState?.currentTaskTitle;
+
+  // Construct returnTo path including query parameters
+  const currentPathWithoutLocale = pathname.replace(`/${currentLocale}`, '') || '/';
+  const currentQueryString = searchParams.toString();
+  const returnToPath = currentPathWithoutLocale + (currentQueryString ? `?${currentQueryString}` : '');
 
 
   return (
@@ -217,7 +226,7 @@ export default function PomodoroClient() {
         </Card>
       )}
 
-      <Link href={`/${currentLocale}/tasks/new?returnTo=/timer`} passHref>
+      <Link href={`/${currentLocale}/tasks/new?returnTo=${encodeURIComponent(returnToPath)}`} passHref>
         <Button
             variant="default"
             className="fixed bottom-6 right-6 z-40 rounded-full h-14 w-14 p-0 shadow-lg"
@@ -229,3 +238,4 @@ export default function PomodoroClient() {
     </div>
   );
 }
+

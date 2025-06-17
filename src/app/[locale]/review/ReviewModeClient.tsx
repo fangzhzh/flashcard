@@ -7,14 +7,14 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import type { Flashcard, PerformanceRating, Deck } from '@/types';
 import { useToast } from '@/hooks/use-toast';
-import { RefreshCw, CheckCircle2, SkipForward, RotateCcw, PlayCircle, ThumbsUp, PlusCircle, Layers, LayoutDashboard, Loader2, ShieldAlert, Volume2, Library, ListChecks } from 'lucide-react'; // Added ListChecks
+import { RefreshCw, CheckCircle2, SkipForward, RotateCcw, PlayCircle, ThumbsUp, PlusCircle, Layers, LayoutDashboard, Loader2, ShieldAlert, Volume2, Library, ListChecks } from 'lucide-react';
 import { formatISO, addDays } from 'date-fns';
 import Link from 'next/link';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { useI18n, useCurrentLocale } from '@/lib/i18n/client';
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { useSearchParams, useRouter } from 'next/navigation';
+import { useSearchParams, useRouter, usePathname } from 'next/navigation'; // Added usePathname
 import { cn } from '@/lib/utils';
 
 
@@ -36,7 +36,7 @@ export default function ReviewModeClient() {
   const t = useI18n();
   const currentLocale = useCurrentLocale();
   const router = useRouter();
-
+  const pathname = usePathname(); // For constructing returnTo path
   const searchParams = useSearchParams();
   const deckIdFromParams = searchParams.get('deckId');
   const [currentDeck, setCurrentDeck] = useState<Deck | null>(null);
@@ -185,10 +185,16 @@ export default function ReviewModeClient() {
     : t('review.pageTitle.default');
 
 
+  // Construct returnTo path including query parameters
+  const currentPathWithoutLocale = pathname.replace(`/${currentLocale}`, '') || '/';
+  const currentQueryString = searchParams.toString();
+  const returnToPath = currentPathWithoutLocale + (currentQueryString ? `?${currentQueryString}` : '');
+
+
   if (!isSessionStarted) {
     if (allCardsForCurrentScope.length === 0) {
       return (
-        <div className="flex flex-col items-center justify-center min-h-[calc(100vh-10rem)] p-4 text-center pb-20"> {/* Added pb-20 */}
+        <div className="flex flex-col items-center justify-center min-h-[calc(100vh-10rem)] p-4 text-center pb-20">
           <ThumbsUp className="w-24 h-24 text-green-500 mb-6" />
           <h2 className="text-3xl font-semibold mb-4">
             {currentDeck ? t('review.noCardsInDeck.title') : t('review.noCards.title')}
@@ -209,7 +215,7 @@ export default function ReviewModeClient() {
             </Link>
            )}
            {user && (
-            <Link href={`/${currentLocale}/tasks/new?returnTo=/review`} passHref>
+            <Link href={`/${currentLocale}/tasks/new?returnTo=${encodeURIComponent(returnToPath)}`} passHref>
                 <Button
                     variant="default"
                     className="fixed bottom-6 right-6 z-40 rounded-full h-14 w-14 p-0 shadow-lg"
@@ -224,7 +230,7 @@ export default function ReviewModeClient() {
     }
 
     return (
-      <div className="flex flex-col items-center justify-center min-h-[calc(100vh-10rem)] p-4 text-center pb-20"> {/* Added pb-20 */}
+      <div className="flex flex-col items-center justify-center min-h-[calc(100vh-10rem)] p-4 text-center pb-20">
         <PlayCircle className="w-24 h-24 text-primary mb-6" />
         <h2 className="text-3xl font-semibold mb-4">
           {currentDeck ? t('review.ready.title.deck', {deckName: currentDeck.name}) : t('review.ready.title')}
@@ -277,7 +283,7 @@ export default function ReviewModeClient() {
             </p>
         )}
         {user && (
-          <Link href={`/${currentLocale}/tasks/new?returnTo=/review`} passHref>
+          <Link href={`/${currentLocale}/tasks/new?returnTo=${encodeURIComponent(returnToPath)}`} passHref>
               <Button
                   variant="default"
                   className="fixed bottom-6 right-6 z-40 rounded-full h-14 w-14 p-0 shadow-lg"
@@ -293,7 +299,7 @@ export default function ReviewModeClient() {
 
   if (reviewQueue.length === 0 && isSessionStarted) {
     return (
-      <div className="flex flex-col items-center justify-center min-h-[calc(100vh-10rem)] p-4 text-center pb-20"> {/* Added pb-20 */}
+      <div className="flex flex-col items-center justify-center min-h-[calc(100vh-10rem)] p-4 text-center pb-20">
         <ThumbsUp className="w-24 h-24 text-green-500 mb-6" />
         <h2 className="text-3xl font-semibold mb-4">
             {currentDeck ? t('review.sessionComplete.title.deck') : t('review.sessionComplete.title')}
@@ -338,7 +344,7 @@ export default function ReviewModeClient() {
           </Link>
         </div>
         {user && (
-          <Link href={`/${currentLocale}/tasks/new?returnTo=/review`} passHref>
+          <Link href={`/${currentLocale}/tasks/new?returnTo=${encodeURIComponent(returnToPath)}`} passHref>
               <Button
                   variant="default"
                   className="fixed bottom-6 right-6 z-40 rounded-full h-14 w-14 p-0 shadow-lg"
@@ -376,7 +382,7 @@ export default function ReviewModeClient() {
   const currentCardLang = detectLanguage(currentCardText);
 
   return (
-    <div className="flex flex-col items-center pt-2 flex-1 overflow-y-auto pb-20"> {/* Added pb-20 */}
+    <div className="flex flex-col items-center pt-2 flex-1 overflow-y-auto pb-20">
       <p className="text-muted-foreground mb-4">{t('review.cardProgress', { currentIndex: currentCardIndex + 1, totalCards: reviewQueue.length })}</p>
       <Card className="w-full max-w-3xl min-h-[350px] flex flex-col shadow-xl transition-all duration-500 ease-in-out transform hover:scale-[1.01]">
         <CardHeader className="flex items-center justify-center p-4 sm:p-6">
@@ -427,7 +433,7 @@ export default function ReviewModeClient() {
       </Card>
       {isSubmittingProgress && <p className="mt-4 text-primary animate-pulse">{t('review.processing')}</p>}
       {user && (
-        <Link href={`/${currentLocale}/tasks/new?returnTo=/review`} passHref>
+        <Link href={`/${currentLocale}/tasks/new?returnTo=${encodeURIComponent(returnToPath)}`} passHref>
             <Button
                 variant="default"
                 className="fixed bottom-6 right-6 z-40 rounded-full h-14 w-14 p-0 shadow-lg"
@@ -440,3 +446,4 @@ export default function ReviewModeClient() {
     </div>
   );
 }
+

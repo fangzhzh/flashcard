@@ -7,7 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import type { Flashcard, PerformanceRating, Deck } from '@/types';
 import { useToast } from '@/hooks/use-toast';
-import { RefreshCw, CheckCircle2, SkipForward, RotateCcw, PlayCircle, ThumbsUp, PlusCircle, Layers, LayoutDashboard, Loader2, ShieldAlert, Volume2, Library, ListChecks } from 'lucide-react';
+import { RefreshCw, CheckCircle2, SkipForward, RotateCcw, PlayCircle, ThumbsUp, PlusCircle, Layers, LayoutDashboard, Loader2, ShieldAlert, Volume2, Library, ListChecks, Brain, FileText } from 'lucide-react';
 import { formatISO, addDays } from 'date-fns';
 import Link from 'next/link';
 import ReactMarkdown from 'react-markdown';
@@ -16,6 +16,7 @@ import { useI18n, useCurrentLocale } from '@/lib/i18n/client';
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { useSearchParams, useRouter, usePathname } from 'next/navigation';
 import { cn } from '@/lib/utils';
+import MarkmapRenderer from '@/components/MarkmapRenderer';
 
 
 const MASTERED_MULTIPLIER = 2;
@@ -43,6 +44,7 @@ export default function ReviewModeClient() {
   const [isSubmittingProgress, setIsSubmittingProgress] = useState(false);
   const [isSessionStarted, setIsSessionStarted] = useState(false);
   const [currentSessionType, setCurrentSessionType] = useState<'spaced' | 'all' | null>(null);
+  const [backContentViewMode, setBackContentViewMode] = useState<'markdown' | 'mindmap'>('markdown');
   
   const { toast } = useToast();
   const t = useI18n();
@@ -113,6 +115,7 @@ export default function ReviewModeClient() {
         }
     }
     setCurrentCardIndex(initialCardIndex);
+    setBackContentViewMode('markdown'); // Reset view mode for new card/session
 
     const initialIsFlipped = options?.restoredIsFlipped !== undefined ? options.restoredIsFlipped : false;
     setIsFlipped(initialIsFlipped);
@@ -181,6 +184,9 @@ export default function ReviewModeClient() {
 
   const handleFlip = () => {
     setIsFlipped(!isFlipped);
+    if (isFlipped) { // If was flipped and now showing front, reset view mode
+      setBackContentViewMode('markdown');
+    }
   };
 
   const handleSpeak = (text: string, lang?: string) => {
@@ -212,26 +218,20 @@ export default function ReviewModeClient() {
 
     setIsSubmittingProgress(true); 
     const cardToUpdateId = currentCard.id;
-    // Optional: Store card's front for a more specific toast message later
-    // const cardFrontForToast = currentCard.front; 
-
-    // Advance UI immediately
+    
     if (currentCardIndex < reviewQueue.length - 1) {
       setCurrentCardIndex(currentCardIndex + 1);
       setIsFlipped(false);
+      setBackContentViewMode('markdown'); // Reset view mode for next card
     } else {
       setReviewQueue([]);
       setIsSessionStarted(false);
       setCurrentSessionType(null);
     }
 
-    // Asynchronous update
     (async () => {
       try {
         const currentDate = new Date();
-        // Fetch the most up-to-date card details for calculation, or use the one we had.
-        // For simplicity here, we use interval from currentCard, assuming it's fresh enough.
-        // A more robust solution might re-fetch or use a transaction if absolute consistency is critical.
         const cardForCalc = allFlashcardsFromContext.find(c => c.id === cardToUpdateId) || currentCard;
 
         let newInterval: number;
@@ -263,12 +263,6 @@ export default function ReviewModeClient() {
           status: newStatus,
         });
         
-        // Toast success (optional, can be too noisy)
-        // toast({
-        //   title: t('success'),
-        //   description: `Progress for "${cardFrontForToast.substring(0,20)}..." saved.`,
-        // });
-
       } catch (error) {
         console.error("Error updating flashcard schedule:", error);
         const errorMessage = error instanceof Error ? error.message : "An unknown error occurred.";
@@ -469,8 +463,10 @@ export default function ReviewModeClient() {
     { labelKey: 'review.button.progress.mastered', rating: 'Mastered', icon: CheckCircle2, variant: 'default' },
   ];
 
-  const currentCardText = isFlipped ? currentCard.back : currentCard.front;
-  const currentCardLang = detectLanguage(currentCardText);
+  const frontCardText = currentCard.front;
+  const backCardText = currentCard.back;
+  const frontCardLang = detectLanguage(frontCardText);
+  const backCardLang = detectLanguage(backCardText);
 
   return (
     <div className="flex flex-col items-center pt-2 flex-1 overflow-y-auto pb-20">
@@ -481,7 +477,7 @@ export default function ReviewModeClient() {
             <div className="flex-grow">
               <div className="markdown-content whitespace-pre-wrap">
                 <ReactMarkdown remarkPlugins={[remarkGfm]}>
-                  {currentCardText}
+                  {isFlipped ? backCardText : frontCardText}
                 </ReactMarkdown>
               </div>
             </div>
@@ -491,7 +487,7 @@ export default function ReviewModeClient() {
               className="ml-4 flex-shrink-0"
               onClick={(e) => {
                 e.stopPropagation();
-                handleSpeak(currentCardText, currentCardLang);
+                handleSpeak(isFlipped ? backCardText : frontCardText, isFlipped ? backCardLang : frontCardLang);
               }}
               title={t('review.speakContent' as any, { defaultValue: "Speak content"})}
               disabled={isSubmittingProgress}
@@ -505,6 +501,25 @@ export default function ReviewModeClient() {
             <RefreshCw className={`mr-2 h-5 w-5 ${isFlipped ? 'animate-pulse' : ''}`} />
             {isFlipped ? t('review.button.flip.showQuestion') : t('review.button.flip.showAnswer')}
           </Button>
+          {isFlipped && (
+             <div className="flex justify-end mt-2">
+                <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => setBackContentViewMode(prev => prev === 'markdown' ? 'mindmap' : 'markdown')}
+                    title={t(backContentViewMode === 'markdown' ? 'review.button.viewAsMindmap' : 'review.button.viewAsMarkdown')}
+                    disabled={isSubmittingProgress}
+                >
+                    {backContentViewMode === 'markdown' ? <Brain className="mr-2 h-4 w-4" /> : <FileText className="mr-2 h-4 w-4" />}
+                    {backContentViewMode === 'markdown' ? t('review.button.viewAsMindmap') : t('review.button.viewAsMarkdown')}
+                </Button>
+            </div>
+          )}
+           {isFlipped && backContentViewMode === 'mindmap' && (
+            <div className="mt-4 p-2 border rounded-md bg-muted/20 min-h-[200px]">
+                 <MarkmapRenderer markdownContent={currentCard.back} />
+            </div>
+           )}
         </CardContent>
         {isFlipped && (
           <CardFooter className="grid grid-cols-3 gap-3 p-4 sm:p-6 border-t">
@@ -523,8 +538,6 @@ export default function ReviewModeClient() {
           </CardFooter>
         )}
       </Card>
-      {/* Removed the general "Processing..." message as individual buttons now show loader if isSubmittingProgress affects them,
-          or the UI moves on immediately. Consider if a global "saving in background" indicator is needed if updates are slow. */}
       {user && (
           <Button
               variant="default"

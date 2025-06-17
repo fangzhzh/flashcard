@@ -229,6 +229,9 @@ export default {
   'review.processing': 'Processing...',
   'review.speakContent': 'Speak content',
   'toast.progress.error': 'Could not save progress: {errorMessage}. Please try again.',
+  'review.button.viewAsMindmap': 'View as Mindmap',
+  'review.button.viewAsMarkdown': 'View as Markdown',
+
 
   // Pomodoro Page & Context
   'pomodoro.title': 'Pomodoro Timer',
@@ -395,7 +398,6 @@ export default {
   'toast.task.flashcardSelectedAndTaskUpdated': 'Flashcard selected and task updated.',
   'toast.task.linkRemoved': 'Link removed from task (will be saved with task).',
   'toast.task.linkRemovedAndTaskUpdated': 'Link removed and task updated.',
-
   'task.form.checkin.enableLabel': 'Enable Check-in Mode',
   'task.form.checkin.totalRequiredLabel': 'Total Check-ins Required',
   'task.form.checkin.totalRequiredPlaceholder': 'e.g., 5',
@@ -406,6 +408,10 @@ export default {
   'toast.task.checkedIn': 'Checked in! ({current}/{total})',
   'toast.task.checkInCompleted': "Task '{title}' completed after final check-in!",
   'toast.task.error.checkInFailed': 'Failed to record check-in.',
+  'task.form.checkin.enableLabelShort': 'Check-in Mode',
+  'task.form.checkin.placeholder.times': 'times',
+  'task.form.checkin.timesUnit': 'times',
+
 
   'toast.task.error.flashcardLinkFailed': 'Failed to create or link new flashcard.',
   'toast.task.error.intermediateSaveFailed': 'Failed to update task with new link. Please try saving the entire task.',
@@ -489,3 +495,4 @@ export default {
   'error': 'Error',
 
 } as const;
+

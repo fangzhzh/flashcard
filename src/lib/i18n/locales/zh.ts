@@ -229,6 +229,8 @@ export default {
   'review.processing': '处理中...',
   'review.speakContent': '朗读内容',
   'toast.progress.error': '无法保存进度：{errorMessage}。请稍后再试。',
+  'review.button.viewAsMindmap': '思维导图模式',
+  'review.button.viewAsMarkdown': 'Markdown模式',
 
   // Pomodoro Page & Context
   'pomodoro.title': '番茄钟计时器',
@@ -395,7 +397,6 @@ export default {
   'toast.task.flashcardSelectedAndTaskUpdated': '抽认卡已选择，任务已更新。',
   'toast.task.linkRemoved': '链接已从任务中移除（随任务保存）。',
   'toast.task.linkRemovedAndTaskUpdated': '链接已移除，任务已更新。',
-
   'task.form.checkin.enableLabel': '启用打卡模式',
   'task.form.checkin.totalRequiredLabel': '总打卡次数',
   'task.form.checkin.totalRequiredPlaceholder': '例如：5',
@@ -406,6 +407,9 @@ export default {
   'toast.task.checkedIn': '已打卡! ({current}/{total})',
   'toast.task.checkInCompleted': "任务 '{title}' 在最后一次打卡后完成!",
   'toast.task.error.checkInFailed': '记录打卡失败。',
+  'task.form.checkin.enableLabelShort': '打卡模式',
+  'task.form.checkin.placeholder.times': '次',
+  'task.form.checkin.timesUnit': '次',
 
   'toast.task.error.flashcardLinkFailed': '创建或链接新抽认卡失败。',
   'toast.task.error.intermediateSaveFailed': '更新任务链接失败。请尝试保存整个任务。',
@@ -490,3 +494,4 @@ export default {
   'error': '错误',
 
 } as const;
+

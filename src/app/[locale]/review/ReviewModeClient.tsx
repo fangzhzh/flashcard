@@ -24,16 +24,18 @@ const TRY_AGAIN_INTERVAL = 1; // 1 day
 const MIN_INTERVAL = 1; // 1 day
 const MAX_INTERVAL = 365; // 1 year
 
+// Renamed session storage keys for clarity and consistency
 const SESSION_STORAGE_PREFIX = 'flashflow_review_';
 const SS_DECK_ID = `${SESSION_STORAGE_PREFIX}deckId`;
 const SS_IS_SESSION_STARTED = `${SESSION_STORAGE_PREFIX}isSessionStarted`;
-const SS_CARD_INDEX = `${SESSION_STORAGE_PREFIX}cardIndex`;
+const SS_CARD_ID = `${SESSION_STORAGE_PREFIX}cardId`; // Changed from SS_CARD_INDEX
 const SS_IS_FLIPPED = `${SESSION_STORAGE_PREFIX}isFlipped`;
 const SS_SESSION_TYPE = `${SESSION_STORAGE_PREFIX}sessionType`;
 
+
 export default function ReviewModeClient() {
   const { user, loading: authLoading } = useAuth();
-  const { getReviewQueue, updateFlashcard, flashcards: allFlashcardsFromContext, isLoading: contextLoading, isSeeding, getDeckById } = useFlashcards();
+  const { getReviewQueue, updateFlashcard, flashcards: allFlashcardsFromContext, isLoading: contextLoading, isSeeding, getDeckById, decks } = useFlashcards();
   
   const [reviewQueue, setReviewQueue] = useState<Flashcard[]>([]);
   const [currentCardIndex, setCurrentCardIndex] = useState(0);
@@ -59,7 +61,7 @@ export default function ReviewModeClient() {
       if (deck) {
         setCurrentDeck(deck);
       } else {
-        if (decks.length > 0 && !deck){ // Only redirect if decks are loaded and deck not found
+        if (decks.length > 0 && !deck){ 
              toast({ title: t('error'), description: t('toast.deck.error.load'), variant: 'destructive' });
              router.push(`/${currentLocale}/decks`);
         }
@@ -68,7 +70,7 @@ export default function ReviewModeClient() {
       setCurrentDeck(null);
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [deckIdFromParams, getDeckById, contextLoading, toast, router, currentLocale, t, allFlashcardsFromContext]); // `decks` from useFlashcards implies it's available
+  }, [deckIdFromParams, getDeckById, contextLoading, toast, router, currentLocale, t, decks]); 
 
   const allCardsForCurrentScope = useMemo(() => {
     if (!deckIdFromParams) return allFlashcardsFromContext;
@@ -83,7 +85,7 @@ export default function ReviewModeClient() {
 
   const startReviewSession = useCallback((
     type: 'spaced' | 'all',
-    options?: { restoredCardIndex?: number; restoredIsFlipped?: boolean }
+    options?: { restoredCardId?: string; restoredIsFlipped?: boolean }
   ) => {
     if (contextLoading || !user) return;
 
@@ -93,16 +95,23 @@ export default function ReviewModeClient() {
       queueToSet = dueCardsForCurrentScope;
     } else {
       if (allCardsForCurrentScope.length === 0) return;
-      queueToSet = [...allCardsForCurrentScope].sort(() => Math.random() - 0.5);
+      // Shuffle "all" queue for variety, unless restoring to a specific card
+      queueToSet = options?.restoredCardId 
+                   ? [...allCardsForCurrentScope] // Don't shuffle if trying to restore specific card
+                   : [...allCardsForCurrentScope].sort(() => Math.random() - 0.5);
     }
 
     setReviewQueue(queueToSet);
     setCurrentSessionType(type);
     setIsSessionStarted(true);
 
-    const initialCardIndex = (options?.restoredCardIndex !== undefined && options.restoredCardIndex >= 0 && options.restoredCardIndex < queueToSet.length)
-      ? options.restoredCardIndex
-      : 0;
+    let initialCardIndex = 0;
+    if (options?.restoredCardId && queueToSet.length > 0) {
+        const foundIndex = queueToSet.findIndex(card => card.id === options.restoredCardId);
+        if (foundIndex !== -1) {
+            initialCardIndex = foundIndex;
+        }
+    }
     setCurrentCardIndex(initialCardIndex);
 
     const initialIsFlipped = options?.restoredIsFlipped !== undefined ? options.restoredIsFlipped : false;
@@ -110,45 +119,37 @@ export default function ReviewModeClient() {
 
   }, [contextLoading, user, dueCardsForCurrentScope, allCardsForCurrentScope, setReviewQueue, setCurrentSessionType, setIsSessionStarted, setCurrentCardIndex, setIsFlipped]);
 
-  // Effect for restoring session state after returning from task creation
   useEffect(() => {
-    if (authLoading || contextLoading || !user) { // Wait for user and context data
+    if (authLoading || contextLoading || !user) {
         return;
     }
 
     const savedDeckId = sessionStorage.getItem(SS_DECK_ID);
     const savedIsSessionStarted = sessionStorage.getItem(SS_IS_SESSION_STARTED);
-    const savedCardIndexStr = sessionStorage.getItem(SS_CARD_INDEX);
+    const savedCardId = sessionStorage.getItem(SS_CARD_ID); // Use savedCardId
     const savedIsFlippedStr = sessionStorage.getItem(SS_IS_FLIPPED);
     const savedSessionType = sessionStorage.getItem(SS_SESSION_TYPE) as 'spaced' | 'all' | null;
 
-    // Clear storage items immediately after reading
     sessionStorage.removeItem(SS_DECK_ID);
     sessionStorage.removeItem(SS_IS_SESSION_STARTED);
-    sessionStorage.removeItem(SS_CARD_INDEX);
+    sessionStorage.removeItem(SS_CARD_ID); // Clear savedCardId
     sessionStorage.removeItem(SS_IS_FLIPPED);
     sessionStorage.removeItem(SS_SESSION_TYPE);
 
     if (
       savedIsSessionStarted === 'true' &&
-      (deckIdFromParams || null) === (savedDeckId || null) && // Compare potentially null deckIds
+      (deckIdFromParams || null) === (savedDeckId || null) &&
       savedSessionType
     ) {
-      const restoredCardIndex = savedCardIndexStr ? parseInt(savedCardIndexStr, 10) : 0;
       const restoredIsFlipped = savedIsFlippedStr === 'true';
       
-      // Defer starting the session slightly if allCardsForCurrentScope might not be ready
-      // This assumes allCardsForCurrentScope/dueCardsForCurrentScope are populated by FlashcardsContext
-      // If still issues, a small timeout might be needed, or a more complex state machine.
       if( (savedSessionType === 'all' && allCardsForCurrentScope.length > 0) ||
           (savedSessionType === 'spaced' && dueCardsForCurrentScope.length > 0) ||
-          (!deckIdFromParams && savedSessionType === 'all' && allFlashcardsFromContext.length > 0) || // Global review all
-          (!deckIdFromParams && savedSessionType === 'spaced' && getReviewQueue().length > 0) // Global spaced review
+          (!deckIdFromParams && savedSessionType === 'all' && allFlashcardsFromContext.length > 0) ||
+          (!deckIdFromParams && savedSessionType === 'spaced' && getReviewQueue().length > 0)
       ) {
-        startReviewSession(savedSessionType, { restoredCardIndex, restoredIsFlipped });
+        startReviewSession(savedSessionType, { restoredCardId: savedCardId || undefined, restoredIsFlipped });
       } else {
-        // Fallback: if expected cards aren't there (e.g., context reloaded differently), don't start.
-        // This might happen if the number of cards changed while user was away.
         setIsSessionStarted(false);
         setCurrentSessionType(null);
       }
@@ -162,9 +163,11 @@ export default function ReviewModeClient() {
         toast({ title: t('error'), description: t('auth.pleaseSignIn'), variant: "destructive" });
         return;
     }
-    sessionStorage.setItem(SS_DECK_ID, deckIdFromParams || ''); // Store empty string if null/undefined
+    sessionStorage.setItem(SS_DECK_ID, deckIdFromParams || '');
     sessionStorage.setItem(SS_IS_SESSION_STARTED, String(isSessionStarted));
-    sessionStorage.setItem(SS_CARD_INDEX, String(currentCardIndex));
+    if (currentCard && isSessionStarted) {
+      sessionStorage.setItem(SS_CARD_ID, currentCard.id); // Save current card ID
+    }
     sessionStorage.setItem(SS_IS_FLIPPED, String(isFlipped));
     if (currentSessionType) {
         sessionStorage.setItem(SS_SESSION_TYPE, currentSessionType);
@@ -261,8 +264,6 @@ export default function ReviewModeClient() {
   };
 
   if (authLoading || (contextLoading && user && !isSessionStarted) || (isSeeding && user)) { 
-    // Added !isSessionStarted to allow active session to bypass this global loading
-    // if context is still considered loading but session was restored.
     return (
       <div className="flex flex-col items-center justify-center min-h-[calc(100vh-10rem)] p-4 text-center">
         <Loader2 className="h-12 w-12 animate-spin text-primary mb-4" />
@@ -425,7 +426,7 @@ export default function ReviewModeClient() {
     );
   }
 
-  if (!currentCard && isSessionStarted && reviewQueue.length > 0) { // Current card not yet set, but queue is ready
+  if (!currentCard && isSessionStarted && reviewQueue.length > 0) {
     return (
       <div className="flex justify-center items-center mt-10">
         <Loader2 className="h-8 w-8 animate-spin text-primary" />
@@ -437,7 +438,6 @@ export default function ReviewModeClient() {
   if (!currentCard) { 
       return (
         <div className="flex justify-center items-center mt-10 text-muted-foreground">
-            {/* Fallback, should ideally not be reached if logic is correct */}
             <p>{t('review.loading')}</p> 
         </div>
       );
@@ -516,4 +516,3 @@ export default function ReviewModeClient() {
     </div>
   );
 }
-

@@ -126,13 +126,13 @@ export default function ReviewModeClient() {
 
     const savedDeckId = sessionStorage.getItem(SS_DECK_ID);
     const savedIsSessionStarted = sessionStorage.getItem(SS_IS_SESSION_STARTED);
-    const savedCardId = sessionStorage.getItem(SS_CARD_ID); // Use savedCardId
+    const savedCardId = sessionStorage.getItem(SS_CARD_ID); 
     const savedIsFlippedStr = sessionStorage.getItem(SS_IS_FLIPPED);
     const savedSessionType = sessionStorage.getItem(SS_SESSION_TYPE) as 'spaced' | 'all' | null;
 
     sessionStorage.removeItem(SS_DECK_ID);
     sessionStorage.removeItem(SS_IS_SESSION_STARTED);
-    sessionStorage.removeItem(SS_CARD_ID); // Clear savedCardId
+    sessionStorage.removeItem(SS_CARD_ID); 
     sessionStorage.removeItem(SS_IS_FLIPPED);
     sessionStorage.removeItem(SS_SESSION_TYPE);
 
@@ -166,7 +166,7 @@ export default function ReviewModeClient() {
     sessionStorage.setItem(SS_DECK_ID, deckIdFromParams || '');
     sessionStorage.setItem(SS_IS_SESSION_STARTED, String(isSessionStarted));
     if (currentCard && isSessionStarted) {
-      sessionStorage.setItem(SS_CARD_ID, currentCard.id); // Save current card ID
+      sessionStorage.setItem(SS_CARD_ID, currentCard.id); 
     }
     sessionStorage.setItem(SS_IS_FLIPPED, String(isFlipped));
     if (currentSessionType) {
@@ -210,57 +210,77 @@ export default function ReviewModeClient() {
   const handleProgress = async (performance: PerformanceRating) => {
     if (!currentCard || !user) return;
 
-    setIsSubmittingProgress(true);
-    try {
-      const currentDate = new Date();
-      let newInterval: number;
-      let currentCardInterval = currentCard.interval > 0 ? currentCard.interval : 1;
+    setIsSubmittingProgress(true); 
+    const cardToUpdateId = currentCard.id;
+    // Optional: Store card's front for a more specific toast message later
+    // const cardFrontForToast = currentCard.front; 
 
-      switch (performance) {
-        case 'Mastered':
-          newInterval = Math.round(currentCardInterval * MASTERED_MULTIPLIER);
-          break;
-        case 'Later':
-          newInterval = Math.round(currentCardInterval * LATER_MULTIPLIER);
-          break;
-        case 'Try Again':
-        default:
-          newInterval = TRY_AGAIN_INTERVAL;
-          break;
-      }
-
-      newInterval = Math.max(MIN_INTERVAL, Math.min(newInterval, MAX_INTERVAL));
-      const nextReviewDate = addDays(currentDate, newInterval);
-      const nextReviewDateString = formatISO(nextReviewDate, { representation: 'date' });
-      const lastReviewedDateString = formatISO(currentDate, { representation: 'date' });
-      const newStatus = performance === 'Mastered' ? 'mastered' : 'learning';
-
-      await updateFlashcard(currentCard.id, {
-        lastReviewed: lastReviewedDateString,
-        nextReviewDate: nextReviewDateString,
-        interval: newInterval,
-        status: newStatus,
-      });
-
-      if (currentCardIndex < reviewQueue.length - 1) {
-        setCurrentCardIndex(currentCardIndex + 1);
-        setIsFlipped(false);
-      } else {
-        setReviewQueue([]);
-        setIsSessionStarted(false);
-        setCurrentSessionType(null);
-      }
-    } catch (error) {
-      console.error("Error updating flashcard schedule:", error);
-      const errorMessage = error instanceof Error ? error.message : "An unknown error occurred.";
-      toast({
-        title: t('error'),
-        description: t('toast.progress.error', {errorMessage}),
-        variant: "destructive",
-      });
-    } finally {
-      setIsSubmittingProgress(false);
+    // Advance UI immediately
+    if (currentCardIndex < reviewQueue.length - 1) {
+      setCurrentCardIndex(currentCardIndex + 1);
+      setIsFlipped(false);
+    } else {
+      setReviewQueue([]);
+      setIsSessionStarted(false);
+      setCurrentSessionType(null);
     }
+
+    // Asynchronous update
+    (async () => {
+      try {
+        const currentDate = new Date();
+        // Fetch the most up-to-date card details for calculation, or use the one we had.
+        // For simplicity here, we use interval from currentCard, assuming it's fresh enough.
+        // A more robust solution might re-fetch or use a transaction if absolute consistency is critical.
+        const cardForCalc = allFlashcardsFromContext.find(c => c.id === cardToUpdateId) || currentCard;
+
+        let newInterval: number;
+        let currentCardInterval = cardForCalc.interval > 0 ? cardForCalc.interval : 1;
+
+        switch (performance) {
+          case 'Mastered':
+            newInterval = Math.round(currentCardInterval * MASTERED_MULTIPLIER);
+            break;
+          case 'Later':
+            newInterval = Math.round(currentCardInterval * LATER_MULTIPLIER);
+            break;
+          case 'Try Again':
+          default:
+            newInterval = TRY_AGAIN_INTERVAL;
+            break;
+        }
+
+        newInterval = Math.max(MIN_INTERVAL, Math.min(newInterval, MAX_INTERVAL));
+        const nextReviewDate = addDays(currentDate, newInterval);
+        const nextReviewDateString = formatISO(nextReviewDate, { representation: 'date' });
+        const lastReviewedDateString = formatISO(currentDate, { representation: 'date' });
+        const newStatus = performance === 'Mastered' ? 'mastered' : 'learning';
+
+        await updateFlashcard(cardToUpdateId, {
+          lastReviewed: lastReviewedDateString,
+          nextReviewDate: nextReviewDateString,
+          interval: newInterval,
+          status: newStatus,
+        });
+        
+        // Toast success (optional, can be too noisy)
+        // toast({
+        //   title: t('success'),
+        //   description: `Progress for "${cardFrontForToast.substring(0,20)}..." saved.`,
+        // });
+
+      } catch (error) {
+        console.error("Error updating flashcard schedule:", error);
+        const errorMessage = error instanceof Error ? error.message : "An unknown error occurred.";
+        toast({
+          title: t('error'),
+          description: t('toast.progress.error', {errorMessage}),
+          variant: "destructive",
+        });
+      } finally {
+        setIsSubmittingProgress(false); 
+      }
+    })();
   };
 
   if (authLoading || (contextLoading && user && !isSessionStarted) || (isSeeding && user)) { 
@@ -494,15 +514,17 @@ export default function ReviewModeClient() {
                 onClick={() => handleProgress(opt.rating)}
                 variant={opt.variant}
                 className="text-sm sm:text-base py-4 h-auto"
-                disabled={isSubmittingProgress}
+                disabled={isSubmittingProgress} 
               >
+                {isSubmittingProgress && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                 <opt.icon className="mr-1 sm:mr-2 h-4 w-4 sm:h-5 sm:w-5" /> {t(opt.labelKey)}
               </Button>
             ))}
           </CardFooter>
         )}
       </Card>
-      {isSubmittingProgress && <p className="mt-4 text-primary animate-pulse">{t('review.processing')}</p>}
+      {/* Removed the general "Processing..." message as individual buttons now show loader if isSubmittingProgress affects them,
+          or the UI moves on immediately. Consider if a global "saving in background" indicator is needed if updates are slow. */}
       {user && (
           <Button
               variant="default"
@@ -516,3 +538,4 @@ export default function ReviewModeClient() {
     </div>
   );
 }
+

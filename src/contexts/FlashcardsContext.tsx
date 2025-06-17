@@ -20,9 +20,10 @@ import {
   getDoc,
   runTransaction,
   limit,
+  getCountFromServer, // Import getCountFromServer
 } from 'firebase/firestore';
 import { useAuth } from './AuthContext';
-import { formatISO, parseISO } from 'date-fns';
+import { formatISO, parseISO, subDays } from 'date-fns'; // Added subDays
 import flashcardJsonData from '../../flashcard.json';
 
 const EMPTY_FLASHCARDS: Flashcard[] = [];
@@ -48,6 +49,8 @@ interface FlashcardsContextType {
   updateTask: (id: string, updates: Partial<Omit<Task, 'id' | 'userId' | 'createdAt'>>) => Promise<Task | null>;
   deleteTask: (id: string) => Promise<void>;
   getTaskById: (id: string) => Task | undefined;
+  getCompletedTasksCountLast30Days: () => Promise<number>;
+  fetchCompletedTasksLast30Days: () => Promise<Task[]>;
 
   getReviewQueue: () => Flashcard[];
   getStatistics: () => { total: number; mastered: number; learning: number; new: number; dueToday: number };
@@ -68,6 +71,26 @@ export const FlashcardsProvider = ({ children }: { children: ReactNode }) => {
   const [isLoadingDecks, setIsLoadingDecks] = useState(true);
   const [isLoadingTasks, setIsLoadingTasks] = useState(true);
   const [isSeeding, setIsSeeding] = useState(false);
+
+  const mapFirestoreDocToTask = (docSnapshot: any): Task => {
+    const data = docSnapshot.data();
+    return {
+      id: docSnapshot.id,
+      ...data,
+      type: data.type || 'innie',
+      createdAt: data.createdAt instanceof Timestamp ? formatISO(data.createdAt.toDate()) : (typeof data.createdAt === 'string' ? data.createdAt : null),
+      updatedAt: data.updatedAt instanceof Timestamp ? formatISO(data.updatedAt.toDate()) : (typeof data.updatedAt === 'string' ? data.updatedAt : null),
+      timeInfo: {
+        ...data.timeInfo,
+        startDate: data.timeInfo?.startDate instanceof Timestamp ? formatISO(data.timeInfo.startDate.toDate()) : data.timeInfo?.startDate,
+        endDate: data.timeInfo?.endDate instanceof Timestamp ? formatISO(data.timeInfo.endDate.toDate()) : data.timeInfo?.endDate,
+      },
+      artifactLink: data.artifactLink || { flashcardId: null },
+      reminderInfo: data.reminderInfo || { type: 'none' },
+      checkinInfo: data.checkinInfo || null,
+    } as Task;
+  };
+
 
   const seedInitialData = useCallback(async (currentUser: AppUser) => {
     if (!currentUser || !currentUser.uid) return;
@@ -187,24 +210,7 @@ export const FlashcardsProvider = ({ children }: { children: ReactNode }) => {
         const tasksCollectionRef = collection(db, 'users', user.uid, 'tasks');
         const qTasks = query(tasksCollectionRef, orderBy('createdAt', 'desc'));
         const unsubscribeTasks = onSnapshot(qTasks, (snapshot) => {
-          const fetchedTasks = snapshot.docs.map(doc => {
-            const data = doc.data();
-            const taskData = {
-              id: doc.id, ...data,
-              type: data.type || 'innie', 
-              createdAt: data.createdAt instanceof Timestamp ? formatISO(data.createdAt.toDate()) : (typeof data.createdAt === 'string' ? data.createdAt : null),
-              updatedAt: data.updatedAt instanceof Timestamp ? formatISO(data.updatedAt.toDate()) : (typeof data.updatedAt === 'string' ? data.updatedAt : null),
-              timeInfo: {
-                ...data.timeInfo,
-                startDate: data.timeInfo?.startDate instanceof Timestamp ? formatISO(data.timeInfo.startDate.toDate()) : data.timeInfo?.startDate,
-                endDate: data.timeInfo?.endDate instanceof Timestamp ? formatISO(data.timeInfo.endDate.toDate()) : data.timeInfo?.endDate,
-              },
-              artifactLink: data.artifactLink || { flashcardId: null },
-              reminderInfo: data.reminderInfo || { type: 'none' },
-              checkinInfo: data.checkinInfo || null, // Ensure checkinInfo is loaded
-            } as Task;
-            return taskData;
-          });
+          const fetchedTasks = snapshot.docs.map(mapFirestoreDocToTask);
           setTasks(fetchedTasks);
           setIsLoadingTasks(false);
         }, (error) => { console.error("Error fetching tasks:", error); setIsLoadingTasks(false); setTasks(EMPTY_TASKS); });
@@ -309,10 +315,10 @@ export const FlashcardsProvider = ({ children }: { children: ReactNode }) => {
         ...data,
         type: data.type || 'innie',
         userId: user.uid,
-        status: 'pending' as TaskStatus, 
+        status: 'pending' as TaskStatus,
         artifactLink: data.artifactLink || { flashcardId: null },
         reminderInfo: data.reminderInfo || { type: 'none' },
-        checkinInfo: data.checkinInfo || null, // Save checkinInfo
+        checkinInfo: data.checkinInfo || null,
         createdAt: now,
         updatedAt: now
       };
@@ -326,7 +332,7 @@ export const FlashcardsProvider = ({ children }: { children: ReactNode }) => {
         type: data.type || 'innie',
         artifactLink: data.artifactLink || { flashcardId: null },
         reminderInfo: data.reminderInfo || { type: 'none' },
-        checkinInfo: data.checkinInfo || null, // Return checkinInfo
+        checkinInfo: data.checkinInfo || null,
         createdAt: localCreatedAt,
         updatedAt: localCreatedAt
       } as Task;
@@ -338,19 +344,17 @@ export const FlashcardsProvider = ({ children }: { children: ReactNode }) => {
     try {
       const taskDocRef = doc(db, 'users', user.uid, 'tasks', id);
       const currentTask = tasks.find(t => t.id === id);
-      const updateData: Partial<Omit<Task, 'id' | 'userId' | 'createdAt'>> & { updatedAt: FieldValue } = {
+      const updateData: Partial<Omit<Task, 'id' | 'userId' | 'createdAt'>> & { updatedAt: any } = {
         ...updates,
-        type: updates.type || currentTask?.type || 'innie', 
+        type: updates.type || currentTask?.type || 'innie',
         artifactLink: updates.artifactLink || currentTask?.artifactLink || { flashcardId: null },
         reminderInfo: updates.reminderInfo || currentTask?.reminderInfo || { type: 'none' },
-        // Explicitly handle checkinInfo: if updates.checkinInfo is undefined, keep currentTask.checkinInfo.
-        // If updates.checkinInfo is explicitly null, set it to null. Otherwise, use updates.checkinInfo.
         checkinInfo: updates.checkinInfo === undefined ? currentTask?.checkinInfo : (updates.checkinInfo || null),
         updatedAt: serverTimestamp()
       };
-      
-      await updateDoc(taskDocRef, updateData as any); // Use 'as any' to bypass strict type checking for serverTimestamp
-      
+
+      await updateDoc(taskDocRef, updateData as any);
+
       const task = tasks.find(t => t.id === id);
       return task ? { ...task, ...updates, type: updateData.type, checkinInfo: updateData.checkinInfo, updatedAt: formatISO(new Date()) } : null;
     } catch (error) { console.error("Error updating task:", error); return null; }
@@ -365,6 +369,44 @@ export const FlashcardsProvider = ({ children }: { children: ReactNode }) => {
   }, [user]);
 
   const getTaskById = useCallback((id: string) => tasks.find(task => task.id === id), [tasks]);
+
+  const getCompletedTasksCountLast30Days = useCallback(async (): Promise<number> => {
+    if (!user || !user.uid) return 0;
+    try {
+      const tasksCollectionRef = collection(db, 'users', user.uid, 'tasks');
+      const date30DaysAgo = subDays(new Date(), 30);
+      const q = query(
+        tasksCollectionRef,
+        where('status', '==', 'completed'),
+        where('updatedAt', '>=', Timestamp.fromDate(date30DaysAgo))
+      );
+      const snapshot = await getCountFromServer(q);
+      return snapshot.data().count;
+    } catch (error) {
+      console.error("Error getting completed tasks count:", error);
+      return 0;
+    }
+  }, [user]);
+
+  const fetchCompletedTasksLast30Days = useCallback(async (): Promise<Task[]> => {
+    if (!user || !user.uid) return [];
+    try {
+      const tasksCollectionRef = collection(db, 'users', user.uid, 'tasks');
+      const date30DaysAgo = subDays(new Date(), 30);
+      const q = query(
+        tasksCollectionRef,
+        where('status', '==', 'completed'),
+        where('updatedAt', '>=', Timestamp.fromDate(date30DaysAgo)),
+        orderBy('updatedAt', 'desc')
+      );
+      const snapshot = await getDocs(q);
+      return snapshot.docs.map(mapFirestoreDocToTask);
+    } catch (error) {
+      console.error("Error fetching completed tasks:", error);
+      return [];
+    }
+  }, [user]);
+
 
   const getReviewQueue = useCallback(() => {
     if (isLoading || !user) return [];
@@ -416,6 +458,7 @@ export const FlashcardsProvider = ({ children }: { children: ReactNode }) => {
     addFlashcard, updateFlashcard, deleteFlashcard, getFlashcardById,
     addDeck, updateDeck, deleteDeck, getDeckById,
     addTask, updateTask, deleteTask, getTaskById,
+    getCompletedTasksCountLast30Days, fetchCompletedTasksLast30Days,
     getReviewQueue, getStatistics,
     isLoading: isLoading || (user && isSeeding),
     isLoadingDecks: isLoadingDecks || (user && isSeeding),
@@ -426,6 +469,7 @@ export const FlashcardsProvider = ({ children }: { children: ReactNode }) => {
       addFlashcard, updateFlashcard, deleteFlashcard, getFlashcardById,
       addDeck, updateDeck, deleteDeck, getDeckById,
       addTask, updateTask, deleteTask, getTaskById,
+      getCompletedTasksCountLast30Days, fetchCompletedTasksLast30Days,
       getReviewQueue, getStatistics,
       isLoading, isLoadingDecks, isLoadingTasks,
       user, isSeeding

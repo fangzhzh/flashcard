@@ -41,7 +41,7 @@ export interface PomodoroSessionState {
   currentSessionInitialDurationMinutes: number;
   userPreferredDurationMinutes: number;
   notes: string;
-  updatedAt: any;
+  updatedAt: any; // Firestore Timestamp or serverTimestamp()
   currentTaskTitle?: string | null; // For displaying task title during Pomodoro
 }
 
@@ -85,7 +85,7 @@ export interface Task {
   artifactLink: ArtifactLink;
   reminderInfo: ReminderInfo;
   checkinInfo?: CheckinInfo | null; // New field for check-in tasks
-  createdAt: string;
-  updatedAt: string;
+  createdAt: any; // Firestore Timestamp or serverTimestamp() on write, string on read
+  updatedAt: any; // Firestore Timestamp or serverTimestamp() on write, string on read
 }
 

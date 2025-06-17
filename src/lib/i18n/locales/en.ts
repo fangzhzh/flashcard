@@ -295,6 +295,12 @@ export default {
   'tasks.list.loading': 'Loading your tasks...',
   'tasks.list.empty.title': 'No Tasks Yet!',
   'tasks.list.empty.description': 'You haven\'t created any tasks. Click "Create New Task" to add one.',
+  'tasks.accordion.completedTitle': "Completed Tasks",
+  'tasks.accordion.loadingCount': "Loading count...",
+  'tasks.accordion.loadingList': "Loading completed tasks...",
+  'tasks.accordion.noCompletedTasks': "No tasks completed in the last 30 days.",
+  'tasks.accordion.errorCount': "Error loading completed task count.",
+  'tasks.accordion.errorList': "Error loading completed tasks.",
   'task.item.edit': 'Edit Task',
   'task.item.delete': 'Delete Task',
   'task.item.startPomodoro': 'Start Pomodoro for this task',
@@ -495,5 +501,6 @@ export default {
   'error': 'Error',
 
 } as const;
+
 
 

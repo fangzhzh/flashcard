@@ -295,6 +295,12 @@ export default {
   'tasks.list.loading': '加载任务中...',
   'tasks.list.empty.title': '还没有任务!',
   'tasks.list.empty.description': '您还没有创建任何任务。点击“创建新任务”添加一个吧。',
+  'tasks.accordion.completedTitle': "已完成的任务",
+  'tasks.accordion.loadingCount': "加载计数中...",
+  'tasks.accordion.loadingList': "加载已完成的任务...",
+  'tasks.accordion.noCompletedTasks': "最近30天内没有完成的任务。",
+  'tasks.accordion.errorCount': "加载已完成任务计数失败。",
+  'tasks.accordion.errorList': "加载已完成任务列表失败。",
   'task.item.edit': '编辑任务',
   'task.item.delete': '删除任务',
   'task.item.startPomodoro': '为此任务启动番茄钟',
@@ -412,6 +418,7 @@ export default {
   'task.form.checkin.placeholder.times': '次',
   'task.form.checkin.timesUnit': '次',
 
+
   'toast.task.error.flashcardLinkFailed': '创建或链接新抽认卡失败。',
   'toast.task.error.intermediateSaveFailed': '更新任务链接失败。请尝试保存整个任务。',
   'toast.task.typeChanged': '任务类型已更改为 {type}。',
@@ -495,5 +502,6 @@ export default {
   'error': '错误',
 
 } as const;
+
 
 

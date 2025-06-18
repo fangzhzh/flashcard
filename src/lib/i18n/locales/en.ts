@@ -238,6 +238,9 @@ export default {
   'pomodoro.settings.durationLabel': 'Pomodoro Duration (minutes):',
   'pomodoro.settings.durationPlaceholder': 'e.g., 25',
   'pomodoro.settings.durationError': 'Duration must be between 1 and 120 minutes.',
+  'pomodoro.settings.restDurationLabel': 'Rest Duration (minutes):',
+  'pomodoro.settings.restDurationPlaceholder': 'e.g., 5',
+  'pomodoro.settings.restDurationError': 'Rest duration must be between 1 and 60 minutes.',
   'pomodoro.settings.toggleHint': 'Click timer to toggle settings (when idle)',
   'pomodoro.button.start': 'Start',
   'pomodoro.button.pause': 'Pause',
@@ -501,6 +504,3 @@ export default {
   'error': 'Error',
 
 } as const;
-
-
-

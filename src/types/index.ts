@@ -40,6 +40,7 @@ export interface PomodoroSessionState {
   pausedTimeLeftSeconds: number | null;
   currentSessionInitialDurationMinutes: number;
   userPreferredDurationMinutes: number;
+  userPreferredRestDurationMinutes?: number; // Added for rest duration
   notes: string;
   updatedAt: any; // Firestore Timestamp or serverTimestamp()
   currentTaskTitle?: string | null; // For displaying task title during Pomodoro

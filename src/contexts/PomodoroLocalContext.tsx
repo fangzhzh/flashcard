@@ -14,6 +14,7 @@ const BREAK_COMPLETE_SOUND = '/sounds/break_complete.mp3';
 interface LocalPomodoroSessionState extends Omit<PomodoroStateStructure, 'userId' | 'updatedAt'> {
   updatedAt: number;
   currentTaskTitle?: string | null;
+  userPreferredRestDurationMinutes?: number; // Added
 }
 
 interface PomodoroLocalContextType {
@@ -24,6 +25,7 @@ interface PomodoroLocalContextType {
   continuePomodoro: () => Promise<void>;
   giveUpPomodoro: () => Promise<void>;
   updateUserPreferredDuration: (minutes: number) => Promise<void>;
+  updateUserPreferredRestDuration: (minutes: number) => Promise<void>; // Added
   updateNotes: (text: string) => Promise<void>;
   isBreakDialogOpen: boolean;
   setIsBreakDialogOpen: React.Dispatch<React.SetStateAction<boolean>>;
@@ -56,6 +58,7 @@ export const PomodoroLocalProvider = ({ children }: { children: ReactNode }) => 
     pausedTimeLeftSeconds: null,
     currentSessionInitialDurationMinutes: DEFAULT_POMODORO_MINUTES,
     userPreferredDurationMinutes: DEFAULT_POMODORO_MINUTES,
+    userPreferredRestDurationMinutes: DEFAULT_REST_MINUTES, // Added
     notes: '',
     currentTaskTitle: null,
     updatedAt: Date.now(),
@@ -147,9 +150,10 @@ export const PomodoroLocalProvider = ({ children }: { children: ReactNode }) => 
       pomodoroIntervalRef.current = null;
     }
     
-    playSound(POMODORO_COMPLETE_SOUND); // Play sound on Pomodoro completion
+    playSound(POMODORO_COMPLETE_SOUND); 
 
     const currentPreferredDuration = sessionState.userPreferredDurationMinutes || DEFAULT_POMODORO_MINUTES;
+    const currentPreferredRestDuration = sessionState.userPreferredRestDurationMinutes || DEFAULT_REST_MINUTES;
     const notesToPreserve = sessionState.notes || '';
     setSessionState(prev => ({
       ...prev,
@@ -157,8 +161,9 @@ export const PomodoroLocalProvider = ({ children }: { children: ReactNode }) => 
       targetEndTime: null,
       pausedTimeLeftSeconds: null,
       currentSessionInitialDurationMinutes: currentPreferredDuration,
+      userPreferredRestDurationMinutes: currentPreferredRestDuration,
       notes: notesToPreserve,
-      currentTaskTitle: null, // Clear task title
+      currentTaskTitle: null, 
       updatedAt: Date.now()
     }));
 
@@ -169,7 +174,7 @@ export const PomodoroLocalProvider = ({ children }: { children: ReactNode }) => 
         icon: '/favicon.ico'
       });
     }
-  }, [isResting, isBreakDialogOpen, sessionState.userPreferredDurationMinutes, sessionState.notes, t, setSessionState, setIsBreakDialogOpen]);
+  }, [isResting, isBreakDialogOpen, sessionState.userPreferredDurationMinutes, sessionState.userPreferredRestDurationMinutes, sessionState.notes, t, setSessionState, setIsBreakDialogOpen]);
 
   useEffect(() => {
     if (isResting || isBreakDialogOpen || sessionState.status !== 'running' || !sessionState.targetEndTime) {
@@ -256,7 +261,7 @@ export const PomodoroLocalProvider = ({ children }: { children: ReactNode }) => 
         if (prevSeconds <= 1) {
           clearInterval(intervalId);
           setIsResting(false);
-          playSound(BREAK_COMPLETE_SOUND); // Play sound on break completion
+          playSound(BREAK_COMPLETE_SOUND); 
           if (typeof window !== 'undefined' && Notification.permission === "granted") {
             new Notification(t('pomodoro.rest.notification.title'), {
               body: t('pomodoro.rest.notification.body'),
@@ -297,6 +302,7 @@ export const PomodoroLocalProvider = ({ children }: { children: ReactNode }) => 
       targetEndTime,
       currentSessionInitialDurationMinutes: durationMinutes,
       userPreferredDurationMinutes: prev.userPreferredDurationMinutes || durationMinutes,
+      userPreferredRestDurationMinutes: prev.userPreferredRestDurationMinutes || DEFAULT_REST_MINUTES,
       pausedTimeLeftSeconds: null,
       currentTaskTitle: taskTitle || null,
       updatedAt: Date.now(),
@@ -363,6 +369,15 @@ export const PomodoroLocalProvider = ({ children }: { children: ReactNode }) => 
     });
   };
 
+  const updateUserPreferredRestDuration = async (minutes: number) => {
+    const newRestDuration = Math.max(1, Math.min(minutes, 60));
+    setSessionState(prev => ({
+      ...prev,
+      userPreferredRestDurationMinutes: newRestDuration,
+      updatedAt: Date.now(),
+    }));
+  };
+
   const updateNotes = async (text: string) => {
     setSessionState(prev => ({ ...prev, notes: text, updatedAt: Date.now() }));
   };
@@ -373,13 +388,13 @@ export const PomodoroLocalProvider = ({ children }: { children: ReactNode }) => 
       clearInterval(pomodoroIntervalRef.current);
       pomodoroIntervalRef.current = null;
     }
-    setRestTimeLeftSeconds(DEFAULT_REST_MINUTES * 60);
+    setRestTimeLeftSeconds((sessionState.userPreferredRestDurationMinutes || DEFAULT_REST_MINUTES) * 60);
     setIsResting(true);
   };
 
   const skipRest = () => {
     setIsResting(false);
-    setRestTimeLeftSeconds(DEFAULT_REST_MINUTES * 60);
+    setRestTimeLeftSeconds((sessionState.userPreferredRestDurationMinutes || DEFAULT_REST_MINUTES) * 60);
   };
 
   return (
@@ -391,6 +406,7 @@ export const PomodoroLocalProvider = ({ children }: { children: ReactNode }) => 
       continuePomodoro,
       giveUpPomodoro,
       updateUserPreferredDuration,
+      updateUserPreferredRestDuration,
       updateNotes,
       isBreakDialogOpen,
       setIsBreakDialogOpen,

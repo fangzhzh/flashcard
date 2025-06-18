@@ -24,6 +24,7 @@ interface PomodoroContextType {
   continuePomodoro: () => Promise<void>;
   giveUpPomodoro: () => Promise<void>;
   updateUserPreferredDuration: (minutes: number) => Promise<void>;
+  updateUserPreferredRestDuration: (minutes: number) => Promise<void>; // Added
   updateNotes: (text: string) => Promise<void>;
   isResting: boolean;
   restTimeLeftSeconds: number;
@@ -111,6 +112,7 @@ export const PomodoroProvider = ({ children }: { children: ReactNode }) => {
           pausedTimeLeftSeconds: data.pausedTimeLeftSeconds || null,
           currentSessionInitialDurationMinutes: data.currentSessionInitialDurationMinutes,
           userPreferredDurationMinutes: data.userPreferredDurationMinutes,
+          userPreferredRestDurationMinutes: data.userPreferredRestDurationMinutes, // Added
           notes: data.notes || '',
           currentTaskTitle: data.currentTaskTitle || null,
           updatedAt: data.updatedAt instanceof Timestamp ? data.updatedAt.toMillis() : (typeof data.updatedAt === 'number' ? data.updatedAt : Date.now()),
@@ -128,6 +130,7 @@ export const PomodoroProvider = ({ children }: { children: ReactNode }) => {
           pausedTimeLeftSeconds: null,
           currentSessionInitialDurationMinutes: DEFAULT_POMODORO_MINUTES,
           userPreferredDurationMinutes: DEFAULT_POMODORO_MINUTES,
+          userPreferredRestDurationMinutes: DEFAULT_REST_MINUTES, // Added
           notes: '',
           currentTaskTitle: null,
           updatedAt: Date.now(),
@@ -151,6 +154,7 @@ export const PomodoroProvider = ({ children }: { children: ReactNode }) => {
           pausedTimeLeftSeconds: null,
           currentSessionInitialDurationMinutes: DEFAULT_POMODORO_MINUTES,
           userPreferredDurationMinutes: DEFAULT_POMODORO_MINUTES,
+          userPreferredRestDurationMinutes: DEFAULT_REST_MINUTES, // Added
           notes: '',
           currentTaskTitle: null,
           updatedAt: Date.now(),
@@ -230,9 +234,10 @@ export const PomodoroProvider = ({ children }: { children: ReactNode }) => {
       pomodoroIntervalRef.current = null;
     }
 
-    playSound(POMODORO_COMPLETE_SOUND); // Play sound on Pomodoro completion
+    playSound(POMODORO_COMPLETE_SOUND); 
 
     const currentPreferredDuration = firestoreSessionState?.userPreferredDurationMinutes || DEFAULT_POMODORO_MINUTES;
+    const currentPreferredRestDuration = firestoreSessionState?.userPreferredRestDurationMinutes || DEFAULT_REST_MINUTES;
     const notesToPreserve = firestoreSessionState?.notes || '';
     const newState: Omit<PomodoroSessionState, 'updatedAt'> & {updatedAt: FieldValue} = {
       userId: user.uid,
@@ -241,6 +246,7 @@ export const PomodoroProvider = ({ children }: { children: ReactNode }) => {
       pausedTimeLeftSeconds: null,
       currentSessionInitialDurationMinutes: currentPreferredDuration,
       userPreferredDurationMinutes: currentPreferredDuration,
+      userPreferredRestDurationMinutes: currentPreferredRestDuration,
       notes: notesToPreserve,
       currentTaskTitle: null,
       updatedAt: serverTimestamp()
@@ -347,7 +353,7 @@ export const PomodoroProvider = ({ children }: { children: ReactNode }) => {
         if (prevSeconds <= 1) {
           clearInterval(intervalId);
           setIsResting(false);
-          playSound(BREAK_COMPLETE_SOUND); // Play sound on break completion
+          playSound(BREAK_COMPLETE_SOUND); 
           if (typeof window !== 'undefined' && Notification.permission === "granted") {
             new Notification(t('pomodoro.rest.notification.title'), {
               body: t('pomodoro.rest.notification.body'),
@@ -392,6 +398,7 @@ export const PomodoroProvider = ({ children }: { children: ReactNode }) => {
       targetEndTime,
       currentSessionInitialDurationMinutes: durationMinutes,
       userPreferredDurationMinutes: firestoreSessionState?.userPreferredDurationMinutes || durationMinutes,
+      userPreferredRestDurationMinutes: firestoreSessionState?.userPreferredRestDurationMinutes || DEFAULT_REST_MINUTES,
       pausedTimeLeftSeconds: null,
       notes: firestoreSessionState?.notes || '',
       currentTaskTitle: taskTitle || null,
@@ -469,6 +476,14 @@ export const PomodoroProvider = ({ children }: { children: ReactNode }) => {
     await setDoc(docRef, updateData, { merge: true }).catch(e => console.error("Error updating duration:", e));
   };
 
+  const updateUserPreferredRestDuration = async (minutes: number) => {
+    const docRef = pomodoroDocRef();
+    if (!docRef || !user?.uid) return;
+    const newRestDuration = Math.max(1, Math.min(minutes, 60)); // Example range 1-60 min
+    await setDoc(docRef, { userPreferredRestDurationMinutes: newRestDuration, updatedAt: serverTimestamp() }, { merge: true })
+      .catch(e => console.error("Error updating rest duration:", e));
+  };
+
   const updateNotes = async (text: string) => {
     const docRef = pomodoroDocRef();
     if (!docRef || !user?.uid) return;
@@ -481,13 +496,13 @@ export const PomodoroProvider = ({ children }: { children: ReactNode }) => {
         clearInterval(pomodoroIntervalRef.current);
         pomodoroIntervalRef.current = null;
     }
-    setRestTimeLeftSeconds(DEFAULT_REST_MINUTES * 60);
+    setRestTimeLeftSeconds((firestoreSessionState?.userPreferredRestDurationMinutes || DEFAULT_REST_MINUTES) * 60);
     setIsResting(true);
   };
 
   const skipRest = () => {
     setIsResting(false);
-    setRestTimeLeftSeconds(DEFAULT_REST_MINUTES * 60);
+    setRestTimeLeftSeconds((firestoreSessionState?.userPreferredRestDurationMinutes || DEFAULT_REST_MINUTES) * 60);
   };
 
 
@@ -501,6 +516,7 @@ export const PomodoroProvider = ({ children }: { children: ReactNode }) => {
       continuePomodoro,
       giveUpPomodoro,
       updateUserPreferredDuration,
+      updateUserPreferredRestDuration,
       updateNotes,
       isResting,
       restTimeLeftSeconds,

@@ -4,11 +4,13 @@
 import { useState, useEffect } from 'react';
 import { usePomodoro } from '@/contexts/PomodoroContext';
 import { useAuth } from '@/contexts/AuthContext';
-import { usePathname, useRouter } from 'next/navigation';
+import { usePathname } from 'next/navigation'; // Removed useRouter as it's not needed for navigation here
 import { useCurrentLocale, useI18n } from '@/lib/i18n/client';
 import { Button } from '@/components/ui/button';
 import { Pause, Play, Coffee, TimerIcon } from 'lucide-react';
 import { cn } from '@/lib/utils';
+
+const DEFAULT_POMODORO_MINUTES_DISPLAY = 25; // To show in idle if no preference yet
 
 const formatTime = (seconds: number): string => {
   const minutes = Math.floor(seconds / 60);
@@ -21,6 +23,7 @@ export default function FloatingPomodoroTimer() {
   const {
     sessionState,
     timeLeftSeconds,
+    startPomodoro, // Added startPomodoro
     pausePomodoro,
     continuePomodoro,
     isResting,
@@ -28,7 +31,6 @@ export default function FloatingPomodoroTimer() {
   } = usePomodoro();
 
   const t = useI18n();
-  const router = useRouter();
   const pathname = usePathname();
   const currentLocale = useCurrentLocale();
   const [isHovered, setIsHovered] = useState(false);
@@ -41,14 +43,14 @@ export default function FloatingPomodoroTimer() {
     }
 
     let isMainTimerPage = false;
+    // Paths for the main timer page (logged-in) and the local timer page (guest at root)
     if (pathname === `/${currentLocale}/timer` || pathname === `/${currentLocale}`) {
         isMainTimerPage = true;
     }
-     // Handle root path specifically, as it also acts as a timer page (local)
+     // Handle root path specifically for guests
     if (pathname === '/') {
         isMainTimerPage = true;
     }
-
 
     if (isMainTimerPage) {
       setIsVisible(false);
@@ -56,7 +58,7 @@ export default function FloatingPomodoroTimer() {
     }
 
     // Show if user is logged in, not on a main timer page, AND
-    // (timer is running/paused OR is resting OR is idle)
+    // (timer is running/paused OR is resting OR is idle and not resting)
     const timerActiveOrResting = (sessionState.status === 'running' || sessionState.status === 'paused') || isResting;
     const timerIsIdleAndNotResting = sessionState.status === 'idle' && !isResting;
 
@@ -65,17 +67,18 @@ export default function FloatingPomodoroTimer() {
   }, [user, sessionState, pathname, currentLocale, isResting]);
 
 
-  if (!isVisible) {
+  if (!isVisible || !sessionState) { // Added !sessionState check for safety
     return null;
   }
 
-  const handleIdleClick = () => {
-    router.push(`/${currentLocale}/timer`);
-  };
-
   // Idle State
-  if (sessionState!.status === 'idle' && !isResting) {
-    const preferredDuration = sessionState!.userPreferredDurationMinutes || 25;
+  if (sessionState.status === 'idle' && !isResting) {
+    const preferredDuration = sessionState.userPreferredDurationMinutes || DEFAULT_POMODORO_MINUTES_DISPLAY;
+    const handleIdleClick = () => {
+      // Directly start the Pomodoro session
+      startPomodoro(preferredDuration); 
+    };
+
     return (
       <Button
         variant="outline"
@@ -94,7 +97,7 @@ export default function FloatingPomodoroTimer() {
             {formatTime(preferredDuration * 60)}
           </span>
         ) : (
-          <TimerIcon className="h-7 w-7 text-primary" />
+          <Play className="h-7 w-7 text-primary" /> // Changed from TimerIcon to Play
         )}
       </Button>
     );
@@ -126,9 +129,9 @@ export default function FloatingPomodoroTimer() {
     );
   }
 
-  // Pomodoro Running/Paused State (sessionState is guaranteed to be non-null here due to isVisible logic)
-  const isActive = sessionState!.status === 'running';
-  const isPaused = sessionState!.status === 'paused';
+  // Pomodoro Running/Paused State
+  const isActive = sessionState.status === 'running';
+  const isPaused = sessionState.status === 'paused';
 
   return (
     <Button

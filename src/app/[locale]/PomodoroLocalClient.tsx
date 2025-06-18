@@ -2,7 +2,6 @@
 "use client";
 
 import { useState, useEffect } from 'react';
-// Link and ClipboardPlus are no longer needed here
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -14,10 +13,11 @@ import { cn } from '@/lib/utils';
 import BreakOptionsDialog from '@/components/BreakOptionsDialog';
 
 const DEFAULT_POMODORO_MINUTES_DISPLAY = 25;
+const DEFAULT_REST_MINUTES_DISPLAY = 5;
 
 export default function PomodoroLocalClient() {
   const t = useI18n();
-  const currentLocale = useCurrentLocale(); // currentLocale is not used, but kept for consistency with other client components
+  const currentLocale = useCurrentLocale(); 
   const {
     sessionState,
     timeLeftSeconds,
@@ -26,6 +26,7 @@ export default function PomodoroLocalClient() {
     continuePomodoro,
     giveUpPomodoro,
     updateUserPreferredDuration,
+    updateUserPreferredRestDuration, // Added
     isResting,
     restTimeLeftSeconds,
     skipRest,
@@ -35,9 +36,11 @@ export default function PomodoroLocalClient() {
   } = usePomodoroLocal();
 
   const [isSettingsCardVisible, setIsSettingsCardVisible] = useState(false);
-
   const [durationInput, setDurationInput] = useState(
     sessionState?.userPreferredDurationMinutes ?? DEFAULT_POMODORO_MINUTES_DISPLAY
+  );
+  const [restDurationInput, setRestDurationInput] = useState(
+    sessionState?.userPreferredRestDurationMinutes ?? DEFAULT_REST_MINUTES_DISPLAY
   );
 
   useEffect(() => {
@@ -45,6 +48,11 @@ export default function PomodoroLocalClient() {
       sessionState.userPreferredDurationMinutes && sessionState.userPreferredDurationMinutes > 0
         ? sessionState.userPreferredDurationMinutes
         : DEFAULT_POMODORO_MINUTES_DISPLAY
+    );
+    setRestDurationInput( // Set rest duration input
+      sessionState.userPreferredRestDurationMinutes && sessionState.userPreferredRestDurationMinutes > 0
+        ? sessionState.userPreferredRestDurationMinutes
+        : DEFAULT_REST_MINUTES_DISPLAY
     );
   }, [sessionState]);
 
@@ -69,16 +77,37 @@ export default function PomodoroLocalClient() {
     }
   };
 
-  const handleDurationSettingsSave = () => {
+  const handleRestDurationInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const newDuration = parseInt(e.target.value, 10);
+    if (!isNaN(newDuration) && newDuration > 0 && newDuration <= 60) {
+      setRestDurationInput(newDuration);
+    } else if (e.target.value === '') {
+      setRestDurationInput(0);
+    }
+  };
+
+  const handlePomodoroDurationSettingsSave = () => {
      if (durationInput > 0 && durationInput <= 120) {
         updateUserPreferredDuration(durationInput);
      }
   };
 
-  const handleResetSettings = () => {
+  const handleRestDurationSettingsSave = () => {
+    if (restDurationInput > 0 && restDurationInput <= 60) {
+       updateUserPreferredRestDuration(restDurationInput);
+    }
+ };
+
+  const handleResetPomodoroSettings = () => {
     const defaultDuration = DEFAULT_POMODORO_MINUTES_DISPLAY;
     setDurationInput(defaultDuration);
     updateUserPreferredDuration(defaultDuration);
+  };
+
+  const handleResetRestSettings = () => {
+    const defaultDuration = DEFAULT_REST_MINUTES_DISPLAY;
+    setRestDurationInput(defaultDuration);
+    updateUserPreferredRestDuration(defaultDuration);
   };
 
   const toggleSettingsVisibility = () => {
@@ -161,30 +190,53 @@ export default function PomodoroLocalClient() {
                 {t('pomodoro.settings.title')}
               </CardTitle>
             </CardHeader>
-            <CardContent className="space-y-3">
-              <Label htmlFor="pomodoroDuration">{t('pomodoro.settings.durationLabel')}</Label>
-              <div className="flex items-stretch gap-2">
-                <Input
-                  type="number"
-                  id="pomodoroDuration"
-                  value={durationInput === 0 ? '' : durationInput}
-                  onChange={handleDurationInputChange}
-                  onBlur={handleDurationSettingsSave}
-                  placeholder={t('pomodoro.settings.durationPlaceholder')}
-                  className="text-base flex-grow"
-                  min="1"
-                  max="120"
-                  disabled={timerIsActive || isResting}
-                />
-                <Button onClick={handleResetSettings} variant="outline" size="icon" title={t('pomodoro.button.reset')} disabled={timerIsActive || isResting} className="h-auto">
-                  <Eraser className="h-5 w-5"/>
-                </Button>
+            <CardContent className="space-y-4"> {/* Increased space-y */}
+              <div>
+                <Label htmlFor="pomodoroDuration">{t('pomodoro.settings.durationLabel')}</Label>
+                <div className="flex items-stretch gap-2 mt-1">
+                  <Input
+                    type="number"
+                    id="pomodoroDuration"
+                    value={durationInput === 0 ? '' : durationInput}
+                    onChange={handleDurationInputChange}
+                    onBlur={handlePomodoroDurationSettingsSave}
+                    placeholder={t('pomodoro.settings.durationPlaceholder')}
+                    className="text-base flex-grow"
+                    min="1"
+                    max="120"
+                    disabled={timerIsActive || isResting}
+                  />
+                  <Button onClick={handleResetPomodoroSettings} variant="outline" size="icon" title={t('pomodoro.button.reset')} disabled={timerIsActive || isResting} className="h-auto">
+                    <Eraser className="h-5 w-5"/>
+                  </Button>
+                </div>
+                {durationInput <=0 || durationInput > 120 && <p className="text-sm text-destructive mt-1">{t('pomodoro.settings.durationError')}</p>}
               </div>
-              {durationInput <=0 || durationInput > 120 && <p className="text-sm text-destructive">{t('pomodoro.settings.durationError')}</p>}
+
+              <div>
+                <Label htmlFor="restDuration">{t('pomodoro.settings.restDurationLabel')}</Label>
+                <div className="flex items-stretch gap-2 mt-1">
+                  <Input
+                    type="number"
+                    id="restDuration"
+                    value={restDurationInput === 0 ? '' : restDurationInput}
+                    onChange={handleRestDurationInputChange}
+                    onBlur={handleRestDurationSettingsSave}
+                    placeholder={t('pomodoro.settings.restDurationPlaceholder')}
+                    className="text-base flex-grow"
+                    min="1"
+                    max="60" 
+                    disabled={timerIsActive || isResting}
+                  />
+                  <Button onClick={handleResetRestSettings} variant="outline" size="icon" title={t('pomodoro.button.reset')} disabled={timerIsActive || isResting} className="h-auto">
+                    <Eraser className="h-5 w-5"/>
+                  </Button>
+                </div>
+                {restDurationInput <=0 || restDurationInput > 60 && <p className="text-sm text-destructive mt-1">{t('pomodoro.settings.restDurationError')}</p>}
+              </div>
             </CardContent>
           </Card>
         )}
-        {/* Removed the Link and Button for "Create Task" FAB for local client */}
       </div>
       <BreakOptionsDialog
         isOpen={isBreakDialogOpen}

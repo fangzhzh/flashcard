@@ -8,7 +8,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
-import type { Task, RepeatFrequency, TimeInfo, ArtifactLink, ReminderInfo, Flashcard as FlashcardType, Deck, TaskType, CheckinInfo } from '@/types';
+import type { Task, RepeatFrequency, TimeInfo, ArtifactLink, ReminderInfo, Flashcard as FlashcardType, Deck, TaskType, CheckinInfo, TaskStatus } from '@/types';
 import { Save, CalendarIcon, Link2, RotateCcw, Clock, Bell, Trash2, X, Loader2, FilePlus, ListChecks, Search, Edit3, Repeat, Briefcase, User, Coffee, Eye, FileEdit, ArrowLeft, FilePenLine, CheckSquare, Square } from 'lucide-react';
 import { useI18n, useCurrentLocale } from '@/lib/i18n/client';
 import { cn } from '@/lib/utils';
@@ -37,6 +37,7 @@ import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
+import { Checkbox } from '@/components/ui/checkbox'; // Added Checkbox import
 
 const artifactLinkSchema = z.object({
   flashcardId: z.string().nullable().optional(),
@@ -82,6 +83,7 @@ const taskSchema = z.object({
   title: z.string().min(1, 'toast.task.error.titleRequired'),
   description: z.string().optional().nullable(),
   type: z.enum(['innie', 'outie', 'blackout']).default('innie'),
+  status: z.enum(['pending', 'completed']).default('pending'), // Added status
   repeat: z.enum(['none', 'daily', 'weekday', 'weekend', 'weekly', 'monthly', 'annually']).default('none'),
   timeInfo: timeInfoSchema,
   artifactLink: artifactLinkSchema.default({ flashcardId: null }),
@@ -124,6 +126,7 @@ export default function TaskForm({
       title: initialData?.title || '',
       description: initialData?.description || '',
       type: initialData?.type || 'innie',
+      status: initialData?.status || 'pending', // Initialize status
       repeat: initialData?.repeat || 'none',
       timeInfo: initialData?.timeInfo || { type: 'no_time', startDate: null, endDate: null, time: null },
       artifactLink: initialData?.artifactLink || { flashcardId: null },
@@ -132,7 +135,7 @@ export default function TaskForm({
     },
   });
 
-  const { formState: { isDirty: currentFormIsDirty }, control, watch, setValue } = form;
+  const { formState: { isDirty: currentFormIsDirty }, control, watch, setValue, getValues } = form;
 
   React.useEffect(() => {
     if (onDirtyChange) {
@@ -146,6 +149,7 @@ export default function TaskForm({
   const watchedRepeat = useWatch({ control, name: "repeat" });
   const watchedReminderInfo = useWatch({ control, name: "reminderInfo" });
   const watchedCheckinInfo = watch("checkinInfo");
+  const watchedStatus = watch("status"); // Watch status for dynamic styling
   const isCheckinModeEnabled = !!watchedCheckinInfo;
 
 
@@ -197,6 +201,7 @@ export default function TaskForm({
       title: initialData?.title || '',
       description: initialData?.description || '',
       type: initialData?.type || 'innie',
+      status: initialData?.status || 'pending', // Reset status
       repeat: initialData?.repeat || 'none',
       timeInfo: normalizedTimeInfo,
       artifactLink: initialData?.artifactLink || { flashcardId: null },
@@ -386,6 +391,29 @@ export default function TaskForm({
     }
   };
 
+  const handleStatusChange = async (checked: boolean) => {
+    const newStatus: TaskStatus = checked ? 'completed' : 'pending';
+    setValue('status', newStatus, { shouldDirty: true });
+    if (mode === 'edit' && initialData?.id && onIntermediateSave) {
+      const success = await onIntermediateSave({ status: newStatus });
+      if (!success) {
+        toast({ title: t('error'), description: t('toast.task.error.intermediateSaveFailed'), variant: 'destructive' });
+        // Revert optimistic UI change if save failed
+        setValue('status', newStatus === 'completed' ? 'pending' : 'completed', { shouldDirty: true });
+      } else {
+        // If it was an intermediate save, and if the task is completed, we might want to clear checkinInfo if it was previously a check-in task.
+        // This depends on desired behavior: does completing via checkbox also fulfill all check-ins?
+        // For now, we assume completing it marks it as fully complete, regardless of check-ins.
+        if (newStatus === 'completed' && getValues('checkinInfo')) {
+          // Optionally, update checkinInfo if needed.
+          // const currentCheckins = getValues('checkinInfo.totalCheckinsRequired');
+          // onIntermediateSave({ checkinInfo: { ...getValues('checkinInfo'), currentCheckins } });
+        }
+      }
+    }
+  };
+
+
   const timeDisplay = formatDateTimeDisplay();
   const repeatDisplay = formatRepeatDisplay();
   const reminderDisplay = formatReminderDisplay();
@@ -412,9 +440,32 @@ export default function TaskForm({
               render={({ field }) => (
                 <FormItem>
                   <FormLabel className="text-lg sr-only">{t('task.form.label.title')}</FormLabel>
-                  <FormControl>
-                    <Input placeholder={t('task.form.placeholder.title')} {...field} className="text-xl font-semibold border-0 shadow-none focus-visible:ring-0 focus-visible:ring-offset-0 h-auto py-1 w-full" />
-                  </FormControl>
+                  <div className="flex items-center gap-2">
+                    <Controller
+                        name="status"
+                        control={control}
+                        render={({ field: statusField }) => (
+                            <Checkbox
+                                id="task-status-form"
+                                checked={statusField.value === 'completed'}
+                                onCheckedChange={handleStatusChange}
+                                className="flex-shrink-0"
+                                aria-label={t('task.item.toggleCompletionAria', {title: field.value})}
+                                disabled={isLoading}
+                            />
+                        )}
+                    />
+                    <FormControl>
+                      <Input
+                        placeholder={t('task.form.placeholder.title')}
+                        {...field}
+                        className={cn(
+                            "text-xl font-semibold border-0 shadow-none focus-visible:ring-0 focus-visible:ring-offset-0 h-auto py-1 w-full",
+                            watchedStatus === 'completed' && "line-through text-muted-foreground"
+                        )}
+                      />
+                    </FormControl>
+                  </div>
                   <FormMessage>{form.formState.errors.title && t(form.formState.errors.title.message as any)}</FormMessage>
                 </FormItem>
               )}
@@ -897,4 +948,3 @@ function SelectFlashcardDialog({
     </Dialog>
   );
 }
-

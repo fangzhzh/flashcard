@@ -13,7 +13,7 @@ import {
   DialogContent,
   DialogHeader,
   DialogTitle,
-  DialogDescription,
+  DialogDescription as UiDialogDescription, // Renamed to avoid conflict if DialogDescription is used from AlertDialog
   DialogFooter,
   DialogTrigger,
   DialogClose,
@@ -27,6 +27,7 @@ import {
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
+  AlertDialogTrigger, // Added AlertDialogTrigger
 } from "@/components/ui/alert-dialog";
 import { PlusCircle, Edit3, Trash2, Loader2, Info, ShieldAlert, GitFork, Eye, FolderKanban } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
@@ -247,9 +248,9 @@ export default function OverviewsClient() {
                   disabled={isSubmittingOverview}
                   className="min-h-[120px] text-base"
                 />
-                 <DialogDescription className="text-xs">
+                 <UiDialogDescription className="text-xs">
                   {t('task.form.placeholder.description')}
-                </DialogDescription>
+                </UiDialogDescription>
               </div>
             </div>
             <DialogFooter>

@@ -54,7 +54,9 @@
     "@ducanh2912/next-pwa": "^10.2.7",
     "markmap-view": "0.15.4",
     "markmap-lib": "0.15.4",
-    "markmap-common": "0.15.3"
+    "markmap-common": "0.15.3",
+    "mermaid": "^10.9.1",
+    "next-themes": "^0.3.0"
   },
   "devDependencies": {
     "@types/node": "^20",

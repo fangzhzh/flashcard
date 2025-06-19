@@ -13,6 +13,8 @@ import { Alert, AlertTitle, AlertDescription as UiAlertDescription } from '@/com
 import Link from 'next/link';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
+import type { CodeProps } from 'react-markdown/lib/ast-to-react';
+import MermaidDiagram from '@/components/MermaidDiagram';
 import { cn } from '@/lib/utils';
 import { format, parseISO, differenceInCalendarDays, isToday, isTomorrow, isValid, isSameYear, startOfDay, addDays, startOfWeek, endOfWeek, areIntervalsOverlapping, endOfDay } from 'date-fns';
 import { enUS } from 'date-fns/locale/en-US';
@@ -27,6 +29,27 @@ interface FormattedTimeInfo {
 }
 type TranslationKeys = keyof typeof import('@/lib/i18n/locales/en').default;
 
+const CustomMarkdownComponents = {
+  code({ node, inline, className, children, ...props }: CodeProps) {
+    const match = /language-(\w+)/.exec(className || '');
+    if (!inline && match && match[1] === 'mermaid') {
+      return <MermaidDiagram chart={String(children).trim()} />;
+    }
+    if (!inline && match) {
+      return (
+        <pre className={className} {...props}>
+          <code className={`language-${match[1]}`}>{children}</code>
+        </pre>
+      );
+    }
+    return (
+      <code className={className} {...props}>
+        {children}
+      </code>
+    );
+  },
+};
+
 
 export default function OverviewDetailClient({ overviewId }: { overviewId: string }) {
   const { user, loading: authLoading } = useAuth();
@@ -37,7 +60,6 @@ export default function OverviewDetailClient({ overviewId }: { overviewId: strin
   const today = startOfDay(new Date());
   const dateFnsLocale = currentLocale === 'zh' ? zhCN : enUS;
 
-  // Call hooks at the top level
   const pathname = usePathname();
   const searchParams = useSearchParams();
 
@@ -314,7 +336,7 @@ export default function OverviewDetailClient({ overviewId }: { overviewId: strin
             <CardTitle className="text-xl">{t('overviewDetail.descriptionTitle')}</CardTitle>
           </CardHeader>
           <CardContent className="markdown-content">
-            <ReactMarkdown remarkPlugins={[remarkGfm]}>{currentOverview.description}</ReactMarkdown>
+            <ReactMarkdown remarkPlugins={[remarkGfm]} components={CustomMarkdownComponents}>{currentOverview.description}</ReactMarkdown>
           </CardContent>
         </Card>
       )}

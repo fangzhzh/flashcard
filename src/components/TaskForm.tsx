@@ -35,10 +35,12 @@ import TaskDateTimeReminderDialog from '@/components/TaskDateTimeReminderDialog'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
+import type { CodeProps } from 'react-markdown/lib/ast-to-react';
+import MermaidDiagram from '@/components/MermaidDiagram';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
 import { Checkbox } from '@/components/ui/checkbox';
-import Link from 'next/link'; // Added Link for Create Overview
+import Link from 'next/link';
 
 const artifactLinkSchema = z.object({
   flashcardId: z.string().nullable().optional(),
@@ -85,7 +87,7 @@ const taskSchema = z.object({
   description: z.string().optional().nullable(),
   type: z.enum(['innie', 'outie', 'blackout']).default('innie'),
   status: z.enum(['pending', 'completed']).default('pending'),
-  overviewId: z.string().nullable().optional(), // Added overviewId
+  overviewId: z.string().nullable().optional(),
   repeat: z.enum(['none', 'daily', 'weekday', 'weekend', 'weekly', 'monthly', 'annually']).default('none'),
   timeInfo: timeInfoSchema,
   artifactLink: artifactLinkSchema.default({ flashcardId: null }),
@@ -105,6 +107,28 @@ interface TaskFormProps {
   onDelete?: () => Promise<void>;
   onDirtyChange?: (isDirty: boolean) => void;
 }
+
+const CustomMarkdownComponents = {
+  code({ node, inline, className, children, ...props }: CodeProps) {
+    const match = /language-(\w+)/.exec(className || '');
+    if (!inline && match && match[1] === 'mermaid') {
+      return <MermaidDiagram chart={String(children).trim()} />;
+    }
+    if (!inline && match) {
+      return (
+        <pre className={className} {...props}>
+          <code className={`language-${match[1]}`}>{children}</code>
+        </pre>
+      );
+    }
+    return (
+      <code className={className} {...props}>
+        {children}
+      </code>
+    );
+  },
+};
+
 
 export default function TaskForm({
   onSubmit,
@@ -126,7 +150,7 @@ export default function TaskForm({
     decks,
     isLoadingDecks,
     flashcards: allFlashcardsFromContext,
-    overviews, // Get overviews from context
+    overviews, 
     isLoadingOverviews
   } = useFlashcards();
   const dateFnsLocale = currentLocale === 'zh' ? zhCN : enUS;
@@ -673,13 +697,13 @@ export default function TaskForm({
                                     <div>
                                         <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">{t('flashcard.form.label.front')}</p>
                                         <div className="markdown-content whitespace-pre-wrap p-2 bg-background rounded-sm border mt-1 text-sm overflow-x-auto">
-                                            <ReactMarkdown remarkPlugins={[remarkGfm]}>{linkedFlashcard.front}</ReactMarkdown>
+                                            <ReactMarkdown remarkPlugins={[remarkGfm]} components={CustomMarkdownComponents}>{linkedFlashcard.front}</ReactMarkdown>
                                         </div>
                                     </div>
                                     <div>
                                         <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">{t('flashcard.form.label.back')}</p>
                                         <div className="markdown-content whitespace-pre-wrap p-2 bg-background rounded-sm border mt-1 text-sm overflow-x-auto">
-                                            <ReactMarkdown remarkPlugins={[remarkGfm]}>{linkedFlashcard.back}</ReactMarkdown>
+                                            <ReactMarkdown remarkPlugins={[remarkGfm]} components={CustomMarkdownComponents}>{linkedFlashcard.back}</ReactMarkdown>
                                         </div>
                                     </div>
                                     <div className="flex justify-end gap-1 mt-1">
@@ -805,7 +829,7 @@ export default function TaskForm({
                         aria-label={t('task.form.description.editMode')}
                     >
                       {field.value && field.value.trim() !== '' ? (
-                        <ReactMarkdown remarkPlugins={[remarkGfm]}>{field.value}</ReactMarkdown>
+                        <ReactMarkdown remarkPlugins={[remarkGfm]} components={CustomMarkdownComponents}>{field.value}</ReactMarkdown>
                       ) : (
                         <p className="italic text-muted-foreground">{t('task.form.description.emptyPreview')}</p>
                       )}

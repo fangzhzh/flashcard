@@ -12,6 +12,8 @@ import { formatISO, addDays } from 'date-fns';
 import Link from 'next/link';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
+import type { CodeProps } from 'react-markdown/lib/ast-to-react';
+import MermaidDiagram from '@/components/MermaidDiagram';
 import { useI18n, useCurrentLocale } from '@/lib/i18n/client';
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { useSearchParams, useRouter, usePathname } from 'next/navigation';
@@ -31,6 +33,27 @@ const SS_IS_SESSION_STARTED = `${SESSION_STORAGE_PREFIX}isSessionStarted`;
 const SS_CARD_ID = `${SESSION_STORAGE_PREFIX}cardId`;
 const SS_IS_FLIPPED = `${SESSION_STORAGE_PREFIX}isFlipped`;
 const SS_SESSION_TYPE = `${SESSION_STORAGE_PREFIX}sessionType`;
+
+const CustomMarkdownComponents = {
+  code({ node, inline, className, children, ...props }: CodeProps) {
+    const match = /language-(\w+)/.exec(className || '');
+    if (!inline && match && match[1] === 'mermaid') {
+      return <MermaidDiagram chart={String(children).trim()} />;
+    }
+    if (!inline && match) {
+      return (
+        <pre className={className} {...props}>
+          <code className={`language-${match[1]}`}>{children}</code>
+        </pre>
+      );
+    }
+    return (
+      <code className={className} {...props}>
+        {children}
+      </code>
+    );
+  },
+};
 
 
 export default function ReviewModeClient() {
@@ -486,7 +509,7 @@ export default function ReviewModeClient() {
         <CardHeader className="flex items-center justify-center p-4 sm:p-6">
           <div className="flex items-start w-full">
             <div className="flex-grow markdown-content whitespace-pre-wrap">
-                <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                <ReactMarkdown remarkPlugins={[remarkGfm]} components={CustomMarkdownComponents}>
                   {frontCardText}
                 </ReactMarkdown>
             </div>
@@ -544,7 +567,7 @@ export default function ReviewModeClient() {
               </div>
 
               <div className="mt-4 markdown-content whitespace-pre-wrap">
-                  <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                  <ReactMarkdown remarkPlugins={[remarkGfm]} components={CustomMarkdownComponents}>
                       {currentCard.back}
                   </ReactMarkdown>
               </div>

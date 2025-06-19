@@ -6,7 +6,7 @@ import { useFlashcards } from '@/contexts/FlashcardsContext';
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-import { Loader2, ArrowLeft, Edit3, PlusCircle, Info, GitFork, ListChecks, AlertTriangle, CheckSquare, Hourglass, Zap } from 'lucide-react';
+import { Loader2, ArrowLeft, Edit3, PlusCircle, Info, GitFork, ListChecks, AlertTriangle, CheckSquare, Hourglass, Zap, ShieldAlert } from 'lucide-react';
 import { useI18n, useCurrentLocale } from '@/lib/i18n/client';
 import type { Overview, Task, TimeInfo } from '@/types';
 import { Alert, AlertTitle, AlertDescription as UiAlertDescription } from '@/components/ui/alert';
@@ -30,7 +30,7 @@ type TranslationKeys = keyof typeof import('@/lib/i18n/locales/en').default;
 
 export default function OverviewDetailClient({ overviewId }: { overviewId: string }) {
   const { user, loading: authLoading } = useAuth();
-  const { getOverviewById, tasks, isLoadingOverviews, isLoadingTasks, getTaskById } = useFlashcards();
+  const { getOverviewById, tasks, isLoadingOverviews, isLoadingTasks, getTaskById, overviews } = useFlashcards(); // Added overviews here
   const t = useI18n();
   const currentLocale = useCurrentLocale();
   const router = useRouter();
@@ -44,13 +44,14 @@ export default function OverviewDetailClient({ overviewId }: { overviewId: strin
     if (!isLoadingOverviews && user) {
       const overview = getOverviewById(overviewId);
       setCurrentOverview(overview);
-      if (!overview && !isLoadingOverviews && overviews.length > 0) { // Check if overviews are loaded
+      // Check if overviews array is loaded and the specific overview is not found
+      if (!overview && !isLoadingOverviews && overviews && overviews.length > 0) { 
           router.push(`/${currentLocale}/overviews`);
       }
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [overviewId, getOverviewById, isLoadingOverviews, user, router, currentLocale]);
-  // Note: `overviews` was removed from deps to prevent loop if `getOverviewById` is stable
+  }, [overviewId, getOverviewById, isLoadingOverviews, user, router, currentLocale, overviews]); // Added overviews to dependency array
+
 
   const linkedTasks = useMemo(() => {
     if (!currentOverview) return [];

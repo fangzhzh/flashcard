@@ -1,6 +1,6 @@
 
 "use client";
-import type { Flashcard, FlashcardSourceDataItem, AppUser, Deck, Task, TaskStatus, RepeatFrequency, TimeInfo, ArtifactLink, ReminderInfo, TaskType, CheckinInfo } from '@/types'; // Added CheckinInfo
+import type { Flashcard, FlashcardSourceDataItem, AppUser, Deck, Task, TaskStatus, RepeatFrequency, TimeInfo, ArtifactLink, ReminderInfo, TaskType, CheckinInfo, Overview } from '@/types';
 import React, { createContext, useContext, ReactNode, useCallback, useMemo, useEffect, useState } from 'react';
 import { db } from '@/lib/firebase';
 import {
@@ -20,21 +20,24 @@ import {
   getDoc,
   runTransaction,
   limit,
-  getCountFromServer, // Import getCountFromServer
+  getCountFromServer,
 } from 'firebase/firestore';
 import { useAuth } from './AuthContext';
-import { formatISO, parseISO, subDays } from 'date-fns'; // Added subDays
+import { formatISO, parseISO, subDays } from 'date-fns';
 import flashcardJsonData from '../../flashcard.json';
 
 const EMPTY_FLASHCARDS: Flashcard[] = [];
 const EMPTY_DECKS: Deck[] = [];
 const EMPTY_TASKS: Task[] = [];
+const EMPTY_OVERVIEWS: Overview[] = [];
 const DEFAULT_SEED_DECK_NAME = "Imported Vocabulary";
 
 interface FlashcardsContextType {
   flashcards: Flashcard[];
   decks: Deck[];
   tasks: Task[];
+  overviews: Overview[];
+
   addFlashcard: (data: { front: string; back: string; deckId?: string | null }) => Promise<Flashcard | null>;
   updateFlashcard: (id: string, updates: Partial<Omit<Flashcard, 'id'>>) => Promise<Flashcard | null>;
   deleteFlashcard: (id: string) => Promise<void>;
@@ -45,18 +48,24 @@ interface FlashcardsContextType {
   deleteDeck: (id: string) => Promise<void>;
   getDeckById: (id: string) => Deck | undefined;
 
-  addTask: (data: Omit<Task, 'id' | 'userId' | 'createdAt' | 'updatedAt' | 'status'>) => Promise<Task | null>;
+  addTask: (data: Omit<Task, 'id' | 'userId' | 'createdAt' | 'updatedAt'>) => Promise<Task | null>;
   updateTask: (id: string, updates: Partial<Omit<Task, 'id' | 'userId' | 'createdAt'>>) => Promise<Task | null>;
   deleteTask: (id: string) => Promise<void>;
   getTaskById: (id: string) => Task | undefined;
   getCompletedTasksCountLast30Days: () => Promise<number>;
   fetchCompletedTasksLast30Days: () => Promise<Task[]>;
 
+  addOverview: (data: { title: string; description?: string | null }) => Promise<Overview | null>;
+  updateOverview: (id: string, updates: Partial<Omit<Overview, 'id' | 'userId'>>) => Promise<Overview | null>;
+  deleteOverview: (id: string) => Promise<void>;
+  getOverviewById: (id: string) => Overview | undefined;
+
   getReviewQueue: () => Flashcard[];
   getStatistics: () => { total: number; mastered: number; learning: number; new: number; dueToday: number };
   isLoading: boolean;
   isLoadingDecks: boolean;
   isLoadingTasks: boolean;
+  isLoadingOverviews: boolean;
   isSeeding: boolean;
 }
 
@@ -67,9 +76,11 @@ export const FlashcardsProvider = ({ children }: { children: ReactNode }) => {
   const [flashcards, setFlashcards] = useState<Flashcard[]>(EMPTY_FLASHCARDS);
   const [decks, setDecks] = useState<Deck[]>(EMPTY_DECKS);
   const [tasks, setTasks] = useState<Task[]>(EMPTY_TASKS);
+  const [overviews, setOverviews] = useState<Overview[]>(EMPTY_OVERVIEWS);
   const [isLoading, setIsLoading] = useState(true);
   const [isLoadingDecks, setIsLoadingDecks] = useState(true);
   const [isLoadingTasks, setIsLoadingTasks] = useState(true);
+  const [isLoadingOverviews, setIsLoadingOverviews] = useState(true);
   const [isSeeding, setIsSeeding] = useState(false);
 
   const mapFirestoreDocToTask = (docSnapshot: any): Task => {
@@ -88,8 +99,19 @@ export const FlashcardsProvider = ({ children }: { children: ReactNode }) => {
       artifactLink: data.artifactLink || { flashcardId: null },
       reminderInfo: data.reminderInfo || { type: 'none' },
       checkinInfo: data.checkinInfo || null,
+      overviewId: data.overviewId || null,
     } as Task;
   };
+
+  const mapFirestoreDocToOverview = (docSnapshot: any): Overview => {
+    const data = docSnapshot.data();
+    return {
+      id: docSnapshot.id,
+      ...data,
+      createdAt: data.createdAt instanceof Timestamp ? formatISO(data.createdAt.toDate()) : (typeof data.createdAt === 'string' ? data.createdAt : null),
+      updatedAt: data.updatedAt instanceof Timestamp ? formatISO(data.updatedAt.toDate()) : (typeof data.updatedAt === 'string' ? data.updatedAt : null),
+    } as Overview;
+  }
 
 
   const seedInitialData = useCallback(async (currentUser: AppUser) => {
@@ -165,6 +187,7 @@ export const FlashcardsProvider = ({ children }: { children: ReactNode }) => {
       setIsLoading(true);
       setIsLoadingDecks(true);
       setIsLoadingTasks(true);
+      setIsLoadingOverviews(true);
 
       const checkAndSeed = async () => {
         const flashcardsQuery = query(collection(db, 'users', user.uid, 'flashcards'), limit(1));
@@ -178,10 +201,10 @@ export const FlashcardsProvider = ({ children }: { children: ReactNode }) => {
         const flashcardsCollectionRef = collection(db, 'users', user.uid, 'flashcards');
         const qFlashcards = query(flashcardsCollectionRef, orderBy('createdAt', 'desc'));
         const unsubscribeFlashcards = onSnapshot(qFlashcards, (snapshot) => {
-          const fetchedFlashcards = snapshot.docs.map(doc => {
-            const data = doc.data();
+          const fetchedFlashcards = snapshot.docs.map(docSnap => {
+            const data = docSnap.data();
             return {
-              id: doc.id, ...data,
+              id: docSnap.id, ...data,
               createdAt: data.createdAt instanceof Timestamp ? formatISO(data.createdAt.toDate()) : (typeof data.createdAt === 'string' ? data.createdAt : null),
               updatedAt: data.updatedAt instanceof Timestamp ? formatISO(data.updatedAt.toDate()) : (typeof data.updatedAt === 'string' ? data.updatedAt : null),
               lastReviewed: data.lastReviewed instanceof Timestamp ? formatISO(data.lastReviewed.toDate()) : data.lastReviewed,
@@ -195,10 +218,10 @@ export const FlashcardsProvider = ({ children }: { children: ReactNode }) => {
         const decksCollectionRef = collection(db, 'users', user.uid, 'decks');
         const qDecks = query(decksCollectionRef, orderBy('createdAt', 'desc'));
         const unsubscribeDecks = onSnapshot(qDecks, (snapshot) => {
-          const fetchedDecks = snapshot.docs.map(doc => {
-            const data = doc.data();
+          const fetchedDecks = snapshot.docs.map(docSnap => {
+            const data = docSnap.data();
             return {
-              id: doc.id, ...data,
+              id: docSnap.id, ...data,
               createdAt: data.createdAt instanceof Timestamp ? formatISO(data.createdAt.toDate()) : (typeof data.createdAt === 'string' ? data.createdAt : null),
               updatedAt: data.updatedAt instanceof Timestamp ? formatISO(data.updatedAt.toDate()) : (typeof data.updatedAt === 'string' ? data.updatedAt : null),
             } as Deck;
@@ -215,21 +238,32 @@ export const FlashcardsProvider = ({ children }: { children: ReactNode }) => {
           setIsLoadingTasks(false);
         }, (error) => { console.error("Error fetching tasks:", error); setIsLoadingTasks(false); setTasks(EMPTY_TASKS); });
 
+        const overviewsCollectionRef = collection(db, 'users', user.uid, 'overviews');
+        const qOverviews = query(overviewsCollectionRef, orderBy('createdAt', 'desc'));
+        const unsubscribeOverviews = onSnapshot(qOverviews, (snapshot) => {
+          const fetchedOverviews = snapshot.docs.map(mapFirestoreDocToOverview);
+          setOverviews(fetchedOverviews);
+          setIsLoadingOverviews(false);
+        }, (error) => { console.error("Error fetching overviews:", error); setIsLoadingOverviews(false); setOverviews(EMPTY_OVERVIEWS); });
+
+
         return () => {
           unsubscribeFlashcards();
           unsubscribeDecks();
           unsubscribeTasks();
+          unsubscribeOverviews();
         };
       }).catch(err => {
         console.error("Error during checkAndSeed process:", err);
-        setIsLoading(false); setIsLoadingDecks(false); setIsLoadingTasks(false);
+        setIsLoading(false); setIsLoadingDecks(false); setIsLoadingTasks(false); setIsLoadingOverviews(false);
       });
 
     } else {
       setFlashcards(EMPTY_FLASHCARDS);
       setDecks(EMPTY_DECKS);
       setTasks(EMPTY_TASKS);
-      setIsLoading(false); setIsLoadingDecks(false); setIsLoadingTasks(false);
+      setOverviews(EMPTY_OVERVIEWS);
+      setIsLoading(false); setIsLoadingDecks(false); setIsLoadingTasks(false); setIsLoadingOverviews(false);
     }
   }, [user, seedInitialData]);
 
@@ -306,7 +340,7 @@ export const FlashcardsProvider = ({ children }: { children: ReactNode }) => {
 
   const getDeckById = useCallback((id: string) => decks.find(deck => deck.id === id), [decks]);
 
-  const addTask = useCallback(async (data: Omit<Task, 'id' | 'userId' | 'createdAt' | 'updatedAt' | 'status'>): Promise<Task | null> => {
+  const addTask = useCallback(async (data: Omit<Task, 'id' | 'userId' | 'createdAt' | 'updatedAt'>): Promise<Task | null> => {
     if (!user || !user.uid) { console.error("User not authenticated to add task"); return null; }
     try {
       const tasksCollectionRef = collection(db, 'users', user.uid, 'tasks');
@@ -315,10 +349,11 @@ export const FlashcardsProvider = ({ children }: { children: ReactNode }) => {
         ...data,
         type: data.type || 'innie',
         userId: user.uid,
-        status: 'pending' as TaskStatus,
+        status: data.status || 'pending',
         artifactLink: data.artifactLink || { flashcardId: null },
         reminderInfo: data.reminderInfo || { type: 'none' },
         checkinInfo: data.checkinInfo || null,
+        overviewId: data.overviewId || null,
         createdAt: now,
         updatedAt: now
       };
@@ -327,12 +362,13 @@ export const FlashcardsProvider = ({ children }: { children: ReactNode }) => {
       return {
         id: docRef.id,
         userId: user.uid,
-        status: 'pending' as TaskStatus,
         ...data,
         type: data.type || 'innie',
+        status: data.status || 'pending',
         artifactLink: data.artifactLink || { flashcardId: null },
         reminderInfo: data.reminderInfo || { type: 'none' },
         checkinInfo: data.checkinInfo || null,
+        overviewId: data.overviewId || null,
         createdAt: localCreatedAt,
         updatedAt: localCreatedAt
       } as Task;
@@ -350,13 +386,14 @@ export const FlashcardsProvider = ({ children }: { children: ReactNode }) => {
         artifactLink: updates.artifactLink || currentTask?.artifactLink || { flashcardId: null },
         reminderInfo: updates.reminderInfo || currentTask?.reminderInfo || { type: 'none' },
         checkinInfo: updates.checkinInfo === undefined ? currentTask?.checkinInfo : (updates.checkinInfo || null),
+        overviewId: updates.overviewId === undefined ? currentTask?.overviewId : (updates.overviewId || null),
         updatedAt: serverTimestamp()
       };
 
       await updateDoc(taskDocRef, updateData as any);
 
       const task = tasks.find(t => t.id === id);
-      return task ? { ...task, ...updates, type: updateData.type, checkinInfo: updateData.checkinInfo, updatedAt: formatISO(new Date()) } : null;
+      return task ? { ...task, ...updates, type: updateData.type, checkinInfo: updateData.checkinInfo, overviewId: updateData.overviewId, updatedAt: formatISO(new Date()) } : null;
     } catch (error) { console.error("Error updating task:", error); return null; }
   }, [user, tasks]);
 
@@ -407,6 +444,38 @@ export const FlashcardsProvider = ({ children }: { children: ReactNode }) => {
     }
   }, [user]);
 
+  const addOverview = useCallback(async (data: { title: string; description?: string | null }): Promise<Overview | null> => {
+    if (!user || !user.uid) return null;
+    try {
+      const overviewsCollectionRef = collection(db, 'users', user.uid, 'overviews');
+      const now = serverTimestamp();
+      const newOverviewData = { ...data, userId: user.uid };
+      const docRef = await addDoc(overviewsCollectionRef, { ...newOverviewData, createdAt: now, updatedAt: now });
+      return { id: docRef.id, ...newOverviewData, createdAt: formatISO(new Date()), updatedAt: formatISO(new Date()) } as Overview;
+    } catch (error) { console.error("Error adding overview:", error); return null; }
+  }, [user]);
+
+  const updateOverview = useCallback(async (id: string, updates: Partial<Omit<Overview, 'id' | 'userId' | 'createdAt'>>): Promise<Overview | null> => {
+    if (!user || !user.uid) return null;
+    try {
+      const overviewDocRef = doc(db, 'users', user.uid, 'overviews', id);
+      await updateDoc(overviewDocRef, { ...updates, updatedAt: serverTimestamp() });
+      const overview = overviews.find(ov => ov.id === id);
+      return overview ? { ...overview, ...updates, updatedAt: formatISO(new Date()) } : null;
+    } catch (error) { console.error("Error updating overview:", error); return null; }
+  }, [user, overviews]);
+
+  const deleteOverview = useCallback(async (id: string) => {
+    if (!user || !user.uid) return;
+    try {
+      // Optional: Consider if deleting an overview should also update tasks linked to it.
+      // For now, tasks will retain the overviewId but it will point to a non-existent overview.
+      await deleteDoc(doc(db, 'users', user.uid, 'overviews', id));
+    } catch (error) { console.error("Error deleting overview:", error); }
+  }, [user]);
+
+  const getOverviewById = useCallback((id: string) => overviews.find(overview => overview.id === id), [overviews]);
+
 
   const getReviewQueue = useCallback(() => {
     if (isLoading || !user) return [];
@@ -455,23 +524,27 @@ export const FlashcardsProvider = ({ children }: { children: ReactNode }) => {
     flashcards: user ? flashcards : EMPTY_FLASHCARDS,
     decks: user ? decks : EMPTY_DECKS,
     tasks: user ? tasks : EMPTY_TASKS,
+    overviews: user ? overviews : EMPTY_OVERVIEWS,
     addFlashcard, updateFlashcard, deleteFlashcard, getFlashcardById,
     addDeck, updateDeck, deleteDeck, getDeckById,
     addTask, updateTask, deleteTask, getTaskById,
     getCompletedTasksCountLast30Days, fetchCompletedTasksLast30Days,
+    addOverview, updateOverview, deleteOverview, getOverviewById,
     getReviewQueue, getStatistics,
     isLoading: isLoading || (user && isSeeding),
     isLoadingDecks: isLoadingDecks || (user && isSeeding),
     isLoadingTasks: isLoadingTasks || (user && isSeeding),
+    isLoadingOverviews: isLoadingOverviews || (user && isSeeding),
     isSeeding,
   }), [
-      flashcards, decks, tasks,
+      flashcards, decks, tasks, overviews,
       addFlashcard, updateFlashcard, deleteFlashcard, getFlashcardById,
       addDeck, updateDeck, deleteDeck, getDeckById,
       addTask, updateTask, deleteTask, getTaskById,
       getCompletedTasksCountLast30Days, fetchCompletedTasksLast30Days,
+      addOverview, updateOverview, deleteOverview, getOverviewById,
       getReviewQueue, getStatistics,
-      isLoading, isLoadingDecks, isLoadingTasks,
+      isLoading, isLoadingDecks, isLoadingTasks, isLoadingOverviews,
       user, isSeeding
     ]);
 
@@ -489,4 +562,3 @@ export const useFlashcards = () => {
   }
   return context;
 };
-

@@ -8,8 +8,8 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
-import type { Task, RepeatFrequency, TimeInfo, ArtifactLink, ReminderInfo, Flashcard as FlashcardType, Deck, TaskType, CheckinInfo, TaskStatus } from '@/types';
-import { Save, CalendarIcon, Link2, RotateCcw, Clock, Bell, Trash2, X, Loader2, FilePlus, ListChecks, Search, Edit3, Repeat, Briefcase, User, Coffee, Eye, FileEdit, ArrowLeft, FilePenLine, CheckSquare, Square } from 'lucide-react';
+import type { Task, RepeatFrequency, TimeInfo, ArtifactLink, ReminderInfo, Flashcard as FlashcardType, Deck, TaskType, CheckinInfo, TaskStatus, Overview } from '@/types';
+import { Save, CalendarIcon, Link2, RotateCcw, Clock, Bell, Trash2, X, Loader2, FilePlus, ListChecks, Search, Edit3, Repeat, Briefcase, User, Coffee, Eye, FileEdit, ArrowLeft, FilePenLine, CheckSquare, Square, GitFork } from 'lucide-react';
 import { useI18n, useCurrentLocale } from '@/lib/i18n/client';
 import { cn } from '@/lib/utils';
 import { format, parseISO, isValid, isToday, isTomorrow } from 'date-fns';
@@ -37,7 +37,8 @@ import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
-import { Checkbox } from '@/components/ui/checkbox'; // Added Checkbox import
+import { Checkbox } from '@/components/ui/checkbox';
+import Link from 'next/link'; // Added Link for Create Overview
 
 const artifactLinkSchema = z.object({
   flashcardId: z.string().nullable().optional(),
@@ -83,7 +84,8 @@ const taskSchema = z.object({
   title: z.string().min(1, 'toast.task.error.titleRequired'),
   description: z.string().optional().nullable(),
   type: z.enum(['innie', 'outie', 'blackout']).default('innie'),
-  status: z.enum(['pending', 'completed']).default('pending'), // Added status
+  status: z.enum(['pending', 'completed']).default('pending'),
+  overviewId: z.string().nullable().optional(), // Added overviewId
   repeat: z.enum(['none', 'daily', 'weekday', 'weekend', 'weekly', 'monthly', 'annually']).default('none'),
   timeInfo: timeInfoSchema,
   artifactLink: artifactLinkSchema.default({ flashcardId: null }),
@@ -117,7 +119,16 @@ export default function TaskForm({
   const t = useI18n();
   const { toast } = useToast();
   const currentLocale = useCurrentLocale();
-  const { getFlashcardById, addFlashcard, updateFlashcard, decks, isLoadingDecks, flashcards: allFlashcardsFromContext } = useFlashcards();
+  const {
+    getFlashcardById,
+    addFlashcard,
+    updateFlashcard,
+    decks,
+    isLoadingDecks,
+    flashcards: allFlashcardsFromContext,
+    overviews, // Get overviews from context
+    isLoadingOverviews
+  } = useFlashcards();
   const dateFnsLocale = currentLocale === 'zh' ? zhCN : enUS;
 
   const form = useForm<TaskFormData>({
@@ -126,7 +137,8 @@ export default function TaskForm({
       title: initialData?.title || '',
       description: initialData?.description || '',
       type: initialData?.type || 'innie',
-      status: initialData?.status || 'pending', // Initialize status
+      status: initialData?.status || 'pending',
+      overviewId: initialData?.overviewId || null,
       repeat: initialData?.repeat || 'none',
       timeInfo: initialData?.timeInfo || { type: 'no_time', startDate: null, endDate: null, time: null },
       artifactLink: initialData?.artifactLink || { flashcardId: null },
@@ -149,7 +161,7 @@ export default function TaskForm({
   const watchedRepeat = useWatch({ control, name: "repeat" });
   const watchedReminderInfo = useWatch({ control, name: "reminderInfo" });
   const watchedCheckinInfo = watch("checkinInfo");
-  const watchedStatus = watch("status"); // Watch status for dynamic styling
+  const watchedStatus = watch("status");
   const isCheckinModeEnabled = !!watchedCheckinInfo;
 
 
@@ -170,7 +182,7 @@ export default function TaskForm({
     { value: 'innie', labelKey: 'task.type.innie', icon: Briefcase },
     { value: 'outie', labelKey: 'task.type.outie', icon: User },
     { value: 'blackout', labelKey: 'task.type.blackout', icon: Coffee },
-  ], [t]);
+  ], []);
 
 
   React.useEffect(() => {
@@ -201,7 +213,8 @@ export default function TaskForm({
       title: initialData?.title || '',
       description: initialData?.description || '',
       type: initialData?.type || 'innie',
-      status: initialData?.status || 'pending', // Reset status
+      status: initialData?.status || 'pending',
+      overviewId: initialData?.overviewId || null,
       repeat: initialData?.repeat || 'none',
       timeInfo: normalizedTimeInfo,
       artifactLink: initialData?.artifactLink || { flashcardId: null },
@@ -398,16 +411,9 @@ export default function TaskForm({
       const success = await onIntermediateSave({ status: newStatus });
       if (!success) {
         toast({ title: t('error'), description: t('toast.task.error.intermediateSaveFailed'), variant: 'destructive' });
-        // Revert optimistic UI change if save failed
         setValue('status', newStatus === 'completed' ? 'pending' : 'completed', { shouldDirty: true });
       } else {
-        // If it was an intermediate save, and if the task is completed, we might want to clear checkinInfo if it was previously a check-in task.
-        // This depends on desired behavior: does completing via checkbox also fulfill all check-ins?
-        // For now, we assume completing it marks it as fully complete, regardless of check-ins.
         if (newStatus === 'completed' && getValues('checkinInfo')) {
-          // Optionally, update checkinInfo if needed.
-          // const currentCheckins = getValues('checkinInfo.totalCheckinsRequired');
-          // onIntermediateSave({ checkinInfo: { ...getValues('checkinInfo'), currentCheckins } });
         }
       }
     }
@@ -512,6 +518,54 @@ export default function TaskForm({
                 </FormItem>
               )}
             />
+            
+            <FormField
+              control={form.control}
+              name="overviewId"
+              render={({ field }) => (
+                <FormItem>
+                  <div className="flex items-center gap-2">
+                    <FormLabel htmlFor={field.name} className="text-sm text-muted-foreground whitespace-nowrap shrink-0">
+                       <GitFork className="mr-1 inline-block h-4 w-4" /> {t('task.form.label.overview')}:
+                    </FormLabel>
+                    <div className="flex-grow">
+                      <Select
+                        onValueChange={(value) => field.onChange(value === "null" ? null : value)}
+                        value={field.value || "null"}
+                        defaultValue={field.value || "null"}
+                        disabled={isLoadingOverviews || isLoading}
+                        name={field.name}
+                      >
+                        <FormControl>
+                          <SelectTrigger id={field.name} className="w-full">
+                            <SelectValue placeholder={isLoadingOverviews ? t('flashcard.form.loadingDecks') : (overviews.length === 0 ? t('task.form.noOverviews') : t('task.form.selectOverview'))} />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          <SelectItem value="null">{t('task.form.noOverviewSelected')}</SelectItem>
+                          {overviews.map((overview) => (
+                            <SelectItem key={overview.id} value={overview.id}>
+                              {overview.title}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </div>
+                  {overviews.length === 0 && !isLoadingOverviews && (
+                    <FormMessage>
+                      <Link href={`/${currentLocale}/overviews`} className="text-xs text-primary hover:underline">
+                        {t('task.form.createOverviewLink')}
+                      </Link>
+                    </FormMessage>
+                  )}
+                  <FormMessage>
+                    {form.formState.errors.overviewId && t(form.formState.errors.overviewId.message as any)}
+                  </FormMessage>
+                </FormItem>
+              )}
+            />
+
 
             <FormItem>
                 <FormLabel className="text-base flex items-center text-muted-foreground sr-only">

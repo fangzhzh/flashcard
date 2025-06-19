@@ -1,14 +1,14 @@
 
 "use client";
 import Link from 'next/link';
-import { BookOpenText, LayoutDashboard, Timer, Languages, LogIn, LogOut, UserCircle, KeyRound, ListChecks } from 'lucide-react'; // Added ListChecks
+import { BookOpenText, LayoutDashboard, Timer, Languages, LogIn, LogOut, UserCircle, KeyRound, ListChecks, GitFork } from 'lucide-react'; // Added GitFork for Overviews
 import { ThemeToggle } from '@/components/ThemeToggle';
 import { usePathname } from 'next/navigation';
 import { cn } from '@/lib/utils';
 import { useI18n, useChangeLocale, useCurrentLocale } from '@/lib/i18n/client';
 import { useAuth } from '@/contexts/AuthContext';
-import { useFlashcards } from '@/contexts/FlashcardsContext'; 
-import { Badge } from '@/components/ui/badge'; 
+import { useFlashcards } from '@/contexts/FlashcardsContext';
+import { Badge } from '@/components/ui/badge';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -27,11 +27,12 @@ export default function Header() {
   const currentLocale = useCurrentLocale();
   const pathname = usePathname();
   const { user, signOut, loading: authLoading } = useAuth();
-  const { getStatistics, isLoading: flashcardsLoading } = useFlashcards(); 
+  const { getStatistics, isLoading: flashcardsLoading } = useFlashcards();
 
   const navItems = [
+    { href: '/overviews', labelKey: 'nav.overviews', icon: GitFork }, // New Overviews link
     { href: '/tasks', labelKey: 'nav.tasks', icon: ListChecks },
-    { href: '/timer', labelKey: 'nav.pomodoro', icon: Timer }, 
+    { href: '/timer', labelKey: 'nav.pomodoro', icon: Timer },
     { href: '/flashcards-hub', labelKey: 'nav.flashcards', icon: LayoutDashboard },
   ];
 
@@ -39,7 +40,7 @@ export default function Header() {
     ? pathname.substring(`/${currentLocale}`.length) || '/'
     : pathname;
 
-  const stats = user ? getStatistics() : { dueToday: 0 }; 
+  const stats = user ? getStatistics() : { dueToday: 0 };
   const dueTodayCount = stats.dueToday;
 
   return (
@@ -58,7 +59,7 @@ export default function Header() {
                   key={item.href}
                   href={item.href}
                   className={cn(
-                    "relative text-sm font-medium transition-colors hover:text-primary px-2 py-1 rounded-md flex items-center gap-1.5", 
+                    "relative text-sm font-medium transition-colors hover:text-primary px-2 py-1 rounded-md flex items-center gap-1.5",
                     (basePathname === item.href || (item.href !== '/' && basePathname.startsWith(item.href)))
                       ? "text-primary bg-primary/10"
                       : "text-muted-foreground"
@@ -142,4 +143,3 @@ export default function Header() {
     </header>
   );
 }
-

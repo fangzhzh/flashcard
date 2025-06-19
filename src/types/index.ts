@@ -1,6 +1,15 @@
 
 import type { User as FirebaseUser } from 'firebase/auth';
 
+export interface Overview {
+  id: string;
+  userId: string;
+  title: string;
+  description?: string | null;
+  createdAt: string; // ISO date string
+  updatedAt: string; // ISO date string
+}
+
 export interface Deck {
   id: string; // Firestore document ID
   name: string;
@@ -40,10 +49,10 @@ export interface PomodoroSessionState {
   pausedTimeLeftSeconds: number | null;
   currentSessionInitialDurationMinutes: number;
   userPreferredDurationMinutes: number;
-  userPreferredRestDurationMinutes?: number; // Added for rest duration
+  userPreferredRestDurationMinutes?: number;
   notes: string;
   updatedAt: any; // Firestore Timestamp or serverTimestamp()
-  currentTaskTitle?: string | null; // For displaying task title during Pomodoro
+  currentTaskTitle?: string | null;
 }
 
 // Task Management Types
@@ -71,7 +80,6 @@ export interface ReminderInfo {
 export interface CheckinInfo {
   totalCheckinsRequired: number;
   currentCheckins: number;
-  // lastCheckinDate?: string | null; // Consider for later to prevent multiple check-ins per day
 }
 
 export interface Task {
@@ -80,13 +88,14 @@ export interface Task {
   title: string;
   description?: string | null;
   status: TaskStatus;
-  type: TaskType; // Added new field
+  type: TaskType;
+  overviewId?: string | null; // Link to Overview
   repeat: RepeatFrequency;
   timeInfo: TimeInfo;
   artifactLink: ArtifactLink;
   reminderInfo: ReminderInfo;
-  checkinInfo?: CheckinInfo | null; // New field for check-in tasks
-  createdAt: any; // Firestore Timestamp or serverTimestamp() on write, string on read
-  updatedAt: any; // Firestore Timestamp or serverTimestamp() on write, string on read
+  checkinInfo?: CheckinInfo | null;
+  createdAt: any;
+  updatedAt: any;
 }
 

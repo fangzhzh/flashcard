@@ -9,6 +9,7 @@ export default {
   'nav.decks': 'Decks',
   'nav.manage': 'Manage Cards',
   'nav.review': 'Review',
+  'nav.overviews': 'Overviews', // New
   'theme.toggle': 'Toggle theme',
   'theme.light': 'Light',
   'theme.dark': 'Dark',
@@ -328,6 +329,11 @@ export default {
   'task.type.innie': 'Innie',
   'task.type.outie': 'Outie',
   'task.type.blackout': 'Blackout',
+  'task.form.label.overview': 'Overview (Optional)', // New
+  'task.form.selectOverview': 'Select an overview...', // New
+  'task.form.noOverviewSelected': 'Unassigned / No Overview', // New
+  'task.form.noOverviews': 'No overviews available', // New
+  'task.form.createOverviewLink': 'Create an Overview now?', // New
   'task.form.label.repeat': 'Repeat',
   'task.form.repeat.none': 'None',
   'task.form.repeat.daily': 'Daily',
@@ -498,6 +504,42 @@ export default {
   'tasks.unsavedChanges.button.discardAndCreate': 'Discard and Create',
   'tasks.unsavedChanges.button.discardAndEdit': 'Discard and Edit',
   'tasks.unsavedChanges.button.discard': 'Discard',
+
+  // Overviews
+  'overviews.title': 'Your Overviews',
+  'overviews.button.create': 'Create New Overview',
+  'overviews.list.loading': 'Loading your overviews...',
+  'overviews.list.empty.title': 'No Overviews Yet!',
+  'overviews.list.empty.description': 'Define your high-level goals or principles. Click "Create New Overview" to get started.',
+  'overview.item.tasksCount': '{count} tasks',
+  'overview.item.editTitleHint': 'Edit overview title',
+  'overview.item.delete.confirm.title': 'Are you sure you want to delete this overview?',
+  'overview.item.delete.confirm.description': 'This action cannot be undone. This will permanently delete the overview. Linked tasks will not be deleted but will become unlinked.',
+  'overview.form.title.create': 'Create New Overview',
+  'overview.form.title.edit': 'Edit Overview',
+  'overview.form.label.title': 'Overview Title',
+  'overview.form.placeholder.title': 'Enter overview title (e.g., Master Calculus I)',
+  'overview.form.label.description': 'Description (Optional)',
+  'overview.form.placeholder.description': 'Describe your principle, goal, or area of focus... (Markdown supported)',
+  'overview.form.button.create': 'Create Overview',
+  'overview.form.button.update': 'Update Overview',
+  'toast.overview.created': 'Overview created successfully.',
+  'toast.overview.updated': 'Overview updated successfully.',
+  'toast.overview.deleted': 'Overview deleted successfully.',
+  'toast.overview.error.load': 'Failed to load overviews.',
+  'toast.overview.error.save': 'Failed to save overview.',
+  'toast.overview.error.delete': 'Failed to delete overview.',
+  'toast.overview.error.titleRequired': 'Overview title cannot be empty.',
+  'overview.notFound': 'Overview not found.',
+  'overviewDetail.title': 'Overview: {overviewTitle}',
+  'overviewDetail.descriptionTitle': 'Description',
+  'overviewDetail.linkedTasksTitle': 'Linked Tasks (Pending)',
+  'overviewDetail.noLinkedTasks.title': 'No Pending Tasks Linked',
+  'overviewDetail.noLinkedTasks.description': 'Break down this overview into actionable tasks. Click "Add Task to this Overview".',
+  'overviewDetail.button.addTask': 'Add Task to this Overview',
+  'overviewDetail.button.editOverview': 'Edit Overview Details',
+  'overviewDetail.button.backToList': 'All Overviews',
+  'overview.viewTasks': 'View Details & Tasks',
 
 
   'success': 'Success',

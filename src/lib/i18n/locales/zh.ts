@@ -9,6 +9,7 @@ export default {
   'nav.decks': '卡组',
   'nav.manage': '管理卡片',
   'nav.review': '复习',
+  'nav.overviews': '总览', // New
   'theme.toggle': '切换主题',
   'theme.light': '浅色',
   'theme.dark': '深色',
@@ -328,6 +329,11 @@ export default {
   'task.type.innie': '内部事务',
   'task.type.outie': '外部事务',
   'task.type.blackout': '放空事务',
+  'task.form.label.overview': '总览 (可选)', // New
+  'task.form.selectOverview': '选择一个总览...', // New
+  'task.form.noOverviewSelected': '未分配 / 无总览', // New
+  'task.form.noOverviews': '没有可用的总览', // New
+  'task.form.createOverviewLink': '现在创建一个总览？', // New
   'task.form.label.repeat': '重复',
   'task.form.repeat.none': '无',
   'task.form.repeat.daily': '每日',
@@ -499,6 +505,42 @@ export default {
   'tasks.unsavedChanges.button.discardAndCreate': '放弃并创建',
   'tasks.unsavedChanges.button.discardAndEdit': '放弃并编辑',
   'tasks.unsavedChanges.button.discard': '放弃',
+
+  // Overviews
+  'overviews.title': '您的总览',
+  'overviews.button.create': '创建新总览',
+  'overviews.list.loading': '加载您的总览中...',
+  'overviews.list.empty.title': '还没有总览！',
+  'overviews.list.empty.description': '定义您的高级目标或原则。点击“创建新总览”开始。',
+  'overview.item.tasksCount': '{count} 个任务',
+  'overview.item.editTitleHint': '编辑总览标题',
+  'overview.item.delete.confirm.title': '您确定要删除此总览吗？',
+  'overview.item.delete.confirm.description': '此操作无法撤销。这将永久删除该总览。关联的任务不会被删除，但会变为未关联状态。',
+  'overview.form.title.create': '创建新总览',
+  'overview.form.title.edit': '编辑总览',
+  'overview.form.label.title': '总览标题',
+  'overview.form.placeholder.title': '输入总览标题 (例如：掌握微积分 I)',
+  'overview.form.label.description': '描述 (可选)',
+  'overview.form.placeholder.description': '描述您的原则、目标或关注领域... (支持 Markdown)',
+  'overview.form.button.create': '创建总览',
+  'overview.form.button.update': '更新总览',
+  'toast.overview.created': '总览创建成功。',
+  'toast.overview.updated': '总览更新成功。',
+  'toast.overview.deleted': '总览删除成功。',
+  'toast.overview.error.load': '加载总览失败。',
+  'toast.overview.error.save': '保存总览失败。',
+  'toast.overview.error.delete': '删除总览失败。',
+  'toast.overview.error.titleRequired': '总览标题不能为空。',
+  'overview.notFound': '未找到总览。',
+  'overviewDetail.title': '总览：{overviewTitle}',
+  'overviewDetail.descriptionTitle': '描述',
+  'overviewDetail.linkedTasksTitle': '关联的任务 (待处理)',
+  'overviewDetail.noLinkedTasks.title': '没有关联的待处理任务',
+  'overviewDetail.noLinkedTasks.description': '将此总览分解为可操作的任务。点击“为此总览添加任务”。',
+  'overviewDetail.button.addTask': '为此总览添加任务',
+  'overviewDetail.button.editOverview': '编辑总览详情',
+  'overviewDetail.button.backToList': '所有总览',
+  'overview.viewTasks': '查看详情和任务',
 
 
   'success': '成功',

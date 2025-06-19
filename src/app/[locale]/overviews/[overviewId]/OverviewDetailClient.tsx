@@ -30,13 +30,16 @@ type TranslationKeys = keyof typeof import('@/lib/i18n/locales/en').default;
 
 export default function OverviewDetailClient({ overviewId }: { overviewId: string }) {
   const { user, loading: authLoading } = useAuth();
-  const { getOverviewById, tasks, isLoadingOverviews, isLoadingTasks, getTaskById, overviews } = useFlashcards(); // Added overviews here
+  const { getOverviewById, tasks, isLoadingOverviews, isLoadingTasks, getTaskById, overviews } = useFlashcards();
   const t = useI18n();
   const currentLocale = useCurrentLocale();
   const router = useRouter();
   const today = startOfDay(new Date());
   const dateFnsLocale = currentLocale === 'zh' ? zhCN : enUS;
 
+  // Call hooks at the top level
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
 
   const [currentOverview, setCurrentOverview] = useState<Overview | null | undefined>(undefined);
 
@@ -44,13 +47,12 @@ export default function OverviewDetailClient({ overviewId }: { overviewId: strin
     if (!isLoadingOverviews && user) {
       const overview = getOverviewById(overviewId);
       setCurrentOverview(overview);
-      // Check if overviews array is loaded and the specific overview is not found
       if (!overview && !isLoadingOverviews && overviews && overviews.length > 0) { 
           router.push(`/${currentLocale}/overviews`);
       }
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [overviewId, getOverviewById, isLoadingOverviews, user, router, currentLocale, overviews]); // Added overviews to dependency array
+  }, [overviewId, getOverviewById, isLoadingOverviews, user, router, currentLocale, overviews]);
 
 
   const linkedTasks = useMemo(() => {
@@ -177,7 +179,7 @@ export default function OverviewDetailClient({ overviewId }: { overviewId: strin
     );
   }
 
-  if (currentOverview === undefined && !isLoadingOverviews) { // Still loading or initial state
+  if (currentOverview === undefined && !isLoadingOverviews) {
       return (
         <div className="flex justify-center items-center mt-8">
             <Loader2 className="h-8 w-8 animate-spin text-primary" />
@@ -185,7 +187,7 @@ export default function OverviewDetailClient({ overviewId }: { overviewId: strin
       );
   }
 
-  if (currentOverview === null && !isLoadingOverviews) { // Explicitly not found after loading attempt
+  if (currentOverview === null && !isLoadingOverviews) {
     return (
       <Alert variant="destructive" className="mt-8">
         <ShieldAlert className="h-5 w-5" />
@@ -195,7 +197,9 @@ export default function OverviewDetailClient({ overviewId }: { overviewId: strin
     );
   }
   
-  if (!currentOverview) return null; // Should be caught by above, but for TS
+  if (!currentOverview) return null;
+
+  const returnToPath = encodeURIComponent(pathname + searchParams.toString());
 
   const renderTaskItem = (task: Task) => {
     const { visibleLabel, tooltipLabel, timeStatus } = formatTimeLabel(task.timeInfo);
@@ -256,7 +260,7 @@ export default function OverviewDetailClient({ overviewId }: { overviewId: strin
 
     return (
       <TooltipProvider key={task.id}>
-        <Link href={`/${currentLocale}/tasks/${task.id}/edit?returnTo=${encodeURIComponent(usePathname() + useSearchParams().toString())}`} passHref>
+        <Link href={`/${currentLocale}/tasks/${task.id}/edit?returnTo=${returnToPath}`} passHref>
           <Card className="hover:shadow-md transition-shadow cursor-pointer">
             <CardContent className="p-3 flex items-center justify-between">
               <div className="flex-1 min-w-0">
@@ -301,7 +305,6 @@ export default function OverviewDetailClient({ overviewId }: { overviewId: strin
           <span className="truncate" title={currentOverview.title}>{currentOverview.title}</span>
         </h1>
         <div className="w-full sm:w-auto flex justify-end">
-         {/* Placeholder for potential future actions like edit overview on this page */}
         </div>
       </div>
 
@@ -319,7 +322,7 @@ export default function OverviewDetailClient({ overviewId }: { overviewId: strin
       <div>
         <div className="flex justify-between items-center mb-4">
           <h2 className="text-2xl font-semibold tracking-tight">{t('overviewDetail.linkedTasksTitle')}</h2>
-          <Link href={`/${currentLocale}/tasks/new?overviewId=${overviewId}&returnTo=${encodeURIComponent(usePathname() + useSearchParams().toString())}`} passHref>
+          <Link href={`/${currentLocale}/tasks/new?overviewId=${overviewId}&returnTo=${returnToPath}`} passHref>
             <Button variant="default" size="sm">
               <PlusCircle className="mr-2 h-4 w-4" /> {t('overviewDetail.button.addTask')}
             </Button>

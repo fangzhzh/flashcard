@@ -127,6 +127,12 @@ const CustomMarkdownComponents = {
       </code>
     );
   },
+  a({ node, ...props }: React.ComponentPropsWithoutRef<'a'>) {
+    if (props.href && (props.href.startsWith('http://') || props.href.startsWith('https://'))) {
+      return <a {...props} target="_blank" rel="noopener noreferrer" />;
+    }
+    return <a {...props} />;
+  },
 };
 
 
@@ -470,7 +476,7 @@ export default function TaskForm({
               render={({ field }) => (
                 <FormItem>
                   <FormLabel className="text-lg sr-only">{t('task.form.label.title')}</FormLabel>
-                  <div className="flex items-center gap-2">
+                  <div className="flex items-start gap-2">
                     <Controller
                         name="status"
                         control={control}
@@ -479,20 +485,26 @@ export default function TaskForm({
                                 id="task-status-form"
                                 checked={statusField.value === 'completed'}
                                 onCheckedChange={handleStatusChange}
-                                className="flex-shrink-0"
+                                className="flex-shrink-0 mt-1.5"
                                 aria-label={t('task.item.toggleCompletionAria', {title: field.value})}
                                 disabled={isLoading}
                             />
                         )}
                     />
                     <FormControl>
-                      <Input
+                      <Textarea
                         placeholder={t('task.form.placeholder.title')}
                         {...field}
+                        rows={1}
                         className={cn(
-                            "text-xl font-semibold border-0 shadow-none focus-visible:ring-0 focus-visible:ring-offset-0 h-auto py-1 w-full",
+                            "text-xl font-semibold border-0 shadow-none focus-visible:ring-0 focus-visible:ring-offset-0 h-auto py-1 w-full resize-none overflow-hidden",
                             watchedStatus === 'completed' && "line-through text-muted-foreground"
                         )}
+                        onInput={(e) => {
+                            const target = e.target as HTMLTextAreaElement;
+                            target.style.height = 'auto';
+                            target.style.height = `${target.scrollHeight}px`;
+                          }}
                       />
                     </FormControl>
                   </div>

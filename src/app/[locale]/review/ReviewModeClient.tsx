@@ -53,6 +53,12 @@ const CustomMarkdownComponents = {
       </code>
     );
   },
+  a({ node, ...props }: React.ComponentPropsWithoutRef<'a'>) {
+    if (props.href && (props.href.startsWith('http://') || props.href.startsWith('https://'))) {
+      return <a {...props} target="_blank" rel="noopener noreferrer" />;
+    }
+    return <a {...props} />;
+  },
 };
 
 

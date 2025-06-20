@@ -37,6 +37,35 @@ import { Alert, AlertTitle, AlertDescription as UiAlertDescription } from '@/com
 import Link from 'next/link';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
+import type { CodeProps } from 'react-markdown/lib/ast-to-react';
+import MermaidDiagram from '@/components/MermaidDiagram';
+
+const CustomMarkdownComponents = {
+  code({ node, inline, className, children, ...props }: CodeProps) {
+    const match = /language-(\w+)/.exec(className || '');
+    if (!inline && match && match[1] === 'mermaid') {
+      return <MermaidDiagram chart={String(children).trim()} />;
+    }
+    if (!inline && match) {
+      return (
+        <pre className={className} {...props}>
+          <code className={`language-${match[1]}`}>{children}</code>
+        </pre>
+      );
+    }
+    return (
+      <code className={className} {...props}>
+        {children}
+      </code>
+    );
+  },
+  a({ node, ...props }: React.ComponentPropsWithoutRef<'a'>) {
+    if (props.href && (props.href.startsWith('http://') || props.href.startsWith('https://'))) {
+      return <a {...props} target="_blank" rel="noopener noreferrer" />;
+    }
+    return <a {...props} />;
+  },
+};
 
 export default function OverviewsClient() {
   const { user, loading: authLoading } = useAuth();
@@ -179,7 +208,7 @@ export default function OverviewsClient() {
             <CardContent className="flex-grow">
               {overview.description && (
                 <div className="markdown-content text-sm text-muted-foreground line-clamp-3 max-h-[3.75rem] overflow-hidden">
-                  <ReactMarkdown remarkPlugins={[remarkGfm]}>{overview.description}</ReactMarkdown>
+                  <ReactMarkdown remarkPlugins={[remarkGfm]} components={CustomMarkdownComponents}>{overview.description}</ReactMarkdown>
                 </div>
               )}
             </CardContent>

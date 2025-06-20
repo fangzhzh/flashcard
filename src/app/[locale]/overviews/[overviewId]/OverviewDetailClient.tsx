@@ -48,6 +48,12 @@ const CustomMarkdownComponents = {
       </code>
     );
   },
+  a({ node, ...props }: React.ComponentPropsWithoutRef<'a'>) {
+    if (props.href && (props.href.startsWith('http://') || props.href.startsWith('https://'))) {
+      return <a {...props} target="_blank" rel="noopener noreferrer" />;
+    }
+    return <a {...props} />;
+  },
 };
 
 
@@ -60,8 +66,8 @@ export default function OverviewDetailClient({ overviewId }: { overviewId: strin
   const today = startOfDay(new Date());
   const dateFnsLocale = currentLocale === 'zh' ? zhCN : enUS;
 
-  const pathname = usePathname();
-  const searchParams = useSearchParams();
+  const currentPathname = usePathname();
+  const currentSearchParams = useSearchParams();
 
   const [currentOverview, setCurrentOverview] = useState<Overview | null | undefined>(undefined);
 
@@ -221,7 +227,7 @@ export default function OverviewDetailClient({ overviewId }: { overviewId: strin
   
   if (!currentOverview) return null;
 
-  const returnToPath = encodeURIComponent(pathname + searchParams.toString());
+  const returnToPath = encodeURIComponent(currentPathname + currentSearchParams.toString());
 
   const renderTaskItem = (task: Task) => {
     const { visibleLabel, tooltipLabel, timeStatus } = formatTimeLabel(task.timeInfo);

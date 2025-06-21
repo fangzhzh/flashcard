@@ -19,7 +19,7 @@ export interface Deck {
 }
 
 export interface Flashcard {
-  id: string; // Firestore document ID
+  id:string; // Firestore document ID
   front: string;
   back: string;
   lastReviewed: string | null; // ISO date string
@@ -91,6 +91,7 @@ export interface Task {
   type: TaskType;
   overviewId?: string | null; // Link to Overview
   repeat: RepeatFrequency;
+  isSilent?: boolean; // New: If true, task is hidden until its start date
   timeInfo: TimeInfo;
   artifactLink: ArtifactLink;
   reminderInfo: ReminderInfo;
@@ -98,4 +99,3 @@ export interface Task {
   createdAt: any;
   updatedAt: any;
 }
-

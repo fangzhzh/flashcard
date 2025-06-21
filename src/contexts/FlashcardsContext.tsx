@@ -89,6 +89,7 @@ export const FlashcardsProvider = ({ children }: { children: ReactNode }) => {
       id: docSnapshot.id,
       ...data,
       type: data.type || 'innie',
+      isSilent: data.isSilent || false, // Add isSilent mapping
       createdAt: data.createdAt instanceof Timestamp ? formatISO(data.createdAt.toDate()) : (typeof data.createdAt === 'string' ? data.createdAt : null),
       updatedAt: data.updatedAt instanceof Timestamp ? formatISO(data.updatedAt.toDate()) : (typeof data.updatedAt === 'string' ? data.updatedAt : null),
       timeInfo: {
@@ -354,6 +355,7 @@ export const FlashcardsProvider = ({ children }: { children: ReactNode }) => {
         reminderInfo: data.reminderInfo || { type: 'none' },
         checkinInfo: data.checkinInfo || null,
         overviewId: data.overviewId || null,
+        isSilent: data.isSilent || false, // Handle new isSilent flag
         createdAt: now,
         updatedAt: now
       };
@@ -365,6 +367,7 @@ export const FlashcardsProvider = ({ children }: { children: ReactNode }) => {
         ...data,
         type: data.type || 'innie',
         status: data.status || 'pending',
+        isSilent: data.isSilent || false,
         artifactLink: data.artifactLink || { flashcardId: null },
         reminderInfo: data.reminderInfo || { type: 'none' },
         checkinInfo: data.checkinInfo || null,
@@ -383,6 +386,7 @@ export const FlashcardsProvider = ({ children }: { children: ReactNode }) => {
       const updateData: Partial<Omit<Task, 'id' | 'userId' | 'createdAt'>> & { updatedAt: any } = {
         ...updates,
         type: updates.type || currentTask?.type || 'innie',
+        isSilent: updates.isSilent === undefined ? currentTask?.isSilent : updates.isSilent, // Handle isSilent
         artifactLink: updates.artifactLink || currentTask?.artifactLink || { flashcardId: null },
         reminderInfo: updates.reminderInfo || currentTask?.reminderInfo || { type: 'none' },
         checkinInfo: updates.checkinInfo === undefined ? currentTask?.checkinInfo : (updates.checkinInfo || null),
@@ -393,7 +397,7 @@ export const FlashcardsProvider = ({ children }: { children: ReactNode }) => {
       await updateDoc(taskDocRef, updateData as any);
 
       const task = tasks.find(t => t.id === id);
-      return task ? { ...task, ...updates, type: updateData.type, checkinInfo: updateData.checkinInfo, overviewId: updateData.overviewId, updatedAt: formatISO(new Date()) } : null;
+      return task ? { ...task, ...updates, type: updateData.type, isSilent: updateData.isSilent, checkinInfo: updateData.checkinInfo, overviewId: updateData.overviewId, updatedAt: formatISO(new Date()) } : null;
     } catch (error) { console.error("Error updating task:", error); return null; }
   }, [user, tasks]);
 

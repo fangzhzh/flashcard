@@ -6,14 +6,14 @@ import { useFlashcards } from '@/contexts/FlashcardsContext';
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
-import { Loader2, Info, ShieldAlert, PlayCircle, Zap, AlertTriangle, CalendarIcon, Hourglass, ListChecks, Briefcase, User, Coffee, LayoutGrid, X, Save, Link2, RotateCcw, Clock, Bell, Trash2, FilePlus, Search, Edit3, Repeat, ArrowLeft, Stamp, ChevronDown } from 'lucide-react'; // Changed CheckSquare to Stamp, Added ChevronDown
+import { Loader2, Info, ShieldAlert, PlayCircle, Zap, AlertTriangle, CalendarIcon, Hourglass, ListChecks, Briefcase, User, Coffee, LayoutGrid, X, Save, Link2, RotateCcw, Clock, Bell, Trash2, FilePlus, Search, Edit3, Repeat, ArrowLeft, Stamp, ChevronDown } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { useI18n, useCurrentLocale } from '@/lib/i18n/client';
 import type { Task, TimeInfo, TaskStatus, RepeatFrequency, ReminderType, TaskType, ArtifactLink, Flashcard as FlashcardType, CheckinInfo } from '@/types';
 import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert";
 import TaskForm, { type TaskFormData } from '@/components/TaskForm';
 import { usePomodoro } from '@/contexts/PomodoroContext';
-import { format, parseISO, differenceInCalendarDays, isToday, isTomorrow, isValid, isSameYear, startOfDay, addDays, startOfWeek, endOfWeek, areIntervalsOverlapping, endOfDay, isYesterday } from 'date-fns';
+import { format, parseISO, differenceInCalendarDays, isToday, isTomorrow, isValid, isSameYear, startOfDay, addDays, startOfWeek, endOfWeek, areIntervalsOverlapping, endOfDay, isYesterday, addWeeks, addMonths, addYears, nextSaturday, nextSunday, isSaturday, isSunday } from 'date-fns';
 import { enUS } from 'date-fns/locale/en-US';
 import { zhCN } from 'date-fns/locale/zh-CN';
 import { cn } from '@/lib/utils';
@@ -64,6 +64,62 @@ interface TaskTypeFilterOption {
   labelKey: TranslationKeys;
   icon: React.ElementType;
   count: number;
+}
+
+
+function calculateNextOccurrence(task: Task): TimeInfo | null {
+  if (task.repeat === 'none' || !task.timeInfo.startDate) {
+    return null;
+  }
+
+  const currentStartDate = parseISO(task.timeInfo.startDate);
+  if (!isValid(currentStartDate)) return null;
+
+  let nextStartDate: Date;
+
+  switch (task.repeat) {
+    case 'daily':
+      nextStartDate = addDays(currentStartDate, 1);
+      break;
+    case 'weekly':
+      nextStartDate = addWeeks(currentStartDate, 1);
+      break;
+    case 'monthly':
+      nextStartDate = addMonths(currentStartDate, 1);
+      break;
+    case 'annually':
+      nextStartDate = addYears(currentStartDate, 1);
+      break;
+    case 'weekday':
+      nextStartDate = addDays(currentStartDate, 1);
+      while (isSaturday(nextStartDate) || isSunday(nextStartDate)) {
+        nextStartDate = addDays(nextStartDate, 1);
+      }
+      break;
+    case 'weekend':
+       nextStartDate = addDays(currentStartDate, 1);
+       if (!isSaturday(nextStartDate) && !isSunday(nextStartDate)) {
+         nextStartDate = nextSaturday(currentStartDate);
+       }
+       break;
+    default:
+      return null;
+  }
+
+  let nextEndDate: Date | null = null;
+  if (task.timeInfo.endDate && task.timeInfo.type === 'date_range') {
+    const currentEndDate = parseISO(task.timeInfo.endDate);
+    const duration = differenceInCalendarDays(currentEndDate, currentStartDate);
+    if (isValid(currentEndDate) && duration >= 0) {
+      nextEndDate = addDays(nextStartDate, duration);
+    }
+  }
+
+  return {
+    ...task.timeInfo,
+    startDate: formatISO(nextStartDate, { representation: 'date' }),
+    endDate: nextEndDate ? formatISO(nextEndDate, { representation: 'date' }) : null,
+  };
 }
 
 
@@ -154,6 +210,7 @@ function TasksClientContent() {
     description: '',
     type: (activeTaskTypeFilter !== 'all' ? activeTaskTypeFilter : 'innie') as TaskType,
     repeat: 'none' as RepeatFrequency,
+    isSilent: false,
     timeInfo: { type: 'no_time' as 'no_time', startDate: null, endDate: null, time: null },
     artifactLink: { flashcardId: null as string | null },
     reminderInfo: { type: 'none' as ReminderType },
@@ -262,7 +319,18 @@ function TasksClientContent() {
   const filteredAndSortedTasks = useMemo(() => {
     const weekStartsOn = currentLocale === 'zh' ? 1 : 0; 
 
-    let currentTasks = tasks.filter(task => task.status !== 'completed'); // Exclude completed tasks from main list
+    let currentTasks = tasks.filter(task => {
+        // Exclude completed tasks from main list
+        if (task.status === 'completed') return false;
+
+        // Exclude silent tasks whose start date is in the future
+        if (task.isSilent && task.timeInfo?.startDate && isValid(parseISO(task.timeInfo.startDate))) {
+          if (startOfDay(parseISO(task.timeInfo.startDate)) > today) {
+            return false;
+          }
+        }
+        return true;
+    });
 
     if (activeTaskTypeFilter !== 'all') {
       currentTasks = currentTasks.filter(task => task.type === activeTaskTypeFilter);
@@ -421,21 +489,33 @@ function TasksClientContent() {
   };
 
   const handleToggleTaskCompletion = async (task: Task) => {
-    const newStatus: TaskStatus = task.status === 'completed' ? 'pending' : 'completed';
     try {
-      await updateTaskInContext(task.id, { status: newStatus, updatedAt: new Date().toISOString() });
-      if (newStatus === 'completed') {
-        setCompletedTasksCount(prev => (prev === null ? 1 : prev + 1));
-        // Optimistically add to completed list if accordion is open or if it's fetched
-        if (isCompletedAccordionOpen || completedTasksList.length > 0) {
-            setCompletedTasksList(prevList => [
-                {...task, status: 'completed', updatedAt: new Date().toISOString() }, // Ensure `updatedAt` is updated
-                ...prevList
-            ].sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime()));
+      await updateTaskInContext(task.id, { status: 'completed', updatedAt: new Date().toISOString() });
+      toast({ title: t('success'), description: t('toast.task.completed', { title: task.title }) });
+      setCompletedTasksCount(prev => (prev === null ? 1 : prev + 1));
+      if (isCompletedAccordionOpen || completedTasksList.length > 0) {
+        setCompletedTasksList(prevList => [
+          { ...task, status: 'completed', updatedAt: new Date().toISOString() },
+          ...prevList
+        ].sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime()));
+      }
+      
+      // Handle repeating tasks by creating a new one
+      if (task.repeat && task.repeat !== 'none') {
+        const nextTimeInfo = calculateNextOccurrence(task);
+        if (nextTimeInfo) {
+          const newTaskData: Omit<Task, 'id' | 'createdAt' | 'updatedAt' | 'userId'> = {
+            ...task,
+            timeInfo: nextTimeInfo,
+            status: 'pending',
+            isSilent: true, // New repeated tasks are silent by default
+            checkinInfo: task.checkinInfo ? { ...task.checkinInfo, currentCheckins: 0 } : null,
+          };
+          // Remove id from the data to be added
+          const { id, ...dataForNewTask } = newTaskData;
+          await addTaskInContext(dataForNewTask);
+          toast({ title: t('toast.task.rescheduled.title'), description: t('toast.task.rescheduled.description', { title: task.title }) });
         }
-      } else {
-          setCompletedTasksCount(prev => (prev === null || prev === 0 ? 0 : prev -1));
-          setCompletedTasksList(prevList => prevList.filter(ct => ct.id !== task.id));
       }
     } catch (error) {
       toast({ title: t('error'), description: t('toast.task.error.save'), variant: "destructive" });
@@ -559,29 +639,16 @@ function TasksClientContent() {
     setIsCheckingIn(prev => ({ ...prev, [task.id]: true }));
 
     const newCurrentCheckins = (task.checkinInfo.currentCheckins || 0) + 1;
-    const updatedCheckinInfo: CheckinInfo = {
-      ...task.checkinInfo,
-      currentCheckins: newCurrentCheckins,
-    };
-
-    let newStatus: TaskStatus = task.status;
-    if (newCurrentCheckins >= task.checkinInfo.totalCheckinsRequired) {
-      newStatus = 'completed';
-    }
+    const isNowCompleted = newCurrentCheckins >= task.checkinInfo.totalCheckinsRequired;
 
     try {
-      await updateTaskInContext(task.id, { checkinInfo: updatedCheckinInfo, status: newStatus, updatedAt: new Date().toISOString() });
-      if (newStatus === 'completed') {
-        toast({ title: t('success'), description: t('toast.task.checkInCompleted', { title: task.title }) });
-         setCompletedTasksCount(prev => (prev === null ? 1 : prev + 1));
-         // Optimistically add to completed list if accordion is open or if it's fetched
-        if (isCompletedAccordionOpen || completedTasksList.length > 0) {
-            setCompletedTasksList(prevList => [
-                {...task, status: 'completed', checkinInfo: updatedCheckinInfo, updatedAt: new Date().toISOString() },
-                ...prevList
-            ].sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime()));
-        }
+      if (isNowCompleted) {
+         // Use the same logic as handleToggleTaskCompletion for consistency
+         await handleToggleTaskCompletion(task);
+         toast({ title: t('success'), description: t('toast.task.checkInCompleted', { title: task.title }) });
       } else {
+        const updatedCheckinInfo: CheckinInfo = { ...task.checkinInfo, currentCheckins: newCurrentCheckins };
+        await updateTaskInContext(task.id, { checkinInfo: updatedCheckinInfo, updatedAt: new Date().toISOString() });
         toast({
           title: t('success'),
           description: t('toast.task.checkedIn', {
@@ -721,7 +788,7 @@ function TasksClientContent() {
               )}
           >
             {/* Column 1: Icon */}
-            <div className="flex-shrink-0">
+             <div className="flex-shrink-0 flex items-center justify-center pl-1 h-full">
                {isCheckInTask && !isCompletedList ? (
                   <Button
                     variant="ghost"
@@ -738,7 +805,7 @@ function TasksClientContent() {
                     id={`task-${task.id}${isCompletedList ? '-completed' : ''}`}
                     checked={task.status === 'completed'}
                     onCheckedChange={() => handleToggleTaskCompletion(task)}
-                    className="ml-1 flex-shrink-0"
+                    className="flex-shrink-0"
                     aria-label={t('task.item.toggleCompletionAria', {title: task.title})}
                   />
                 )}
@@ -757,10 +824,10 @@ function TasksClientContent() {
             </div>
 
             {/* Column 3: Status & Actions */}
-            <div className="flex flex-col items-end flex-shrink-0 space-y-1 ml-2">
-                <div className="h-5 flex items-end">
+            <div className="flex flex-col items-end flex-shrink-0 space-y-1 ml-2 w-24">
+                <div className="h-5 flex items-center justify-end w-full">
                     {isCheckInTask && task.checkinInfo && !isCompletedList && (
-                        <div className="flex items-center gap-2 w-24">
+                        <div className="flex items-center gap-2 w-full">
                             <Progress
                                 value={(task.checkinInfo.currentCheckins / task.checkinInfo.totalCheckinsRequired) * 100}
                                 className="h-1.5 flex-grow" 
@@ -995,32 +1062,3 @@ export default function TasksClient() {
     </SidebarProvider>
   );
 }
-    
-
-    
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-    

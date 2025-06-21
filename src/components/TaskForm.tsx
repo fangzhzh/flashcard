@@ -9,10 +9,10 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import type { Task, RepeatFrequency, TimeInfo, ArtifactLink, ReminderInfo, Flashcard as FlashcardType, Deck, TaskType, CheckinInfo, TaskStatus, Overview } from '@/types';
-import { Save, CalendarIcon, Link2, RotateCcw, Clock, Bell, Trash2, X, Loader2, FilePlus, ListChecks, Search, Edit3, Repeat, Briefcase, User, Coffee, Eye, FileEdit, ArrowLeft, FilePenLine, CheckSquare, Square, GitFork } from 'lucide-react';
+import { Save, CalendarIcon, Link2, RotateCcw, Clock, Bell, Trash2, X, Loader2, FilePlus, ListChecks, Search, Edit3, Repeat, Briefcase, User, Coffee, Eye, FileEdit, ArrowLeft, FilePenLine, CheckSquare, Square, GitFork, EyeOff } from 'lucide-react';
 import { useI18n, useCurrentLocale } from '@/lib/i18n/client';
 import { cn } from '@/lib/utils';
-import { format, parseISO, isValid, isToday, isTomorrow } from 'date-fns';
+import { format, parseISO, isValid, isToday, isTomorrow, startOfDay } from 'date-fns';
 import { enUS } from 'date-fns/locale/en-US';
 import { zhCN } from 'date-fns/locale/zh-CN';
 import { useFlashcards } from '@/contexts/FlashcardsContext';
@@ -89,6 +89,7 @@ const taskSchema = z.object({
   status: z.enum(['pending', 'completed']).default('pending'),
   overviewId: z.string().nullable().optional(),
   repeat: z.enum(['none', 'daily', 'weekday', 'weekend', 'weekly', 'monthly', 'annually']).default('none'),
+  isSilent: z.boolean().optional(),
   timeInfo: timeInfoSchema,
   artifactLink: artifactLinkSchema.default({ flashcardId: null }),
   reminderInfo: reminderInfoSchema.default({ type: 'none' }),
@@ -160,6 +161,7 @@ export default function TaskForm({
     isLoadingOverviews
   } = useFlashcards();
   const dateFnsLocale = currentLocale === 'zh' ? zhCN : enUS;
+  const today = startOfDay(new Date());
 
   const form = useForm<TaskFormData>({
     resolver: zodResolver(taskSchema),
@@ -170,6 +172,7 @@ export default function TaskForm({
       status: initialData?.status || 'pending',
       overviewId: initialData?.overviewId || null,
       repeat: initialData?.repeat || 'none',
+      isSilent: initialData?.isSilent || false,
       timeInfo: initialData?.timeInfo || { type: 'no_time', startDate: null, endDate: null, time: null },
       artifactLink: initialData?.artifactLink || { flashcardId: null },
       reminderInfo: initialData?.reminderInfo || { type: 'none' },
@@ -246,6 +249,7 @@ export default function TaskForm({
       status: initialData?.status || 'pending',
       overviewId: initialData?.overviewId || null,
       repeat: initialData?.repeat || 'none',
+      isSilent: initialData?.isSilent || false,
       timeInfo: normalizedTimeInfo,
       artifactLink: initialData?.artifactLink || { flashcardId: null },
       reminderInfo: initialData?.reminderInfo || { type: 'none' },
@@ -449,7 +453,7 @@ export default function TaskForm({
     }
   };
 
-
+  const isFutureDated = watchedTimeInfo.startDate && isValid(parseISO(watchedTimeInfo.startDate)) && startOfDay(parseISO(watchedTimeInfo.startDate)) > today;
   const timeDisplay = formatDateTimeDisplay();
   const repeatDisplay = formatRepeatDisplay();
   const reminderDisplay = formatReminderDisplay();
@@ -642,6 +646,27 @@ export default function TaskForm({
                 <FormMessage>{form.formState.errors.timeInfo?.endDate?.message && t(form.formState.errors.timeInfo.endDate.message as any)}</FormMessage>
                 <FormMessage>{form.formState.errors.timeInfo?.time?.message && t(form.formState.errors.timeInfo.time.message as any)}</FormMessage>
             </FormItem>
+
+            {isFutureDated && (
+              <FormField
+                control={form.control}
+                name="isSilent"
+                render={({ field }) => (
+                  <FormItem className="flex flex-row items-center justify-between rounded-lg border p-3">
+                    <div className="space-y-0.5">
+                      <FormLabel>{t('task.form.isSilent.label')}</FormLabel>
+                      <FormMessage>{t('task.form.isSilent.description')}</FormMessage>
+                    </div>
+                    <FormControl>
+                      <Switch
+                        checked={field.value}
+                        onCheckedChange={field.onChange}
+                      />
+                    </FormControl>
+                  </FormItem>
+                )}
+              />
+            )}
 
             <FormItem className="space-y-3">
               <div className="flex items-center space-x-2 p-3 border rounded-md">

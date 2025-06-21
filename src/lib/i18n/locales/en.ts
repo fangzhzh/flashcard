@@ -401,6 +401,9 @@ export default {
   'toast.task.created': 'Task created successfully.',
   'toast.task.updated': 'Task updated successfully.',
   'toast.task.deleted': 'Task deleted successfully.',
+  'toast.task.completed': 'Task "{title}" completed!',
+  'toast.task.rescheduled.title': 'Task Rescheduled',
+  'toast.task.rescheduled.description': 'Repeating task "{title}" has been scheduled for its next occurrence.',
   'toast.task.error.load': 'Failed to load tasks.',
   'toast.task.error.save': 'Failed to save task.',
   'toast.task.error.delete': 'Failed to delete task.',
@@ -504,6 +507,9 @@ export default {
   'tasks.unsavedChanges.button.discardAndCreate': 'Discard and Create',
   'tasks.unsavedChanges.button.discardAndEdit': 'Discard and Edit',
   'tasks.unsavedChanges.button.discard': 'Discard',
+  
+  'task.form.isSilent.label': 'Hide until start date',
+  'task.form.isSilent.description': 'Task will not appear in the list until its start date.',
 
   // Overviews
   'overviews.title': 'Your Overviews',

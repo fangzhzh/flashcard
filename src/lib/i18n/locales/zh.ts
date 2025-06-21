@@ -401,6 +401,9 @@ export default {
   'toast.task.created': '任务创建成功。',
   'toast.task.updated': '任务更新成功。',
   'toast.task.deleted': '任务删除成功。',
+  'toast.task.completed': '任务 "{title}" 已完成！',
+  'toast.task.rescheduled.title': '任务已重新排期',
+  'toast.task.rescheduled.description': '重复任务 "{title}" 已安排下一次执行。',
   'toast.task.error.load': '加载任务失败。',
   'toast.task.error.save': '保存任务失败。',
   'toast.task.error.delete': '删除任务失败。',
@@ -505,6 +508,9 @@ export default {
   'tasks.unsavedChanges.button.discardAndCreate': '放弃并创建',
   'tasks.unsavedChanges.button.discardAndEdit': '放弃并编辑',
   'tasks.unsavedChanges.button.discard': '放弃',
+
+  'task.form.isSilent.label': '直到开始日期前隐藏',
+  'task.form.isSilent.description': '任务在其开始日期之前不会出现在列表中。',
 
   // Overviews
   'overviews.title': '您的总览',

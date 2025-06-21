@@ -10,7 +10,7 @@ import { Loader2, Info, ShieldAlert, PlayCircle, Zap, AlertTriangle, CalendarIco
 import { useToast } from '@/hooks/use-toast';
 import { useI18n, useCurrentLocale } from '@/lib/i18n/client';
 import type { Task, TimeInfo, TaskStatus, RepeatFrequency, ReminderType, TaskType, ArtifactLink, Flashcard as FlashcardType, CheckinInfo } from '@/types';
-import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
+import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert";
 import TaskForm, { type TaskFormData } from '@/components/TaskForm';
 import { usePomodoro } from '@/contexts/PomodoroContext';
 import { format, parseISO, differenceInCalendarDays, isToday, isTomorrow, isValid, isSameYear, startOfDay, addDays, startOfWeek, endOfWeek, areIntervalsOverlapping, endOfDay, isYesterday } from 'date-fns';
@@ -622,7 +622,6 @@ function TasksClientContent() {
     let statusIcon: React.ReactNode = null;
     let statusIconTooltipContent: React.ReactNode | null = null;
     let currentRemainingPercentage = 0;
-    let totalDaysInRangeForLabel = 0;
     
     if (task.status !== 'completed') {
         if (timeStatus === 'upcoming' && task.timeInfo?.startDate) {
@@ -647,7 +646,7 @@ function TasksClientContent() {
             const eDate = parseISO(task.timeInfo.endDate);
 
             if (isValid(sDate) && isValid(eDate) && eDate >= sDate) {
-                totalDaysInRangeForLabel = differenceInCalendarDays(eDate, sDate) + 1;
+                const totalDaysInRangeForLabel = differenceInCalendarDays(eDate, sDate) + 1;
                 const now = new Date();
                 
                 const isTaskTodayOnly = isToday(sDate) && isToday(eDate) && totalDaysInRangeForLabel === 1;
@@ -681,7 +680,6 @@ function TasksClientContent() {
 
                 statusIcon = <TaskDurationPie
                                 remainingPercentage={currentRemainingPercentage}
-                                totalDurationDays={totalDaysInRangeForLabel}
                                 variant="active"
                                 size={16}
                                 className="mx-1 flex-shrink-0"
@@ -693,7 +691,7 @@ function TasksClientContent() {
              statusIcon = <Zap className="h-4 w-4 text-green-500 mx-1 flex-shrink-0" />;
              statusIconTooltipContent = <p>{t('task.display.status.active')}</p>;
         } else if (timeStatus === 'overdue') {
-            statusIcon = <AlertTriangle className="h-4 w-4 text-yellow-500 mx-1 flex-shrink-0" />;
+            statusIcon = <AlertTriangle className="h-4 w-4 text-red-500 mx-1 flex-shrink-0" />;
             statusIconTooltipContent = <p>{t('task.display.status.overdue')}</p>;
         }
     }
@@ -717,17 +715,18 @@ function TasksClientContent() {
               draggable={!isMobile && !isCheckInTask && !isCompletedList}
               onDragStart={!isMobile && !isCheckInTask && !isCompletedList ? (e) => handleDragStart(e, task.id) : undefined}
               className={cn(
-                  "group flex items-center justify-between py-2.5 px-1 rounded-md hover:bg-muted",
+                  "group flex items-center gap-2 py-2.5 px-1 rounded-md hover:bg-muted",
                   !isMobile && !isCheckInTask && !isCompletedList && "cursor-grab", 
                   selectedTaskId === task.id && "bg-muted shadow-md" 
               )}
           >
-            <div className="flex items-center flex-1 min-w-0 mr-2">
+            {/* Column 1: Icon */}
+            <div className="flex-shrink-0">
                {isCheckInTask && !isCompletedList ? (
                   <Button
                     variant="ghost"
                     size="icon"
-                    className="mr-2 h-8 w-8 flex-shrink-0 p-1"
+                    className="h-8 w-8 flex-shrink-0 p-1"
                     onClick={() => handleCheckIn(task)}
                     disabled={!canCheckIn || isCheckingIn[task.id]}
                     title={t('task.item.checkInStampTitle', { title: task.title })}
@@ -739,82 +738,76 @@ function TasksClientContent() {
                     id={`task-${task.id}${isCompletedList ? '-completed' : ''}`}
                     checked={task.status === 'completed'}
                     onCheckedChange={() => handleToggleTaskCompletion(task)}
-                    className="mr-2 flex-shrink-0"
+                    className="ml-1 flex-shrink-0"
                     aria-label={t('task.item.toggleCompletionAria', {title: task.title})}
                   />
                 )}
-              <div className="flex-1 min-w-0 cursor-pointer overflow-hidden" onClick={() => !isCompletedList && handleEditTask(task.id)}>
-                <p className={cn(
-                    "text-base font-medium", 
-                    task.status === 'completed' && "line-through text-muted-foreground"
-                  )} title={task.title}>
-                  {displayTitle}
-                </p>
-                {displayDescription && (
-                  <p className={cn(
-                      "text-xs text-muted-foreground", 
-                      task.status === 'completed' && "line-through"
-                    )} title={task.description ?? undefined}>
-                    {displayDescription}
-                  </p>
-                )}
-                {isCheckInTask && task.checkinInfo && (
-                  <div className="mt-1.5 flex items-center gap-2">
-                    <Progress
-                      value={(task.checkinInfo.currentCheckins / task.checkinInfo.totalCheckinsRequired) * 100}
-                      className="h-1.5 flex-grow" 
-                      aria-label={t('task.item.checkInProgressAria', {
-                        current: task.checkinInfo.currentCheckins,
-                        total: task.checkinInfo.totalCheckinsRequired
-                      })}
-                    />
-                    <span className="text-xs text-muted-foreground">
-                      {task.checkinInfo.currentCheckins}/{task.checkinInfo.totalCheckinsRequired}
-                    </span>
-                  </div>
-                )}
-              </div>
             </div>
-            <div className="flex items-center flex-shrink-0"> 
-              {visibleLabel && (
-                  <Tooltip delayDuration={300}>
-                    <TooltipTrigger asChild>
-                      <span
-                        className="text-xs text-muted-foreground mr-1 cursor-pointer"
-                        onClick={(e) => { e.stopPropagation(); !isCompletedList && handleEditTask(task.id);}} 
-                      >
-                        {visibleLabel}
-                      </span>
-                    </TooltipTrigger>
-                    <TooltipContent>
-                      <p>{tooltipLabel}</p>
-                    </TooltipContent>
-                  </Tooltip>
-                )}
 
-              {statusIcon && statusIconTooltipContent && (
-                 <Tooltip delayDuration={300}>
-                    <TooltipTrigger asChild>
-                        <div className="flex items-center"> 
-                            {statusIcon}
+            {/* Column 2: Content */}
+            <div className="flex-1 min-w-0 cursor-pointer" onClick={() => !isCompletedList && handleEditTask(task.id)}>
+              <p className={cn("text-base font-medium", task.status === 'completed' && "line-through text-muted-foreground")} title={task.title}>
+                {displayTitle}
+              </p>
+              {displayDescription && (
+                <p className={cn("text-xs text-muted-foreground", task.status === 'completed' && "line-through")} title={task.description ?? undefined}>
+                  {displayDescription}
+                </p>
+              )}
+            </div>
+
+            {/* Column 3: Status & Actions */}
+            <div className="flex flex-col items-end flex-shrink-0 space-y-1 ml-2">
+                <div className="h-5 flex items-end">
+                    {isCheckInTask && task.checkinInfo && !isCompletedList && (
+                        <div className="flex items-center gap-2 w-24">
+                            <Progress
+                                value={(task.checkinInfo.currentCheckins / task.checkinInfo.totalCheckinsRequired) * 100}
+                                className="h-1.5 flex-grow" 
+                                aria-label={t('task.item.checkInProgressAria', {
+                                    current: task.checkinInfo.currentCheckins,
+                                    total: task.checkinInfo.totalCheckinsRequired
+                                })}
+                            />
+                            <span className="text-xs text-muted-foreground">
+                                {task.checkinInfo.currentCheckins}/{task.checkinInfo.totalCheckinsRequired}
+                            </span>
                         </div>
-                    </TooltipTrigger>
-                    <TooltipContent>{statusIconTooltipContent}</TooltipContent>
-                </Tooltip>
-              )}
+                    )}
+                </div>
 
-              {!isCompletedList && (
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  className="h-8 w-8 flex-shrink-0"
-                  onClick={(e) => { e.stopPropagation(); handleStartPomodoroForTask(task.title); }}
-                  title={t('task.item.startPomodoro')}
-                  disabled={task.status === 'completed'}
-                >
-                  <PlayCircle className="h-5 w-5 text-primary" />
-                </Button>
-              )}
+                <div className="flex items-center space-x-0.5"> 
+                  {visibleLabel && (
+                      <Tooltip delayDuration={300}>
+                        <TooltipTrigger asChild>
+                          <span className="text-xs text-muted-foreground mr-1 cursor-pointer" onClick={(e) => { e.stopPropagation(); !isCompletedList && handleEditTask(task.id);}}>
+                            {visibleLabel}
+                          </span>
+                        </TooltipTrigger>
+                        <TooltipContent><p>{tooltipLabel}</p></TooltipContent>
+                      </Tooltip>
+                    )}
+
+                  {statusIcon && statusIconTooltipContent && (
+                     <Tooltip delayDuration={300}>
+                        <TooltipTrigger asChild><div className="flex items-center h-8 w-6 justify-center">{statusIcon}</div></TooltipTrigger>
+                        <TooltipContent>{statusIconTooltipContent}</TooltipContent>
+                    </Tooltip>
+                  )}
+
+                  {!isCompletedList && (
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-8 w-8 flex-shrink-0"
+                      onClick={(e) => { e.stopPropagation(); handleStartPomodoroForTask(task.title); }}
+                      title={t('task.item.startPomodoro')}
+                      disabled={task.status === 'completed'}
+                    >
+                      <PlayCircle className="h-5 w-5 text-primary" />
+                    </Button>
+                  )}
+                </div>
             </div>
           </li>
         </TooltipProvider>
@@ -1028,3 +1021,6 @@ export default function TasksClient() {
 
 
 
+
+
+    

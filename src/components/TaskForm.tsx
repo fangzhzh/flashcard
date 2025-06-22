@@ -900,7 +900,7 @@ export default function TaskForm({
           </div>
         </ScrollArea>
 
-        <div className="flex-shrink-0 flex justify-between items-center pt-4 mt-auto border-t">
+        <div className="flex-shrink-0 flex justify-between items-center pt-4 border-t">
             <div className="flex gap-2">
                 <Button type="submit" disabled={isLoading || isFetchingFlashcard || isSubmittingNewFlashcard || isSubmittingEditedFlashcard || isDeleting || isReadOnly} className="min-w-[100px]" size="sm">
                     {isLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}

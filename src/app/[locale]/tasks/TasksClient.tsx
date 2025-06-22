@@ -373,16 +373,23 @@ function TasksClientContent() {
         const aIsCompleted = a.status === 'completed';
         const bIsCompleted = b.status === 'completed';
 
-        if (aIsCompleted && !bIsCompleted) return -1;
-        if (!aIsCompleted && bIsCompleted) return 1;
+        // Future tasks (not completed) have higher priority
+        if (!aIsCompleted && bIsCompleted) return -1;
+        if (aIsCompleted && !bIsCompleted) return 1;
 
+        // If both are future tasks, sort by start date (earliest first)
+        if (!aIsCompleted && !bIsCompleted) {
+            const aDate = a.timeInfo?.startDate ? parseISO(a.timeInfo.startDate) : new Date(0);
+            const bDate = b.timeInfo?.startDate ? parseISO(b.timeInfo.startDate) : new Date(0);
+            return aDate.getTime() - bDate.getTime();
+        }
+
+        // If both are completed, sort by updated date (most recent first)
         if (aIsCompleted && bIsCompleted) {
             return (new Date(b.updatedAt).getTime()) - (new Date(a.updatedAt).getTime());
         }
 
-        const aDate = a.timeInfo?.startDate ? parseISO(a.timeInfo.startDate) : new Date(0);
-        const bDate = b.timeInfo?.startDate ? parseISO(b.timeInfo.startDate) : new Date(0);
-        return aDate.getTime() - bDate.getTime();
+        return 0; // Should not happen
     });
   }, [tasks, today]);
 
@@ -484,10 +491,9 @@ function TasksClientContent() {
     }
   };
 
-  const handleToggleTaskCompletion = async (task: Task, checked: boolean) => {
-    const newStatus: TaskStatus = checked ? 'completed' : 'pending';
-
-    if (task.status === newStatus) return;
+  const handleToggleTaskCompletion = async (task: Task) => {
+    const isCurrentlyCompleted = task.status === 'completed';
+    const newStatus: TaskStatus = isCurrentlyCompleted ? 'pending' : 'completed';
 
     try {
       const updates: Partial<Task> = { status: newStatus, updatedAt: new Date().toISOString() };
@@ -641,7 +647,7 @@ function TasksClientContent() {
 
     try {
       if (isNowCompleted) {
-         await handleToggleTaskCompletion(task, true);
+         await handleToggleTaskCompletion(task);
          toast({ title: t('success'), description: t('toast.task.checkInCompleted', { title: task.title }) });
       } else {
         const updatedCheckinInfo: CheckinInfo = { ...task.checkinInfo, currentCheckins: newCurrentCheckins };
@@ -686,6 +692,7 @@ function TasksClientContent() {
     let statusIcon: React.ReactNode = null;
     let statusIconTooltipContent: React.ReactNode | null = null;
     let currentRemainingPercentage = 0;
+    let totalDaysInRangeForLabel = 0;
     
     if (task.status !== 'completed') {
         if (timeStatus === 'upcoming' && task.timeInfo?.startDate) {
@@ -710,7 +717,7 @@ function TasksClientContent() {
             const eDate = parseISO(task.timeInfo.endDate);
 
             if (isValid(sDate) && isValid(eDate) && eDate >= sDate) {
-                const totalDaysInRangeForLabel = differenceInCalendarDays(eDate, sDate) + 1;
+                totalDaysInRangeForLabel = differenceInCalendarDays(eDate, sDate) + 1;
                 const now = new Date();
                 
                 const isTaskTodayOnly = isToday(sDate) && isToday(eDate) && totalDaysInRangeForLabel === 1;
@@ -778,8 +785,9 @@ function TasksClientContent() {
           <li
               draggable={!isMobile && !isCheckInTask && task.status !== 'completed'}
               onDragStart={!isMobile && !isCheckInTask && task.status !== 'completed' ? (e) => handleDragStart(e, task.id) : undefined}
+              onClick={() => handleEditTask(task.id)}
               className={cn(
-                  "group flex items-center gap-2 py-2.5 px-1 rounded-md hover:bg-muted",
+                  "group flex items-center gap-2 py-2.5 px-1 rounded-md hover:bg-muted cursor-pointer",
                   !isMobile && !isCheckInTask && "cursor-grab", 
                   selectedTaskId === task.id && "bg-muted shadow-md" 
               )}
@@ -790,7 +798,7 @@ function TasksClientContent() {
                     variant="ghost"
                     size="icon"
                     className="h-8 w-8 flex-shrink-0 p-1"
-                    onClick={() => handleCheckIn(task)}
+                    onClick={(e) => { e.stopPropagation(); handleCheckIn(task); }}
                     disabled={!canCheckIn || isCheckingIn[task.id]}
                     title={t('task.item.checkInStampTitle', { title: task.title })}
                   >
@@ -801,14 +809,14 @@ function TasksClientContent() {
                     id={`task-${task.id}`}
                     checked={task.status === 'completed'}
                     onClick={(e) => e.stopPropagation()}
-                    onCheckedChange={(checked) => handleToggleTaskCompletion(task, !!checked)}
+                    onCheckedChange={() => handleToggleTaskCompletion(task)}
                     className="flex-shrink-0"
                     aria-label={t('task.item.toggleCompletionAria', {title: task.title})}
                   />
                 )}
             </div>
 
-            <div className="flex-1 min-w-0 cursor-pointer" onClick={() => handleEditTask(task.id)}>
+            <div className="flex-1 min-w-0">
               <p className={cn("text-base font-medium", task.status === 'completed' && "line-through text-muted-foreground")} title={task.title}>
                 {displayTitle}
               </p>

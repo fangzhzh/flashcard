@@ -196,6 +196,8 @@ export default function TaskForm({
   const watchedCheckinInfo = watch("checkinInfo");
   const watchedStatus = watch("status");
   const isCheckinModeEnabled = !!watchedCheckinInfo;
+  
+  const isReadOnly = mode === 'edit' && watchedStatus === 'completed';
 
 
   const [linkedFlashcard, setLinkedFlashcard] = React.useState<FlashcardType | null | undefined>(undefined);
@@ -500,9 +502,11 @@ export default function TaskForm({
                         placeholder={t('task.form.placeholder.title')}
                         {...field}
                         rows={1}
+                        readOnly={isReadOnly}
                         className={cn(
                             "text-xl font-semibold border-0 shadow-none focus-visible:ring-0 focus-visible:ring-offset-0 h-auto py-1 w-full resize-none overflow-hidden",
-                            watchedStatus === 'completed' && "line-through text-muted-foreground"
+                            watchedStatus === 'completed' && "line-through text-muted-foreground",
+                            isReadOnly && "bg-background focus:ring-0"
                         )}
                         onInput={(e) => {
                             const target = e.target as HTMLTextAreaElement;
@@ -531,7 +535,7 @@ export default function TaskForm({
                         onValueChange={field.onChange}
                         value={field.value}
                         defaultValue={field.value}
-                        disabled={isLoading}
+                        disabled={isLoading || isReadOnly}
                         name={field.name}
                       >
                         <FormControl>
@@ -573,7 +577,7 @@ export default function TaskForm({
                         onValueChange={(value) => field.onChange(value === "null" ? null : value)}
                         value={field.value || "null"}
                         defaultValue={field.value || "null"}
-                        disabled={isLoadingOverviews || isLoading}
+                        disabled={isLoadingOverviews || isLoading || isReadOnly}
                         name={field.name}
                       >
                         <FormControl>
@@ -616,6 +620,7 @@ export default function TaskForm({
                     variant="outline"
                     onClick={() => setIsDateTimeReminderDialogOpen(true)}
                     className="w-full justify-between text-left font-normal text-sm h-auto py-2 px-3"
+                    disabled={isLoading || isReadOnly}
                 >
                     <div className="flex flex-col w-full space-y-1">
                         <div className="flex items-center justify-between">
@@ -661,6 +666,7 @@ export default function TaskForm({
                       <Switch
                         checked={field.value}
                         onCheckedChange={field.onChange}
+                        disabled={isReadOnly}
                       />
                     </FormControl>
                   </FormItem>
@@ -675,6 +681,7 @@ export default function TaskForm({
                   checked={isCheckinModeEnabled}
                   onCheckedChange={handleCheckinModeChange}
                   aria-label={t('task.form.checkin.enableLabel')}
+                  disabled={isReadOnly}
                 />
                 <Label htmlFor="checkinModeSwitch" className="text-sm font-normal">
                   {t('task.form.checkin.enableLabel')}
@@ -697,6 +704,7 @@ export default function TaskForm({
                           placeholder={t('task.form.checkin.totalRequiredPlaceholder')}
                           min="1"
                           max="100"
+                          readOnly={isReadOnly}
                         />
                       </FormControl>
                       <FormMessage>{form.formState.errors.checkinInfo?.totalCheckinsRequired?.message && t(form.formState.errors.checkinInfo.totalCheckinsRequired.message as any)}</FormMessage>
@@ -748,16 +756,19 @@ export default function TaskForm({
                                             type="button" variant="ghost" size="xsIcon"
                                             onClick={(e) => { e.stopPropagation(); setEditingFlashcardData(linkedFlashcard); setIsEditFlashcardDialogOpen(true); }}
                                             title={t('task.form.artifactLink.button.editLinkedFlashcard')}
+                                            disabled={isReadOnly}
                                         > <FilePenLine className="h-4 w-4" /> </Button>
                                         <Button
                                             type="button" variant="ghost" size="xsIcon"
                                             onClick={(e) => { e.stopPropagation(); setIsSelectFlashcardDialogOpen(true); }}
                                             title={t('task.form.artifactLink.button.change')}
+                                            disabled={isReadOnly}
                                         > <ListChecks className="h-4 w-4" /> </Button>
                                         <Button
                                             type="button" variant="ghost" size="xsIcon"
                                             onClick={(e) => { e.stopPropagation(); handleRemoveLink(); }}
                                             title={t('task.form.artifactLink.button.remove')}
+                                            disabled={isReadOnly}
                                         > <Trash2 className="h-4 w-4 text-destructive" /> </Button>
                                     </div>
                                 </div>
@@ -773,13 +784,13 @@ export default function TaskForm({
                                         {linkedFlashcard.front}
                                     </Button>
                                     <div className="flex gap-1 flex-shrink-0 ml-2">
-                                        <Button type="button" variant="ghost" size="xsIcon" onClick={() => { setEditingFlashcardData(linkedFlashcard); setIsEditFlashcardDialogOpen(true); }} title={t('task.form.artifactLink.button.editLinkedFlashcard')}>
+                                        <Button type="button" variant="ghost" size="xsIcon" onClick={() => { setEditingFlashcardData(linkedFlashcard); setIsEditFlashcardDialogOpen(true); }} title={t('task.form.artifactLink.button.editLinkedFlashcard')} disabled={isReadOnly}>
                                             <FilePenLine className="h-4 w-4" />
                                         </Button>
-                                        <Button type="button" variant="ghost" size="xsIcon" onClick={() => setIsSelectFlashcardDialogOpen(true)} title={t('task.form.artifactLink.button.change')}>
+                                        <Button type="button" variant="ghost" size="xsIcon" onClick={() => setIsSelectFlashcardDialogOpen(true)} title={t('task.form.artifactLink.button.change')} disabled={isReadOnly}>
                                             <ListChecks className="h-4 w-4" />
                                         </Button>
-                                        <Button type="button" variant="ghost" size="xsIcon" onClick={handleRemoveLink} title={t('task.form.artifactLink.button.remove')}>
+                                        <Button type="button" variant="ghost" size="xsIcon" onClick={handleRemoveLink} title={t('task.form.artifactLink.button.remove')} disabled={isReadOnly}>
                                             <Trash2 className="h-4 w-4 text-destructive" />
                                         </Button>
                                     </div>
@@ -791,10 +802,10 @@ export default function TaskForm({
                         <div className="space-y-1 text-sm">
                            <p className="text-destructive">{t('task.form.artifactLink.flashcardNotFound')}</p>
                            <div className="flex gap-2">
-                                <Button type="button" variant="outline" size="xs" onClick={() => setIsSelectFlashcardDialogOpen(true)}>
+                                <Button type="button" variant="outline" size="xs" onClick={() => setIsSelectFlashcardDialogOpen(true)} disabled={isReadOnly}>
                                     <ListChecks className="mr-1 h-3 w-3" /> {t('task.form.artifactLink.button.change')}
                                 </Button>
-                                <Button type="button" variant="ghost" size="xsIcon" onClick={handleRemoveLink} title={t('task.form.artifactLink.button.remove')}>
+                                <Button type="button" variant="ghost" size="xsIcon" onClick={handleRemoveLink} title={t('task.form.artifactLink.button.remove')} disabled={isReadOnly}>
                                     <Trash2 className="h-4 w-4 text-destructive" />
                                 </Button>
                             </div>
@@ -805,7 +816,7 @@ export default function TaskForm({
                         <div className="flex flex-wrap gap-2 pt-1">
                              <Dialog open={isNewFlashcardDialogOpen} onOpenChange={setIsNewFlashcardDialogOpen}>
                                 <DialogTrigger asChild>
-                                    <Button type="button" variant="outline" size="xs" onClick={() => setIsNewFlashcardDialogOpen(true)}>
+                                    <Button type="button" variant="outline" size="xs" onClick={() => setIsNewFlashcardDialogOpen(true)} disabled={isReadOnly}>
                                         <FilePlus className="mr-1 h-3 w-3" /> {t('task.form.artifactLink.button.newFlashcard')}
                                     </Button>
                                 </DialogTrigger>
@@ -827,7 +838,7 @@ export default function TaskForm({
                                     />
                                 </DialogContent>
                             </Dialog>
-                            <Button type="button" variant="outline" size="xs" onClick={() => setIsSelectFlashcardDialogOpen(true)}>
+                            <Button type="button" variant="outline" size="xs" onClick={() => setIsSelectFlashcardDialogOpen(true)} disabled={isReadOnly}>
                                <ListChecks className="mr-1 h-3 w-3" /> {t('task.form.artifactLink.button.selectFlashcard')}
                             </Button>
                         </div>
@@ -877,6 +888,7 @@ export default function TaskForm({
                         placeholder={t('task.form.placeholder.description')}
                         {...field}
                         value={field.value ?? ''}
+                        readOnly={isReadOnly}
                         className="min-h-[120px] text-sm"
                       />
                     </FormControl>
@@ -888,14 +900,14 @@ export default function TaskForm({
           </div>
         </ScrollArea>
 
-        <div className="flex-shrink-0 flex justify-between items-center pt-4 border-t">
+        <div className="flex-shrink-0 flex justify-between items-center pt-4 mt-auto border-t">
             <div className="flex gap-2">
-                <Button type="submit" disabled={isLoading || isFetchingFlashcard || isSubmittingNewFlashcard || isSubmittingEditedFlashcard || isDeleting} className="min-w-[100px]" size="sm">
+                <Button type="submit" disabled={isLoading || isFetchingFlashcard || isSubmittingNewFlashcard || isSubmittingEditedFlashcard || isDeleting || isReadOnly} className="min-w-[100px]" size="sm">
                     {isLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}
                     {isLoading ? t('task.form.button.saving') : (mode === 'edit' ? t('task.form.button.update') : t('task.form.button.create'))}
                 </Button>
                 {onCancel && (
-                    <Button type="button" variant="ghost" onClick={onCancel} disabled={isLoading || isSubmittingNewFlashcard || isSubmittingEditedFlashcard || isFetchingFlashcard || isDeleting} size="sm" className="hidden md:inline-flex">
+                    <Button type="button" variant="outline" onClick={onCancel} disabled={isLoading || isSubmittingNewFlashcard || isSubmittingEditedFlashcard || isFetchingFlashcard || isDeleting} size="sm" className="hidden md:inline-flex">
                        <X className="mr-2 h-4 w-4" /> {t('deck.item.delete.confirm.cancel')}
                     </Button>
                 )}

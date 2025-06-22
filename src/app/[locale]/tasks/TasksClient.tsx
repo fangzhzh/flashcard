@@ -501,6 +501,9 @@ function TasksClientContent() {
   const handleToggleTaskCompletion = async (task: Task, checked: boolean) => {
     const newStatus: TaskStatus = checked ? 'completed' : 'pending';
 
+    // If the task is already in the desired state, do nothing.
+    if (task.status === newStatus) return;
+
     try {
       // Optimistically update UI for completed list
       if (newStatus === 'pending' && task.status === 'completed') {
@@ -517,28 +520,30 @@ function TasksClientContent() {
            ].sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime()));
          }
       }
+      
+      const updates: Partial<Task> = { status: newStatus, updatedAt: new Date().toISOString() };
 
-      await updateTaskInContext(task.id, { status: newStatus, updatedAt: new Date().toISOString() });
+      if (newStatus === 'completed' && task.repeat && task.repeat !== 'none') {
+        const nextTimeInfo = calculateNextOccurrence(task);
+        if (nextTimeInfo) {
+          const newTaskData: Omit<Task, 'id' | 'createdAt' | 'updatedAt' | 'userId'> = {
+            ...task,
+            timeInfo: nextTimeInfo,
+            status: 'pending',
+            isSilent: true, // New repeated tasks are silent by default
+            checkinInfo: task.checkinInfo ? { ...task.checkinInfo, currentCheckins: 0 } : null,
+          };
+          const { id, ...dataForNewTask } = newTaskData;
+          await addTaskInContext(dataForNewTask);
+          toast({ title: t('toast.task.rescheduled.title'), description: t('toast.task.rescheduled.description', { title: task.title }) });
+        }
+      }
+      
+      // Update the original task's status
+      await updateTaskInContext(task.id, updates);
       
       if (newStatus === 'completed') {
         toast({ title: t('success'), description: t('toast.task.completed', { title: task.title }) });
-        // Handle repeating tasks by creating a new one
-        if (task.repeat && task.repeat !== 'none') {
-          const nextTimeInfo = calculateNextOccurrence(task);
-          if (nextTimeInfo) {
-            const newTaskData: Omit<Task, 'id' | 'createdAt' | 'updatedAt' | 'userId'> = {
-              ...task,
-              timeInfo: nextTimeInfo,
-              status: 'pending',
-              isSilent: true, // New repeated tasks are silent by default
-              checkinInfo: task.checkinInfo ? { ...task.checkinInfo, currentCheckins: 0 } : null,
-            };
-            // Remove id from the data to be added
-            const { id, ...dataForNewTask } = newTaskData;
-            await addTaskInContext(dataForNewTask);
-            toast({ title: t('toast.task.rescheduled.title'), description: t('toast.task.rescheduled.description', { title: task.title }) });
-          }
-        }
       } else { // Task was "undone"
          toast({ title: t('success'), description: t('toast.task.restored', { title: task.title }) });
          if (completedTasksCount !== null && completedTasksCount > 0) {
@@ -815,7 +820,7 @@ function TasksClientContent() {
               onDragStart={!isMobile && !isCheckInTask && !isCompletedList ? (e) => handleDragStart(e, task.id) : undefined}
               className={cn(
                   "group flex items-center gap-2 py-2.5 px-1 rounded-md hover:bg-muted",
-                  !isMobile && !isCheckInTask && !isCompletedList && "cursor-grab", 
+                  !isMobile && !isCheckInTask && "cursor-grab", 
                   selectedTaskId === task.id && "bg-muted shadow-md" 
               )}
           >
@@ -845,7 +850,7 @@ function TasksClientContent() {
             </div>
 
             {/* Column 2: Content */}
-            <div className="flex-1 min-w-0" onClick={() => !isCompletedList && handleEditTask(task.id)}>
+            <div className="flex-1 min-w-0 cursor-pointer" onClick={() => handleEditTask(task.id)}>
               <p className={cn("text-base font-medium", task.status === 'completed' && "line-through text-muted-foreground")} title={task.title}>
                 {displayTitle}
               </p>
@@ -956,7 +961,7 @@ function TasksClientContent() {
         ) : null }
       </Sidebar>
 
-      <SidebarInset className="flex flex-1 flex-col overflow-y-auto">
+      <SidebarInset className="flex flex-1 flex-col">
         <header className={cn(
             "flex-shrink-0 flex px-2 py-1 border-b sticky top-0 bg-background z-10 gap-1",
             "flex-col sm:flex-row sm:items-center sm:h-9" 

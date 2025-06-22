@@ -784,7 +784,7 @@ function TasksClientContent() {
 
                 statusIcon = <TaskDurationPie
                                 remainingPercentage={currentRemainingPercentage}
-                                variant="active"
+                                totalDurationDays={totalDaysInRangeForLabel}
                                 size={16}
                                 className="mx-1 flex-shrink-0"
                              />;
@@ -1100,3 +1100,4 @@ export default function TasksClient() {
     </SidebarProvider>
   );
 }
+

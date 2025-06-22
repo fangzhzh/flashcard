@@ -54,9 +54,10 @@ interface BreakOptionsDialogProps {
   isOpen: boolean;
   onClose: () => void;
   onStartRest: (selectedOptionId: string) => void;
+  restDuration: number;
 }
 
-export default function BreakOptionsDialog({ isOpen, onClose, onStartRest }: BreakOptionsDialogProps) {
+export default function BreakOptionsDialog({ isOpen, onClose, onStartRest, restDuration }: BreakOptionsDialogProps) {
   const t = useI18n();
   const [selectedOptions, setSelectedOptions] = useState<string[]>([breakOptions[0].id]); // Default to first option
 
@@ -128,7 +129,7 @@ export default function BreakOptionsDialog({ isOpen, onClose, onStartRest }: Bre
             {t('pomodoro.break.dialog.button.skip')}
           </Button>
           <Button type="button" onClick={handleStartRest} disabled={selectedOptions.length === 0}>
-            {t('pomodoro.break.dialog.button.startRest', { duration: 5 })}
+            {t('pomodoro.break.dialog.button.startRest', { duration: restDuration })}
           </Button>
         </DialogFooter>
       </DialogContent>

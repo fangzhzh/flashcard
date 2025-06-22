@@ -530,6 +530,7 @@ export const PomodoroProvider = ({ children }: { children: ReactNode }) => {
         isOpen={isBreakDialogOpen}
         onClose={() => setIsBreakDialogOpen(false)}
         onStartRest={handleStartRestPeriod}
+        restDuration={firestoreSessionState?.userPreferredRestDurationMinutes || DEFAULT_REST_MINUTES}
       />}
     </PomodoroContext.Provider>
   );

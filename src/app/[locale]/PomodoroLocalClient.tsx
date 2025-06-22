@@ -121,6 +121,8 @@ export default function PomodoroLocalClient() {
   const timerIsIdle = sessionState?.status === 'idle';
   const displayTime = isResting ? restTimeLeftSeconds : timeLeftSeconds;
   const currentTaskTitle = sessionState?.currentTaskTitle;
+  const preferredRestDuration = sessionState.userPreferredRestDurationMinutes ?? DEFAULT_REST_MINUTES_DISPLAY;
+
 
   return (
     <>
@@ -242,6 +244,7 @@ export default function PomodoroLocalClient() {
         isOpen={isBreakDialogOpen}
         onClose={() => setIsBreakDialogOpen(false)}
         onStartRest={handleStartRestPeriod}
+        restDuration={preferredRestDuration}
       />
     </>
   );

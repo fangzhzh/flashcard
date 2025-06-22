@@ -134,8 +134,6 @@ function TasksClientContent() {
     updateTask: updateTaskInContext,
     addTask: addTaskInContext,
     deleteTask: deleteTaskInContext,
-    getCompletedTasksCountLast30Days,
-    fetchCompletedTasksLast30Days,
   } = useFlashcards();
   const { toast } = useToast();
   const t = useI18n();
@@ -161,35 +159,8 @@ function TasksClientContent() {
   const [isConfirmDiscardDialogOpen, setIsConfirmDiscardDialogOpen] = useState(false);
   const [pendingAction, setPendingAction] = useState<{ type: 'filter' | 'newTask' | 'editTask', callback: () => void, descriptionKey: TranslationKeys, confirmButtonKey: TranslationKeys } | null>(null);
   const [isCheckingIn, setIsCheckingIn] = useState<Record<string, boolean>>({});
+  const [isPastAndFutureAccordionOpen, setIsPastAndFutureAccordionOpen] = useState(false);
 
-  const [completedTasksCount, setCompletedTasksCount] = useState<number | null>(null);
-  const [completedTasksList, setCompletedTasksList] = useState<Task[]>([]);
-  const [isLoadingCompletedCount, setIsLoadingCompletedCount] = useState(false);
-  const [isLoadingCompletedList, setIsLoadingCompletedList] = useState(false);
-  const [isCompletedAccordionOpen, setIsCompletedAccordionOpen] = useState(false);
-
-
-  useEffect(() => {
-    if (user && !authLoading) {
-      setIsLoadingCompletedCount(true);
-      getCompletedTasksCountLast30Days()
-        .then(setCompletedTasksCount)
-        .catch(() => toast({ title: t('error'), description: t('tasks.accordion.errorCount'), variant: 'destructive' }))
-        .finally(() => setIsLoadingCompletedCount(false));
-    }
-  }, [user, authLoading, getCompletedTasksCountLast30Days, t, toast]);
-
-  const handleCompletedAccordionChange = (value: string) => {
-    const isOpen = value === 'completed-tasks';
-    setIsCompletedAccordionOpen(isOpen);
-    if (isOpen && completedTasksList.length === 0 && !isLoadingCompletedList) {
-      setIsLoadingCompletedList(true);
-      fetchCompletedTasksLast30Days()
-        .then(setCompletedTasksList)
-        .catch(() => toast({ title: t('error'), description: t('tasks.accordion.errorList'), variant: 'destructive' }))
-        .finally(() => setIsLoadingCompletedList(false));
-    }
-  };
 
   useEffect(() => {
     if (tasks) {
@@ -320,10 +291,8 @@ function TasksClientContent() {
     const weekStartsOn = currentLocale === 'zh' ? 1 : 0; 
 
     let currentTasks = tasks.filter(task => {
-        // Exclude completed tasks from main list
         if (task.status === 'completed') return false;
 
-        // Exclude silent tasks whose start date is in the future
         if (task.isSilent && task.timeInfo?.startDate && isValid(parseISO(task.timeInfo.startDate))) {
           if (startOfDay(parseISO(task.timeInfo.startDate)) > today) {
             return false;
@@ -355,7 +324,6 @@ function TasksClientContent() {
 
       switch (activeDateFilter) {
         case 'today':
-          // filterIntervalStart and filterIntervalEnd already cover today
           break;
         case 'threeDays':
           filterIntervalEnd = endOfDay(addDays(today, 2));
@@ -381,7 +349,6 @@ function TasksClientContent() {
     currentTasks = currentTasks.filter(dateFilterFn);
 
     return [...currentTasks].sort((a, b) => {
-      // Status sorting already handled by filtering out completed tasks
       const aDate = a.timeInfo?.startDate && isValid(parseISO(a.timeInfo.startDate)) ? parseISO(a.timeInfo.startDate) : null;
       const bDate = b.timeInfo?.startDate && isValid(parseISO(b.timeInfo.startDate)) ? parseISO(b.timeInfo.startDate) : null;
 
@@ -396,6 +363,28 @@ function TasksClientContent() {
       return (b.createdAt && a.createdAt) ? (new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()) : 0;
     });
   }, [tasks, activeDateFilter, activeTaskTypeFilter, today, currentLocale]);
+  
+  const pastAndFutureTasks = useMemo(() => {
+    return tasks.filter(task => {
+      const isCompleted = task.status === 'completed';
+      const isFutureSilent = task.isSilent && task.timeInfo?.startDate && isValid(parseISO(task.timeInfo.startDate)) && startOfDay(parseISO(task.timeInfo.startDate)) > today;
+      return isCompleted || isFutureSilent;
+    }).sort((a, b) => {
+        const aIsCompleted = a.status === 'completed';
+        const bIsCompleted = b.status === 'completed';
+
+        if (aIsCompleted && !bIsCompleted) return -1;
+        if (!aIsCompleted && bIsCompleted) return 1;
+
+        if (aIsCompleted && bIsCompleted) {
+            return (new Date(b.updatedAt).getTime()) - (new Date(a.updatedAt).getTime());
+        }
+
+        const aDate = a.timeInfo?.startDate ? parseISO(a.timeInfo.startDate) : new Date(0);
+        const bDate = b.timeInfo?.startDate ? parseISO(b.timeInfo.startDate) : new Date(0);
+        return aDate.getTime() - bDate.getTime();
+    });
+  }, [tasks, today]);
 
   const isLoadingAppData = (authLoading && !user) ||
                            (!authLoading && user && (isLoadingTasks || contextOverallLoading || isSeeding));
@@ -452,18 +441,15 @@ function TasksClientContent() {
   };
 
   const handleEditTask = (taskId: string) => {
-    // If clicking the currently open task, close it.
     if (selectedTaskId === taskId && !isCreatingNewTask) {
       const action = () => {
         setSelectedTaskId(null);
         setIsCreatingNewTask(false);
       };
-      // Re-use the cancel message since the effect is the same: closing the form
       handleActionWithDirtyCheck(action, 'tasks.unsavedChanges.descriptionCancelEdit', 'tasks.unsavedChanges.button.discard', 'editTask');
       return;
     }
 
-    // If clicking a different task, open it.
     const action = () => {
       setIsCreatingNewTask(false);
       setSelectedTaskId(taskId);
@@ -501,28 +487,11 @@ function TasksClientContent() {
   const handleToggleTaskCompletion = async (task: Task, checked: boolean) => {
     const newStatus: TaskStatus = checked ? 'completed' : 'pending';
 
-    // If the task is already in the desired state, do nothing.
     if (task.status === newStatus) return;
 
     try {
-      // Optimistically update UI for completed list
-      if (newStatus === 'pending' && task.status === 'completed') {
-        const updatedTask = { ...task, status: 'pending', updatedAt: new Date().toISOString() };
-        setCompletedTasksList(prevList => prevList.filter(t => t.id !== task.id));
-        // Add to main task list (will be sorted automatically by effect)
-        // No need to manually add, as the onSnapshot listener for `tasks` will pick up the change
-      } else if (newStatus === 'completed' && task.status === 'pending') {
-         setCompletedTasksCount(prev => (prev === null ? 1 : prev + 1));
-         if (isCompletedAccordionOpen || completedTasksList.length > 0) {
-           setCompletedTasksList(prevList => [
-             { ...task, status: 'completed', updatedAt: new Date().toISOString() },
-             ...prevList
-           ].sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime()));
-         }
-      }
-      
       const updates: Partial<Task> = { status: newStatus, updatedAt: new Date().toISOString() };
-
+      
       if (newStatus === 'completed' && task.repeat && task.repeat !== 'none') {
         const nextTimeInfo = calculateNextOccurrence(task);
         if (nextTimeInfo) {
@@ -530,7 +499,7 @@ function TasksClientContent() {
             ...task,
             timeInfo: nextTimeInfo,
             status: 'pending',
-            isSilent: true, // New repeated tasks are silent by default
+            isSilent: true, 
             checkinInfo: task.checkinInfo ? { ...task.checkinInfo, currentCheckins: 0 } : null,
           };
           const { id, ...dataForNewTask } = newTaskData;
@@ -539,23 +508,15 @@ function TasksClientContent() {
         }
       }
       
-      // Update the original task's status
       await updateTaskInContext(task.id, updates);
       
       if (newStatus === 'completed') {
         toast({ title: t('success'), description: t('toast.task.completed', { title: task.title }) });
-      } else { // Task was "undone"
+      } else {
          toast({ title: t('success'), description: t('toast.task.restored', { title: task.title }) });
-         if (completedTasksCount !== null && completedTasksCount > 0) {
-             setCompletedTasksCount(prev => prev! - 1);
-         }
       }
     } catch (error) {
       toast({ title: t('error'), description: t('toast.task.error.save'), variant: "destructive" });
-      // Revert optimistic UI updates on failure
-       if (newStatus === 'pending' && task.status === 'completed') {
-         setCompletedTasksList(prevList => [...prevList, task]);
-       }
     }
   };
 
@@ -680,7 +641,6 @@ function TasksClientContent() {
 
     try {
       if (isNowCompleted) {
-         // Use the same logic as handleToggleTaskCompletion for consistency
          await handleToggleTaskCompletion(task, true);
          toast({ title: t('success'), description: t('toast.task.checkInCompleted', { title: task.title }) });
       } else {
@@ -721,7 +681,7 @@ function TasksClientContent() {
     );
   }
 
-  const renderTaskListItem = (task: Task, isCompletedList: boolean = false) => {
+  const renderTaskListItem = (task: Task) => {
     const { visibleLabel, tooltipLabel, timeStatus } = formatTimeLabel(task.timeInfo);
     let statusIcon: React.ReactNode = null;
     let statusIconTooltipContent: React.ReactNode | null = null;
@@ -816,17 +776,16 @@ function TasksClientContent() {
     return (
       <TooltipProvider key={task.id}>
           <li
-              draggable={!isMobile && !isCheckInTask && !isCompletedList}
-              onDragStart={!isMobile && !isCheckInTask && !isCompletedList ? (e) => handleDragStart(e, task.id) : undefined}
+              draggable={!isMobile && !isCheckInTask && task.status !== 'completed'}
+              onDragStart={!isMobile && !isCheckInTask && task.status !== 'completed' ? (e) => handleDragStart(e, task.id) : undefined}
               className={cn(
                   "group flex items-center gap-2 py-2.5 px-1 rounded-md hover:bg-muted",
                   !isMobile && !isCheckInTask && "cursor-grab", 
                   selectedTaskId === task.id && "bg-muted shadow-md" 
               )}
           >
-            {/* Column 1: Icon */}
-             <div className="flex-shrink-0 flex items-center justify-center pl-1 h-full">
-               {isCheckInTask && !isCompletedList ? (
+            <div className="flex-shrink-0 flex items-center justify-center pl-1 h-full">
+               {isCheckInTask && task.status !== 'completed' ? (
                   <Button
                     variant="ghost"
                     size="icon"
@@ -839,7 +798,7 @@ function TasksClientContent() {
                   </Button>
                 ) : (
                   <Checkbox
-                    id={`task-${task.id}${isCompletedList ? '-completed' : ''}`}
+                    id={`task-${task.id}`}
                     checked={task.status === 'completed'}
                     onClick={(e) => e.stopPropagation()}
                     onCheckedChange={(checked) => handleToggleTaskCompletion(task, !!checked)}
@@ -849,7 +808,6 @@ function TasksClientContent() {
                 )}
             </div>
 
-            {/* Column 2: Content */}
             <div className="flex-1 min-w-0 cursor-pointer" onClick={() => handleEditTask(task.id)}>
               <p className={cn("text-base font-medium", task.status === 'completed' && "line-through text-muted-foreground")} title={task.title}>
                 {displayTitle}
@@ -861,10 +819,9 @@ function TasksClientContent() {
               )}
             </div>
 
-            {/* Column 3: Status & Actions */}
             <div className="flex flex-col items-end flex-shrink-0 space-y-1 ml-2 w-24">
                 <div className="h-5 flex items-center justify-end w-full">
-                    {isCheckInTask && task.checkinInfo && !isCompletedList && (
+                    {isCheckInTask && task.checkinInfo && task.status !== 'completed' && (
                         <div className="flex items-center gap-2 w-full">
                             <Progress
                                 value={(task.checkinInfo.currentCheckins / task.checkinInfo.totalCheckinsRequired) * 100}
@@ -900,14 +857,13 @@ function TasksClientContent() {
                     </Tooltip>
                   )}
 
-                  {!isCompletedList && (
+                  {task.status !== 'completed' && (
                     <Button
                       variant="ghost"
                       size="icon"
                       className="h-8 w-8 flex-shrink-0"
                       onClick={(e) => { e.stopPropagation(); handleStartPomodoroForTask(task.title); }}
                       title={t('task.item.startPomodoro')}
-                      disabled={task.status === 'completed'}
                     >
                       <PlayCircle className="h-5 w-5 text-primary" />
                     </Button>
@@ -998,7 +954,7 @@ function TasksClientContent() {
             )}
           >
             <ScrollArea className="flex-grow min-h-0 pb-20">
-              {filteredAndSortedTasks.length === 0 && !showEditPanel && !isCompletedAccordionOpen && (
+              {filteredAndSortedTasks.length === 0 && !showEditPanel && !isPastAndFutureAccordionOpen && (
                 <Alert className={cn("mt-4 border-primary/50 text-primary bg-primary/5 mx-1")}>
                   <Info className="h-5 w-5 text-primary" />
                   <AlertTitle className="font-semibold text-primary">{t('tasks.list.empty.title')}</AlertTitle>
@@ -1011,30 +967,24 @@ function TasksClientContent() {
                 {filteredAndSortedTasks.map((task) => renderTaskListItem(task))}
               </ul>
             
-              <Accordion type="single" collapsible className="w-full px-1 mt-4" onValueChange={handleCompletedAccordionChange}>
-                <AccordionItem value="completed-tasks">
+              <Accordion type="single" collapsible className="w-full px-1 mt-4" onValueChange={value => setIsPastAndFutureAccordionOpen(value === 'past-future-tasks')}>
+                <AccordionItem value="past-future-tasks">
                   <AccordionTrigger className="text-sm hover:no-underline">
                     <div className="flex items-center">
-                       {t('tasks.accordion.completedTitle', { count: ''})} {/* Count will be added separately */}
-                       {isLoadingCompletedCount && <Loader2 className="ml-2 h-4 w-4 animate-spin" />}
-                       {!isLoadingCompletedCount && completedTasksCount !== null && (
-                         <span className="ml-1 text-muted-foreground">({completedTasksCount})</span>
+                       {t('tasks.accordion.pastAndFutureTitle')}
+                       {pastAndFutureTasks.length > 0 && (
+                         <span className="ml-1 text-muted-foreground">({pastAndFutureTasks.length})</span>
                        )}
                     </div>
                   </AccordionTrigger>
                   <AccordionContent>
-                    {isLoadingCompletedList ? (
-                      <div className="flex items-center justify-center py-4">
-                        <Loader2 className="h-5 w-5 animate-spin text-primary mr-2" />
-                        {t('tasks.accordion.loadingList')}
-                      </div>
-                    ) : completedTasksList.length === 0 ? (
+                    {pastAndFutureTasks.length === 0 ? (
                       <p className="text-sm text-muted-foreground py-4 text-center">
-                        {t('tasks.accordion.noCompletedTasks')}
+                        {t('tasks.accordion.noPastAndFutureTasks')}
                       </p>
                     ) : (
                       <ul className="space-y-1 w-full pt-2">
-                        {completedTasksList.map((task) => renderTaskListItem(task, true))}
+                        {pastAndFutureTasks.map((task) => renderTaskListItem(task))}
                       </ul>
                     )}
                   </AccordionContent>
@@ -1059,6 +1009,7 @@ function TasksClientContent() {
                     onIntermediateSave={selectedTask ? handleIntermediateFormSave : undefined} 
                     onDelete={selectedTask ? handleDeleteTask : undefined} 
                     onDirtyChange={setIsTaskFormDirty}
+                    onToggleStatus={handleToggleTaskCompletion}
                 />
             )}
           </div>
@@ -1100,4 +1051,3 @@ export default function TasksClient() {
     </SidebarProvider>
   );
 }
-

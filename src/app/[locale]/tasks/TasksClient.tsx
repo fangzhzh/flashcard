@@ -452,8 +452,18 @@ function TasksClientContent() {
   };
 
   const handleEditTask = (taskId: string) => {
-    if (selectedTaskId === taskId && showEditPanel && !isCreatingNewTask) return; 
+    // If clicking the currently open task, close it.
+    if (selectedTaskId === taskId && !isCreatingNewTask) {
+      const action = () => {
+        setSelectedTaskId(null);
+        setIsCreatingNewTask(false);
+      };
+      // Re-use the cancel message since the effect is the same: closing the form
+      handleActionWithDirtyCheck(action, 'tasks.unsavedChanges.descriptionCancelEdit', 'tasks.unsavedChanges.button.discard', 'editTask');
+      return;
+    }
 
+    // If clicking a different task, open it.
     const action = () => {
       setIsCreatingNewTask(false);
       setSelectedTaskId(taskId);
@@ -488,37 +498,59 @@ function TasksClientContent() {
     }
   };
 
-  const handleToggleTaskCompletion = async (task: Task) => {
+  const handleToggleTaskCompletion = async (task: Task, checked: boolean) => {
+    const newStatus: TaskStatus = checked ? 'completed' : 'pending';
+
     try {
-      await updateTaskInContext(task.id, { status: 'completed', updatedAt: new Date().toISOString() });
-      toast({ title: t('success'), description: t('toast.task.completed', { title: task.title }) });
-      setCompletedTasksCount(prev => (prev === null ? 1 : prev + 1));
-      if (isCompletedAccordionOpen || completedTasksList.length > 0) {
-        setCompletedTasksList(prevList => [
-          { ...task, status: 'completed', updatedAt: new Date().toISOString() },
-          ...prevList
-        ].sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime()));
+      // Optimistically update UI for completed list
+      if (newStatus === 'pending' && task.status === 'completed') {
+        const updatedTask = { ...task, status: 'pending', updatedAt: new Date().toISOString() };
+        setCompletedTasksList(prevList => prevList.filter(t => t.id !== task.id));
+        // Add to main task list (will be sorted automatically by effect)
+        // No need to manually add, as the onSnapshot listener for `tasks` will pick up the change
+      } else if (newStatus === 'completed' && task.status === 'pending') {
+         setCompletedTasksCount(prev => (prev === null ? 1 : prev + 1));
+         if (isCompletedAccordionOpen || completedTasksList.length > 0) {
+           setCompletedTasksList(prevList => [
+             { ...task, status: 'completed', updatedAt: new Date().toISOString() },
+             ...prevList
+           ].sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime()));
+         }
       }
+
+      await updateTaskInContext(task.id, { status: newStatus, updatedAt: new Date().toISOString() });
       
-      // Handle repeating tasks by creating a new one
-      if (task.repeat && task.repeat !== 'none') {
-        const nextTimeInfo = calculateNextOccurrence(task);
-        if (nextTimeInfo) {
-          const newTaskData: Omit<Task, 'id' | 'createdAt' | 'updatedAt' | 'userId'> = {
-            ...task,
-            timeInfo: nextTimeInfo,
-            status: 'pending',
-            isSilent: true, // New repeated tasks are silent by default
-            checkinInfo: task.checkinInfo ? { ...task.checkinInfo, currentCheckins: 0 } : null,
-          };
-          // Remove id from the data to be added
-          const { id, ...dataForNewTask } = newTaskData;
-          await addTaskInContext(dataForNewTask);
-          toast({ title: t('toast.task.rescheduled.title'), description: t('toast.task.rescheduled.description', { title: task.title }) });
+      if (newStatus === 'completed') {
+        toast({ title: t('success'), description: t('toast.task.completed', { title: task.title }) });
+        // Handle repeating tasks by creating a new one
+        if (task.repeat && task.repeat !== 'none') {
+          const nextTimeInfo = calculateNextOccurrence(task);
+          if (nextTimeInfo) {
+            const newTaskData: Omit<Task, 'id' | 'createdAt' | 'updatedAt' | 'userId'> = {
+              ...task,
+              timeInfo: nextTimeInfo,
+              status: 'pending',
+              isSilent: true, // New repeated tasks are silent by default
+              checkinInfo: task.checkinInfo ? { ...task.checkinInfo, currentCheckins: 0 } : null,
+            };
+            // Remove id from the data to be added
+            const { id, ...dataForNewTask } = newTaskData;
+            await addTaskInContext(dataForNewTask);
+            toast({ title: t('toast.task.rescheduled.title'), description: t('toast.task.rescheduled.description', { title: task.title }) });
+          }
         }
+      } else { // Task was "undone"
+         toast({ title: t('success'), description: t('toast.task.restored', { title: task.title }) });
+         if (completedTasksCount !== null && completedTasksCount > 0) {
+             setCompletedTasksCount(prev => prev! - 1);
+         }
       }
     } catch (error) {
       toast({ title: t('error'), description: t('toast.task.error.save'), variant: "destructive" });
+      // Revert optimistic UI updates on failure
+       if (newStatus === 'pending' && task.status === 'completed') {
+         setCompletedTasksList(prevList => [...prevList, task]);
+       }
     }
   };
 
@@ -644,7 +676,7 @@ function TasksClientContent() {
     try {
       if (isNowCompleted) {
          // Use the same logic as handleToggleTaskCompletion for consistency
-         await handleToggleTaskCompletion(task);
+         await handleToggleTaskCompletion(task, true);
          toast({ title: t('success'), description: t('toast.task.checkInCompleted', { title: task.title }) });
       } else {
         const updatedCheckinInfo: CheckinInfo = { ...task.checkinInfo, currentCheckins: newCurrentCheckins };
@@ -804,7 +836,8 @@ function TasksClientContent() {
                   <Checkbox
                     id={`task-${task.id}${isCompletedList ? '-completed' : ''}`}
                     checked={task.status === 'completed'}
-                    onCheckedChange={() => handleToggleTaskCompletion(task)}
+                    onClick={(e) => e.stopPropagation()}
+                    onCheckedChange={(checked) => handleToggleTaskCompletion(task, !!checked)}
                     className="flex-shrink-0"
                     aria-label={t('task.item.toggleCompletionAria', {title: task.title})}
                   />
@@ -812,7 +845,7 @@ function TasksClientContent() {
             </div>
 
             {/* Column 2: Content */}
-            <div className="flex-1 min-w-0 cursor-pointer" onClick={() => !isCompletedList && handleEditTask(task.id)}>
+            <div className="flex-1 min-w-0" onClick={() => !isCompletedList && handleEditTask(task.id)}>
               <p className={cn("text-base font-medium", task.status === 'completed' && "line-through text-muted-foreground")} title={task.title}>
                 {displayTitle}
               </p>
@@ -843,11 +876,11 @@ function TasksClientContent() {
                     )}
                 </div>
 
-                <div className="flex items-center space-x-0.5"> 
+                <div className="flex items-center space-x-0.5">
                   {visibleLabel && (
                       <Tooltip delayDuration={300}>
                         <TooltipTrigger asChild>
-                          <span className="text-xs text-muted-foreground mr-1 cursor-pointer" onClick={(e) => { e.stopPropagation(); !isCompletedList && handleEditTask(task.id);}}>
+                          <span className="text-xs text-muted-foreground mr-1 cursor-default">
                             {visibleLabel}
                           </span>
                         </TooltipTrigger>
@@ -952,7 +985,7 @@ function TasksClientContent() {
             </Tabs>
         </header>
 
-        <div className="flex flex-1 mt-2"> 
+        <div className="flex flex-1 mt-2 min-h-0"> 
           <div
             className={cn(
               "w-full flex flex-col", 

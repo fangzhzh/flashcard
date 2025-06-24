@@ -169,7 +169,9 @@ export default function OverviewsClient() {
           <GitFork className="mr-3 h-7 w-7 text-primary/80" />
           {t('overviews.title')}
         </h1>
-        {/* Button moved to FAB */}
+        <Button onClick={openNewOverviewDialog} title={t('overviews.button.create')}>
+            <PlusCircle className="mr-2 h-4 w-4" /> {t('overviews.button.create')}
+        </Button>
       </div>
 
       {overviews.length === 0 && !isLoadingOverviews && (
@@ -296,15 +298,6 @@ export default function OverviewsClient() {
           </form>
         </DialogContent>
       </Dialog>
-
-      <Button
-        variant="default"
-        className="fixed bottom-6 right-6 z-40 rounded-full h-14 w-14 p-0 shadow-lg"
-        onClick={openNewOverviewDialog}
-        title={t('overviews.button.create')}
-      >
-        <PlusCircle className="h-7 w-7" />
-      </Button>
     </>
   );
 }

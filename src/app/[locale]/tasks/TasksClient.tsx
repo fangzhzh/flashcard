@@ -512,6 +512,27 @@ function TasksClientContent() {
           await addTaskInContext(dataForNewTask);
           toast({ title: t('toast.task.rescheduled.title'), description: t('toast.task.rescheduled.description', { title: task.title }) });
         }
+      } else if (newStatus === 'pending' && isCurrentlyCompleted && task.repeat !== 'none') {
+        // If an old repeating task is being un-completed, also schedule the next one.
+        const nextTimeInfo = calculateNextOccurrence(task);
+        if (nextTimeInfo) {
+          // Check if a silent successor already exists to avoid duplicates
+          const successorExists = tasks.some(
+            t => t.isSilent && t.title === task.title && t.timeInfo.startDate === nextTimeInfo.startDate
+          );
+          if (!successorExists) {
+            const newTaskData: Omit<Task, 'id' | 'createdAt' | 'updatedAt' | 'userId'> = {
+              ...task,
+              timeInfo: nextTimeInfo,
+              status: 'pending',
+              isSilent: true,
+              checkinInfo: task.checkinInfo ? { ...task.checkinInfo, currentCheckins: 0 } : null,
+            };
+            const { id, ...dataForNewTask } = newTaskData;
+            await addTaskInContext(dataForNewTask);
+            toast({ title: t('toast.task.rescheduled.title'), description: t('toast.task.rescheduled.description', { title: task.title }) });
+          }
+        }
       }
       
       await updateTaskInContext(task.id, updates);
@@ -557,18 +578,6 @@ function TasksClientContent() {
     } finally {
       setIsSubmittingForm(false);
     }
-  };
-
-  const handleIntermediateFormSave = async (updates: Partial<TaskFormData>): Promise<boolean> => {
-    if (selectedTask?.id) {
-        try {
-            await updateTaskInContext(selectedTask.id, updates);
-            return true;
-        } catch (error) {
-            return false;
-        }
-    }
-    return false;
   };
 
   const handleDeleteTask = async () => {
@@ -808,8 +817,8 @@ function TasksClientContent() {
                   <Checkbox
                     id={`task-${task.id}`}
                     checked={task.status === 'completed'}
-                    onClick={(e) => e.stopPropagation()}
-                    onCheckedChange={() => handleToggleTaskCompletion(task)}
+                    onClick={(e) => { e.stopPropagation(); handleToggleTaskCompletion(task); }}
+                    onCheckedChange={() => {}}
                     className="flex-shrink-0"
                     aria-label={t('task.item.toggleCompletionAria', {title: task.title})}
                   />
@@ -1014,7 +1023,7 @@ function TasksClientContent() {
                     onSubmit={handleMainFormSubmit}
                     isLoading={isSubmittingForm}
                     onCancel={handleCancelEdit}
-                    onIntermediateSave={selectedTask ? handleIntermediateFormSave : undefined} 
+                    onIntermediateSave={selectedTask ? (updates: Partial<TaskFormData>) => updateTaskInContext(selectedTask.id, updates).then(() => true).catch(() => false) : undefined}
                     onDelete={selectedTask ? handleDeleteTask : undefined} 
                     onDirtyChange={setIsTaskFormDirty}
                     onToggleStatus={handleToggleTaskCompletion}
@@ -1024,14 +1033,6 @@ function TasksClientContent() {
         </div>
       </SidebarInset>
       
-      <Button
-        variant="default"
-        className="fixed bottom-6 right-6 z-40 rounded-full h-14 w-14 p-0 shadow-lg"
-        onClick={handleCreateNewTask}
-        title={t('tasks.button.create')}
-      >
-        <ListChecks className="h-7 w-7" /> 
-      </Button>
       <AlertDialog open={isConfirmDiscardDialogOpen} onOpenChange={setIsConfirmDiscardDialogOpen}>
         <AlertDialogContent>
             <AlertDialogHeader>

@@ -540,6 +540,7 @@ export default {
   'overviewDetail.title': 'Overview: {overviewTitle}',
   'overviewDetail.descriptionTitle': 'Description',
   'overviewDetail.linkedTasksTitle': 'Linked Tasks (Pending)',
+  'overviewDetail.completedTasksTitle': 'Completed Tasks',
   'overviewDetail.noLinkedTasks.title': 'No Pending Tasks Linked',
   'overviewDetail.noLinkedTasks.description': 'Break down this overview into actionable tasks. Click "Add Task to this Overview".',
   'overviewDetail.button.addTask': 'Add Task to this Overview',

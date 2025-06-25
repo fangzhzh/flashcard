@@ -21,6 +21,7 @@ import { enUS } from 'date-fns/locale/en-US';
 import { zhCN } from 'date-fns/locale/zh-CN';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import TaskDurationPie from '@/components/TaskDurationPie';
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
 
 interface FormattedTimeInfo {
   visibleLabel: string;
@@ -83,7 +84,7 @@ export default function OverviewDetailClient({ overviewId }: { overviewId: strin
   }, [overviewId, getOverviewById, isLoadingOverviews, user, router, currentLocale, overviews]);
 
 
-  const linkedTasks = useMemo(() => {
+  const pendingLinkedTasks = useMemo(() => {
     if (!currentOverview) return [];
     return tasks.filter(task => task.overviewId === currentOverview.id && task.status !== 'completed').sort((a,b) => {
       const aDate = a.timeInfo?.startDate && isValid(parseISO(a.timeInfo.startDate)) ? parseISO(a.timeInfo.startDate) : null;
@@ -92,6 +93,13 @@ export default function OverviewDetailClient({ overviewId }: { overviewId: strin
       if (aDate) return -1;
       if (bDate) return 1;
       return (b.createdAt && a.createdAt) ? (new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()) : 0;
+    });
+  }, [currentOverview, tasks]);
+
+  const completedLinkedTasks = useMemo(() => {
+    if (!currentOverview) return [];
+    return tasks.filter(task => task.overviewId === currentOverview.id && task.status === 'completed').sort((a,b) => {
+        return (b.updatedAt && a.updatedAt) ? (new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime()) : 0;
     });
   }, [currentOverview, tasks]);
 
@@ -236,7 +244,10 @@ export default function OverviewDetailClient({ overviewId }: { overviewId: strin
     let currentRemainingPercentage = 0;
     let totalDaysInRangeForLabel = 0;
 
-     if (task.status !== 'completed') {
+    if (task.status === 'completed') {
+        statusIcon = <CheckSquare className="h-4 w-4 text-green-500 mx-1 flex-shrink-0" />;
+        statusIconTooltipContent = <p>{t('task.item.status.completed')}</p>;
+    } else {
         if (timeStatus === 'upcoming' && task.timeInfo?.startDate) {
             const sDate = parseISO(task.timeInfo.startDate);
             if (isValid(sDate)) {
@@ -289,10 +300,10 @@ export default function OverviewDetailClient({ overviewId }: { overviewId: strin
     return (
       <TooltipProvider key={task.id}>
         <Link href={`/${currentLocale}/tasks/${task.id}/edit?returnTo=${returnToPath}`} passHref>
-          <Card className="hover:shadow-md transition-shadow cursor-pointer">
+          <Card className={cn("hover:shadow-md transition-shadow cursor-pointer", task.status === 'completed' && 'bg-muted/30')}>
             <CardContent className="p-3 flex items-center justify-between">
               <div className="flex-1 min-w-0">
-                <p className="text-sm font-medium truncate" title={task.title}>{task.title}</p>
+                <p className={cn("text-sm font-medium truncate", task.status === 'completed' && "line-through text-muted-foreground")} title={task.title}>{task.title}</p>
                 {task.description && (
                   <p className="text-xs text-muted-foreground truncate">{task.description}</p>
                 )}
@@ -356,9 +367,9 @@ export default function OverviewDetailClient({ overviewId }: { overviewId: strin
             </Button>
           </Link>
         </div>
-        {linkedTasks.length > 0 ? (
+        {pendingLinkedTasks.length > 0 ? (
           <div className="space-y-3">
-            {linkedTasks.map(task => renderTaskItem(task))}
+            {pendingLinkedTasks.map(task => renderTaskItem(task))}
           </div>
         ) : (
           <Alert>
@@ -368,6 +379,24 @@ export default function OverviewDetailClient({ overviewId }: { overviewId: strin
           </Alert>
         )}
       </div>
+
+      {completedLinkedTasks.length > 0 && (
+        <Accordion type="single" collapsible className="w-full mt-4 border-t pt-4">
+            <AccordionItem value="completed-tasks">
+                <AccordionTrigger>
+                    <div className="flex items-center text-lg font-semibold">
+                        {t('overviewDetail.completedTasksTitle')}
+                        <span className="ml-2 text-muted-foreground text-base">({completedLinkedTasks.length})</span>
+                    </div>
+                </AccordionTrigger>
+                <AccordionContent>
+                    <div className="space-y-3 pt-2">
+                        {completedLinkedTasks.map(task => renderTaskItem(task))}
+                    </div>
+                </AccordionContent>
+            </AccordionItem>
+        </Accordion>
+      )}
     </div>
   );
 }

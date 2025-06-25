@@ -1,6 +1,6 @@
 
 "use client";
-import { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { useFlashcards } from '@/contexts/FlashcardsContext';
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
@@ -13,7 +13,7 @@ import {
   DialogContent,
   DialogHeader,
   DialogTitle,
-  DialogDescription as UiDialogDescription, // Renamed to avoid conflict if DialogDescription is used from AlertDialog
+  DialogDescription as UiDialogDescription,
   DialogFooter,
   DialogTrigger,
   DialogClose,
@@ -27,18 +27,23 @@ import {
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
-  AlertDialogTrigger, // Added AlertDialogTrigger
+  AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
-import { PlusCircle, Edit3, Trash2, Loader2, Info, ShieldAlert, GitFork, Eye, FolderKanban } from 'lucide-react';
+import { PlusCircle, Edit3, Trash2, Loader2, Info, ShieldAlert, GitFork, Eye, FolderKanban, Link2, FilePlus, ListChecks, FilePenLine } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { useI18n, useCurrentLocale } from '@/lib/i18n/client';
-import type { Overview } from '@/types';
+import type { Overview, Task, ArtifactLink, Flashcard as FlashcardType, Deck } from '@/types';
 import { Alert, AlertTitle, AlertDescription as UiAlertDescription } from '@/components/ui/alert';
 import Link from 'next/link';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import type { CodeProps } from 'react-markdown/lib/ast-to-react';
 import MermaidDiagram from '@/components/MermaidDiagram';
+import { Dialog as SelectDialog, DialogContent as SelectDialogContent, DialogHeader as SelectDialogHeader, DialogTitle as SelectDialogTitle, DialogFooter as SelectDialogFooter } from "@/components/ui/dialog";
+import { Input as SearchInput } from "@/components/ui/input";
+import { Search } from 'lucide-react';
+import { ScrollArea } from '@/components/ui/scroll-area';
+import FlashcardForm from '@/components/FlashcardForm';
 
 const CustomMarkdownComponents = {
   code({ node, inline, className, children, ...props }: CodeProps) {
@@ -69,7 +74,10 @@ const CustomMarkdownComponents = {
 
 export default function OverviewsClient() {
   const { user, loading: authLoading } = useAuth();
-  const { overviews, addOverview, updateOverview, deleteOverview, isLoadingOverviews, isSeeding, tasks } = useFlashcards();
+  const { 
+    overviews, addOverview, updateOverview, deleteOverview, isLoadingOverviews, isSeeding, tasks,
+    getFlashcardById, addFlashcard, updateFlashcard, decks, isLoadingDecks, flashcards: allFlashcardsFromContext 
+  } = useFlashcards();
   const { toast } = useToast();
   const t = useI18n();
   const currentLocale = useCurrentLocale();
@@ -78,12 +86,38 @@ export default function OverviewsClient() {
   const [currentOverview, setCurrentOverview] = useState<Partial<Overview> | null>(null);
   const [overviewTitle, setOverviewTitle] = useState('');
   const [overviewDescription, setOverviewDescription] = useState('');
+  const [overviewArtifactLink, setOverviewArtifactLink] = useState<ArtifactLink | null>(null);
   const [isSubmittingOverview, setIsSubmittingOverview] = useState(false);
+
+  // State for linked flashcard UI
+  const [linkedFlashcard, setLinkedFlashcard] = React.useState<FlashcardType | null | undefined>(undefined);
+  const [isFetchingFlashcard, setIsFetchingFlashcard] = React.useState(false);
+  const [isNewFlashcardDialogOpen, setIsNewFlashcardDialogOpen] = React.useState(false);
+  const [isSubmittingNewFlashcard, setIsSubmittingNewFlashcard] = React.useState(false);
+  const [isEditFlashcardDialogOpen, setIsEditFlashcardDialogOpen] = React.useState(false);
+  const [editingFlashcardData, setEditingFlashcardData] = React.useState<FlashcardType | null>(null);
+  const [isSubmittingEditedFlashcard, setIsSubmittingEditedFlashcard] = React.useState(false);
+  const [isSelectFlashcardDialogOpen, setIsSelectFlashcardDialogOpen] = React.useState(false);
+
+  React.useEffect(() => {
+    const fetchCard = async () => {
+        if (overviewArtifactLink?.flashcardId) {
+            setIsFetchingFlashcard(true);
+            const card = getFlashcardById(overviewArtifactLink.flashcardId);
+            setLinkedFlashcard(card || null);
+            setIsFetchingFlashcard(false);
+        } else {
+            setLinkedFlashcard(null);
+        }
+    };
+    fetchCard();
+  }, [overviewArtifactLink?.flashcardId, getFlashcardById]);
 
   const openNewOverviewDialog = () => {
     setCurrentOverview(null);
     setOverviewTitle('');
     setOverviewDescription('');
+    setOverviewArtifactLink(null);
     setIsDialogOpen(true);
   };
 
@@ -91,6 +125,7 @@ export default function OverviewsClient() {
     setCurrentOverview(overview);
     setOverviewTitle(overview.title);
     setOverviewDescription(overview.description || '');
+    setOverviewArtifactLink(overview.artifactLink || null);
     setIsDialogOpen(true);
   };
 
@@ -106,7 +141,7 @@ export default function OverviewsClient() {
     }
 
     setIsSubmittingOverview(true);
-    const dataToSave = { title: overviewTitle, description: overviewDescription.trim() || null };
+    const dataToSave = { title: overviewTitle, description: overviewDescription.trim() || null, artifactLink: overviewArtifactLink };
     try {
       if (currentOverview && currentOverview.id) {
         await updateOverview(currentOverview.id, dataToSave);
@@ -142,6 +177,56 @@ export default function OverviewsClient() {
   const getTaskCountForOverview = (overviewId: string) => {
     return tasks.filter(task => task.overviewId === overviewId).length;
   };
+
+  // Flashcard linking handlers
+  const handleRemoveLink = () => {
+    setOverviewArtifactLink(null);
+    toast({ title: t('success'), description: t('toast.task.linkRemoved') });
+  };
+
+  const handleNewFlashcardSubmit = async (data: { front: string; back: string; deckId?: string | null }) => {
+    setIsSubmittingNewFlashcard(true);
+    try {
+      const newCard = await addFlashcard(data);
+      if (newCard && newCard.id) {
+        setOverviewArtifactLink({ flashcardId: newCard.id });
+        toast({ title: t('success'), description: t('toast.task.flashcardLinked') });
+        setIsNewFlashcardDialogOpen(false);
+      } else {
+        throw new Error("Failed to create flashcard or get ID.");
+      }
+    } catch (error) {
+      toast({ title: t('error'), description: t('toast.task.error.flashcardLinkFailed'), variant: 'destructive' });
+    } finally {
+      setIsSubmittingNewFlashcard(false);
+    }
+  };
+  
+  const handleEditFlashcardSubmit = async (data: { front: string; back: string; deckId?: string | null }) => {
+    if (!editingFlashcardData || !editingFlashcardData.id) return;
+    setIsSubmittingEditedFlashcard(true);
+    try {
+      await updateFlashcard(editingFlashcardData.id, data);
+      toast({ title: t('success'), description: t('toast.flashcard.updated') });
+      if (overviewArtifactLink?.flashcardId) {
+        const updatedCard = getFlashcardById(overviewArtifactLink.flashcardId);
+        setLinkedFlashcard(updatedCard || null);
+      }
+      setIsEditFlashcardDialogOpen(false);
+      setEditingFlashcardData(null);
+    } catch (error) {
+      toast({ title: t('error'), description: t('toast.flashcard.error.save'), variant: 'destructive' });
+    } finally {
+      setIsSubmittingEditedFlashcard(false);
+    }
+  };
+
+  const handleSelectFlashcardFromDialog = (flashcardId: string) => {
+    setOverviewArtifactLink({ flashcardId: flashcardId });
+    toast({ title: t('success'), description: t('toast.task.flashcardSelected') });
+    setIsSelectFlashcardDialogOpen(false);
+  };
+
 
   if (authLoading || (isLoadingOverviews && user) || (isSeeding && user)) {
     return (
@@ -253,7 +338,7 @@ export default function OverviewsClient() {
             <DialogTitle>{currentOverview?.id ? t('overview.form.title.edit') : t('overview.form.title.create')}</DialogTitle>
           </DialogHeader>
           <form onSubmit={handleOverviewSubmit}>
-            <div className="grid gap-4 py-4">
+            <div className="grid gap-4 py-4 max-h-[70vh] overflow-y-auto px-1">
               <div className="space-y-1.5">
                 <Label htmlFor="overviewTitle" className="text-base">
                   {t('overview.form.label.title')}
@@ -283,8 +368,59 @@ export default function OverviewsClient() {
                   {t('task.form.placeholder.description')}
                 </UiDialogDescription>
               </div>
+
+              {/* Flashcard Linking UI */}
+              <div className="space-y-1.5">
+                  <Label className="text-base flex items-center">
+                      <Link2 className="mr-2 h-4 w-4 text-muted-foreground" />
+                      {t('overview.form.artifactLink.sectionTitle')}
+                  </Label>
+                  <div className="p-3 border rounded-md space-y-3 text-sm">
+                      {isFetchingFlashcard && overviewArtifactLink?.flashcardId && (
+                          <div className="flex items-center text-muted-foreground">
+                              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                              {t('task.form.artifactLink.loadingFlashcard')}
+                          </div>
+                      )}
+                      {!isFetchingFlashcard && overviewArtifactLink?.flashcardId && linkedFlashcard && (
+                           <div className="flex items-center justify-between text-sm">
+                              <span className="font-medium mr-1 text-foreground whitespace-nowrap">{t('task.form.artifactLink.flashcardPrefix')}</span>
+                              <p className="text-primary truncate" title={linkedFlashcard.front}>
+                                  {linkedFlashcard.front}
+                              </p>
+                              <div className="flex gap-1 flex-shrink-0 ml-2">
+                                  <Button type="button" variant="ghost" size="xsIcon" onClick={() => { setEditingFlashcardData(linkedFlashcard); setIsEditFlashcardDialogOpen(true); }} title={t('task.form.artifactLink.button.editLinkedFlashcard')}>
+                                      <FilePenLine className="h-4 w-4" />
+                                  </Button>
+                                  <Button type="button" variant="ghost" size="xsIcon" onClick={() => setIsSelectFlashcardDialogOpen(true)} title={t('task.form.artifactLink.button.change')}>
+                                      <ListChecks className="h-4 w-4" />
+                                  </Button>
+                                  <Button type="button" variant="ghost" size="xsIcon" onClick={handleRemoveLink} title={t('task.form.artifactLink.button.remove')}>
+                                      <Trash2 className="h-4 w-4 text-destructive" />
+                                  </Button>
+                              </div>
+                          </div>
+                      )}
+                       {!isFetchingFlashcard && overviewArtifactLink?.flashcardId && !linkedFlashcard && (
+                          <div className="space-y-1 text-sm text-destructive">
+                             <p>{t('task.form.artifactLink.flashcardNotFound')}</p>
+                          </div>
+                      )}
+
+                      {!overviewArtifactLink?.flashcardId && (
+                          <div className="flex flex-wrap gap-2 pt-1">
+                               <Button type="button" variant="outline" size="xs" onClick={() => setIsNewFlashcardDialogOpen(true)}>
+                                   <FilePlus className="mr-1 h-3 w-3" /> {t('task.form.artifactLink.button.newFlashcard')}
+                               </Button>
+                              <Button type="button" variant="outline" size="xs" onClick={() => setIsSelectFlashcardDialogOpen(true)}>
+                                 <ListChecks className="mr-1 h-3 w-3" /> {t('task.form.artifactLink.button.selectFlashcard')}
+                              </Button>
+                          </div>
+                      )}
+                  </div>
+              </div>
             </div>
-            <DialogFooter>
+            <DialogFooter className="pt-4 border-t">
               <DialogClose asChild>
                 <Button type="button" variant="outline" disabled={isSubmittingOverview}>
                   {t('deck.item.delete.confirm.cancel')}
@@ -298,6 +434,133 @@ export default function OverviewsClient() {
           </form>
         </DialogContent>
       </Dialog>
+      
+      {/* Dialogs for Flashcard Linking */}
+      <Dialog open={isNewFlashcardDialogOpen} onOpenChange={setIsNewFlashcardDialogOpen}>
+        <DialogContent className="sm:max-w-[600px]">
+            <DialogHeader>
+                <DialogTitle>{t('task.form.artifactLink.dialog.newFlashcard.title')}</DialogTitle>
+                <UiDialogDescription>
+                  {t('task.form.artifactLink.dialog.newFlashcard.description')}
+                </UiDialogDescription>
+            </DialogHeader>
+            <FlashcardForm
+                onSubmit={handleNewFlashcardSubmit}
+                decks={decks || []}
+                isLoading={isSubmittingNewFlashcard}
+                isLoadingDecks={isLoadingDecks}
+                submitButtonTextKey="flashcard.form.button.create"
+                onCancel={() => setIsNewFlashcardDialogOpen(false)}
+                cancelButtonTextKey="deck.item.delete.confirm.cancel"
+            />
+        </DialogContent>
+      </Dialog>
+
+      {editingFlashcardData && (
+        <Dialog open={isEditFlashcardDialogOpen} onOpenChange={(open) => {
+          setIsEditFlashcardDialogOpen(open);
+          if (!open) setEditingFlashcardData(null);
+        }}>
+          <DialogContent className="sm:max-w-[600px]">
+            <DialogHeader>
+              <DialogTitle>{t('task.form.artifactLink.dialog.editFlashcard.title')}</DialogTitle>
+              <UiDialogDescription>{t('task.form.artifactLink.dialog.editFlashcard.description')}</UiDialogDescription>
+            </DialogHeader>
+            <FlashcardForm
+              initialData={editingFlashcardData}
+              onSubmit={handleEditFlashcardSubmit}
+              decks={decks || []}
+              isLoading={isSubmittingEditedFlashcard}
+              isLoadingDecks={isLoadingDecks}
+              submitButtonTextKey="flashcard.form.button.update"
+              onCancel={() => { setIsEditFlashcardDialogOpen(false); setEditingFlashcardData(null); }}
+              cancelButtonTextKey="deck.item.delete.confirm.cancel"
+            />
+          </DialogContent>
+        </Dialog>
+      )}
+
+      <SelectFlashcardDialog
+        isOpen={isSelectFlashcardDialogOpen}
+        onOpenChange={setIsSelectFlashcardDialogOpen}
+        onSelect={handleSelectFlashcardFromDialog}
+        allFlashcards={allFlashcardsFromContext}
+        t={t}
+      />
     </>
+  );
+}
+
+interface SelectFlashcardDialogProps {
+  isOpen: boolean;
+  onOpenChange: (open: boolean) => void;
+  onSelect: (flashcardId: string) => void;
+  allFlashcards: FlashcardType[];
+  t: (key: any, params?: any) => string;
+}
+
+function SelectFlashcardDialog({ isOpen, onOpenChange, onSelect, allFlashcards, t }: SelectFlashcardDialogProps) {
+  const [searchTerm, setSearchTerm] = React.useState('');
+
+  const filteredFlashcards = React.useMemo(() => {
+    if (!searchTerm.trim()) {
+      return [...allFlashcards]
+        .sort((a, b) => (new Date(b.createdAt || 0).getTime()) - (new Date(a.createdAt || 0).getTime()))
+        .slice(0, 10);
+    }
+    return allFlashcards.filter(
+      (card) =>
+        card.front.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        card.back.toLowerCase().includes(searchTerm.toLowerCase())
+    ).slice(0, 20);
+  }, [allFlashcards, searchTerm]);
+
+  return (
+    <SelectDialog open={isOpen} onOpenChange={onOpenChange}>
+      <SelectDialogContent className="sm:max-w-lg">
+        <SelectDialogHeader>
+          <SelectDialogTitle>{t('task.form.artifactLink.dialog.selectFlashcard.title')}</SelectDialogTitle>
+        </SelectDialogHeader>
+        <div className="py-4 space-y-4">
+          <div className="relative">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+            <SearchInput
+              type="search"
+              placeholder={t('task.form.artifactLink.dialog.selectFlashcard.searchPlaceholder')}
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="pl-10"
+            />
+          </div>
+          <ScrollArea className="h-[300px] w-full">
+            {filteredFlashcards.length === 0 ? (
+              <p className="text-sm text-muted-foreground text-center py-4">
+                {t('task.form.artifactLink.dialog.selectFlashcard.noFlashcardsFound')}
+              </p>
+            ) : (
+              <div className="space-y-2">
+                {filteredFlashcards.map((card) => (
+                  <Button
+                    key={card.id}
+                    variant="outline"
+                    className="w-full justify-start text-left h-auto py-2"
+                    onClick={() => onSelect(card.id)}
+                  >
+                    <div className="flex flex-col min-w-0 overflow-hidden">
+                      <span className="block font-medium truncate" title={card.front}>{card.front}</span>
+                    </div>
+                  </Button>
+                ))}
+              </div>
+            )}
+          </ScrollArea>
+        </div>
+        <SelectDialogFooter>
+          <Button variant="outline" onClick={() => onOpenChange(false)}>
+            {t('deck.item.delete.confirm.cancel')}
+          </Button>
+        </SelectDialogFooter>
+      </SelectDialogContent>
+    </SelectDialog>
   );
 }

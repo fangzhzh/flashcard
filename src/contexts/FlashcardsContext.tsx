@@ -55,7 +55,7 @@ interface FlashcardsContextType {
   getCompletedTasksCountLast30Days: () => Promise<number>;
   fetchCompletedTasksLast30Days: () => Promise<Task[]>;
 
-  addOverview: (data: { title: string; description?: string | null }) => Promise<Overview | null>;
+  addOverview: (data: { title: string; description?: string | null; artifactLink?: ArtifactLink | null }) => Promise<Overview | null>;
   updateOverview: (id: string, updates: Partial<Omit<Overview, 'id' | 'userId'>>) => Promise<Overview | null>;
   deleteOverview: (id: string) => Promise<void>;
   getOverviewById: (id: string) => Overview | undefined;
@@ -109,6 +109,7 @@ export const FlashcardsProvider = ({ children }: { children: ReactNode }) => {
     return {
       id: docSnapshot.id,
       ...data,
+      artifactLink: data.artifactLink || null,
       createdAt: data.createdAt instanceof Timestamp ? formatISO(data.createdAt.toDate()) : (typeof data.createdAt === 'string' ? data.createdAt : null),
       updatedAt: data.updatedAt instanceof Timestamp ? formatISO(data.updatedAt.toDate()) : (typeof data.updatedAt === 'string' ? data.updatedAt : null),
     } as Overview;
@@ -448,12 +449,12 @@ export const FlashcardsProvider = ({ children }: { children: ReactNode }) => {
     }
   }, [user]);
 
-  const addOverview = useCallback(async (data: { title: string; description?: string | null }): Promise<Overview | null> => {
+  const addOverview = useCallback(async (data: { title: string; description?: string | null; artifactLink?: ArtifactLink | null }): Promise<Overview | null> => {
     if (!user || !user.uid) return null;
     try {
       const overviewsCollectionRef = collection(db, 'users', user.uid, 'overviews');
       const now = serverTimestamp();
-      const newOverviewData = { ...data, userId: user.uid };
+      const newOverviewData = { ...data, userId: user.uid, artifactLink: data.artifactLink || null };
       const docRef = await addDoc(overviewsCollectionRef, { ...newOverviewData, createdAt: now, updatedAt: now });
       return { id: docRef.id, ...newOverviewData, createdAt: formatISO(new Date()), updatedAt: formatISO(new Date()) } as Overview;
     } catch (error) { console.error("Error adding overview:", error); return null; }

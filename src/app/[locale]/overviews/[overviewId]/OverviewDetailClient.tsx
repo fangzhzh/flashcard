@@ -6,9 +6,9 @@ import { useFlashcards } from '@/contexts/FlashcardsContext';
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-import { Loader2, ArrowLeft, Edit3, PlusCircle, Info, GitFork, ListChecks, AlertTriangle, CheckSquare, Hourglass, Zap, ShieldAlert } from 'lucide-react';
+import { Loader2, ArrowLeft, Edit3, PlusCircle, Info, GitFork, ListChecks, AlertTriangle, CheckSquare, Hourglass, Zap, ShieldAlert, FilePenLine } from 'lucide-react';
 import { useI18n, useCurrentLocale } from '@/lib/i18n/client';
-import type { Overview, Task, TimeInfo } from '@/types';
+import type { Overview, Task, TimeInfo, Flashcard as FlashcardType } from '@/types';
 import { Alert, AlertTitle, AlertDescription as UiAlertDescription } from '@/components/ui/alert';
 import Link from 'next/link';
 import ReactMarkdown from 'react-markdown';
@@ -60,7 +60,7 @@ const CustomMarkdownComponents = {
 
 export default function OverviewDetailClient({ overviewId }: { overviewId: string }) {
   const { user, loading: authLoading } = useAuth();
-  const { getOverviewById, tasks, isLoadingOverviews, isLoadingTasks, getTaskById, overviews } = useFlashcards();
+  const { getOverviewById, tasks, isLoadingOverviews, isLoadingTasks, getTaskById, overviews, getFlashcardById } = useFlashcards();
   const t = useI18n();
   const currentLocale = useCurrentLocale();
   const router = useRouter();
@@ -102,6 +102,25 @@ export default function OverviewDetailClient({ overviewId }: { overviewId: strin
         return (b.updatedAt && a.updatedAt) ? (new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime()) : 0;
     });
   }, [currentOverview, tasks]);
+
+  const relatedFlashcards = useMemo(() => {
+    if (!currentOverview) return [];
+    const ids = new Set<string>();
+
+    if (currentOverview.artifactLink?.flashcardId) {
+        ids.add(currentOverview.artifactLink.flashcardId);
+    }
+    const tasksForThisOverview = tasks.filter(task => task.overviewId === currentOverview.id);
+    tasksForThisOverview.forEach(task => {
+        if (task.artifactLink?.flashcardId) {
+            ids.add(task.artifactLink.flashcardId);
+        }
+    });
+
+    return Array.from(ids)
+      .map(id => getFlashcardById(id))
+      .filter((card): card is FlashcardType => !!card);
+  }, [currentOverview, tasks, getFlashcardById]);
 
 
   const formatDateStringForDisplay = React.useCallback((date: Date, todayDate: Date, locale: Locale, includeYearIfDifferent = true): string => {
@@ -333,6 +352,35 @@ export default function OverviewDetailClient({ overviewId }: { overviewId: strin
     );
   };
 
+  const renderFlashcardItem = (flashcard: FlashcardType) => {
+    return (
+      <Card key={flashcard.id} className="shadow-sm">
+        <Accordion type="single" collapsible>
+          <AccordionItem value="item-1" className="border-b-0">
+            <AccordionTrigger className="p-3 text-sm font-medium hover:no-underline">
+              <div className="markdown-content whitespace-pre-wrap text-left flex-1">
+                 <ReactMarkdown remarkPlugins={[remarkGfm]} components={CustomMarkdownComponents}>{flashcard.front}</ReactMarkdown>
+              </div>
+            </AccordionTrigger>
+            <AccordionContent className="p-3 pt-0">
+              <div className="border-t pt-3 markdown-content whitespace-pre-wrap text-sm">
+                <ReactMarkdown remarkPlugins={[remarkGfm]} components={CustomMarkdownComponents}>{flashcard.back}</ReactMarkdown>
+              </div>
+              <div className="flex justify-end mt-2">
+                <Link href={`/${currentLocale}/flashcards/${flashcard.id}/edit`} passHref>
+                  <Button variant="ghost" size="sm">
+                    <FilePenLine className="mr-2 h-4 w-4" />
+                    {t('flashcard.item.edit')}
+                  </Button>
+                </Link>
+              </div>
+            </AccordionContent>
+          </AccordionItem>
+        </Accordion>
+      </Card>
+    );
+  };
+
   return (
     <div className="space-y-8">
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
@@ -356,6 +404,24 @@ export default function OverviewDetailClient({ overviewId }: { overviewId: strin
             <ReactMarkdown remarkPlugins={[remarkGfm]} components={CustomMarkdownComponents}>{currentOverview.description}</ReactMarkdown>
           </CardContent>
         </Card>
+      )}
+
+      {relatedFlashcards.length > 0 && (
+        <Accordion type="single" collapsible className="w-full" defaultValue="related-flashcards">
+            <AccordionItem value="related-flashcards">
+                <AccordionTrigger>
+                    <div className="flex items-center text-lg font-semibold">
+                        {t('overviewDetail.linkedFlashcardsTitle')}
+                        <span className="ml-2 text-muted-foreground text-base">({relatedFlashcards.length})</span>
+                    </div>
+                </AccordionTrigger>
+                <AccordionContent>
+                    <div className="space-y-3 pt-2">
+                        {relatedFlashcards.map(card => renderFlashcardItem(card))}
+                    </div>
+                </AccordionContent>
+            </AccordionItem>
+        </Accordion>
       )}
 
       <div>

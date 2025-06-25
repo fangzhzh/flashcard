@@ -6,6 +6,7 @@ export interface Overview {
   userId: string;
   title: string;
   description?: string | null;
+  artifactLink?: ArtifactLink;
   createdAt: string; // ISO date string
   updatedAt: string; // ISO date string
 }

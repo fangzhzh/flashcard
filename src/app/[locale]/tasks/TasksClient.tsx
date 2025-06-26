@@ -373,23 +373,20 @@ function TasksClientContent() {
         const aIsCompleted = a.status === 'completed';
         const bIsCompleted = b.status === 'completed';
 
-        // Future tasks (not completed) have higher priority
         if (!aIsCompleted && bIsCompleted) return -1;
         if (aIsCompleted && !bIsCompleted) return 1;
 
-        // If both are future tasks, sort by start date (earliest first)
         if (!aIsCompleted && !bIsCompleted) {
             const aDate = a.timeInfo?.startDate ? parseISO(a.timeInfo.startDate) : new Date(0);
             const bDate = b.timeInfo?.startDate ? parseISO(b.timeInfo.startDate) : new Date(0);
             return aDate.getTime() - bDate.getTime();
         }
 
-        // If both are completed, sort by updated date (most recent first)
         if (aIsCompleted && bIsCompleted) {
             return (new Date(b.updatedAt).getTime()) - (new Date(a.updatedAt).getTime());
         }
 
-        return 0; // Should not happen
+        return 0;
     });
   }, [tasks, today]);
 
@@ -448,6 +445,9 @@ function TasksClientContent() {
   };
 
   const handleEditTask = (taskId: string) => {
+    const task = getTaskById(taskId);
+    if (!task) return;
+
     if (selectedTaskId === taskId && !isCreatingNewTask) {
       const action = () => {
         setSelectedTaskId(null);
@@ -455,6 +455,10 @@ function TasksClientContent() {
       };
       handleActionWithDirtyCheck(action, 'tasks.unsavedChanges.descriptionCancelEdit', 'tasks.unsavedChanges.button.discard', 'editTask');
       return;
+    }
+    
+    if (task.status === 'completed' && selectedTaskId === taskId) {
+        return; // Don't close if clicking already open completed task
     }
 
     const action = () => {
@@ -814,14 +818,16 @@ function TasksClientContent() {
                     {isCheckingIn[task.id] ? <Loader2 className="h-4 w-4 animate-spin" /> : <Stamp className="h-5 w-5 text-primary" />}
                   </Button>
                 ) : (
-                  <Checkbox
-                    id={`task-${task.id}`}
-                    checked={task.status === 'completed'}
-                    onClick={(e) => { e.stopPropagation(); handleToggleTaskCompletion(task); }}
-                    onCheckedChange={() => {}}
-                    className="flex-shrink-0"
-                    aria-label={t('task.item.toggleCompletionAria', {title: task.title})}
-                  />
+                  <div className="h-8 w-8 flex items-center justify-center">
+                    <Checkbox
+                      id={`task-${task.id}`}
+                      checked={task.status === 'completed'}
+                      onClick={(e) => { e.stopPropagation(); handleToggleTaskCompletion(task); }}
+                      onCheckedChange={() => {}}
+                      className="flex-shrink-0"
+                      aria-label={t('task.item.toggleCompletionAria', {title: task.title})}
+                    />
+                  </div>
                 )}
             </div>
 
@@ -1026,7 +1032,6 @@ function TasksClientContent() {
                     onIntermediateSave={selectedTask ? (updates: Partial<TaskFormData>) => updateTaskInContext(selectedTask.id, updates).then(() => true).catch(() => false) : undefined}
                     onDelete={selectedTask ? handleDeleteTask : undefined} 
                     onDirtyChange={setIsTaskFormDirty}
-                    onToggleStatus={handleToggleTaskCompletion}
                 />
             )}
           </div>
@@ -1060,3 +1065,6 @@ export default function TasksClient() {
     </SidebarProvider>
   );
 }
+
+
+    

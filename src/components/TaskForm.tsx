@@ -163,9 +163,7 @@ export default function TaskForm({
   const dateFnsLocale = currentLocale === 'zh' ? zhCN : enUS;
   const today = startOfDay(new Date());
 
-  const form = useForm<TaskFormData>({
-    resolver: zodResolver(taskSchema),
-    defaultValues: {
+  const defaultFormValues = {
       title: initialData?.title || '',
       description: initialData?.description || '',
       type: initialData?.type || 'innie',
@@ -177,7 +175,11 @@ export default function TaskForm({
       artifactLink: initialData?.artifactLink || { flashcardId: null },
       reminderInfo: initialData?.reminderInfo || { type: 'none' },
       checkinInfo: initialData?.checkinInfo || null,
-    },
+  };
+
+  const form = useForm<TaskFormData>({
+    resolver: zodResolver(taskSchema),
+    defaultValues: defaultFormValues,
   });
 
   const { formState: { isDirty: currentFormIsDirty }, control, watch, setValue, getValues } = form;
@@ -1075,3 +1077,4 @@ function SelectFlashcardDialog({
     </Dialog>
   );
 }
+

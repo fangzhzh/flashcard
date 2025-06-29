@@ -1,13 +1,17 @@
-
 'use client';
 
 import Link from 'next/link';
-import { usePathname, useSearchParams, useRouter } from 'next/navigation';
+import { usePathname, useSearchParams } from 'next/navigation';
 import { useI18n, useCurrentLocale } from '@/lib/i18n/client';
 import { Button } from '@/components/ui/button';
-import { ListChecks, Play, PlusCircle } from 'lucide-react';
+import { ListChecks, PlusCircle } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
-import { usePomodoro } from '@/contexts/PomodoroContext';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { useState } from 'react';
+import TaskForm, { type TaskFormData } from '@/components/TaskForm';
+import { useFlashcards } from '@/contexts/FlashcardsContext';
+import { useToast } from '@/hooks/use-toast';
+import FloatingPomodoroTimer from './FloatingPomodoroTimer';
 
 export default function UniversalFab() {
   const { user } = useAuth();
@@ -15,8 +19,11 @@ export default function UniversalFab() {
   const pathname = usePathname();
   const searchParams = useSearchParams();
   const currentLocale = useCurrentLocale();
-  const router = useRouter();
-  const { sessionState, startPomodoro, isResting } = usePomodoro();
+  const { addTask } = useFlashcards();
+  const { toast } = useToast();
+
+  const [isTaskDialogOpen, setIsTaskDialogOpen] = useState(false);
+  const [isSubmittingTask, setIsSubmittingTask] = useState(false);
 
   if (!user) {
     return null;
@@ -26,25 +33,26 @@ export default function UniversalFab() {
     ? pathname.substring(`/${currentLocale}`.length) || '/'
     : pathname;
     
-  // Hide FABs on the main timer page to avoid redundancy
-  if (basePathname === '/timer') {
+  // Hide FABs on main timer pages to avoid redundancy
+  const isTimerPage = basePathname === '/timer' || basePathname === '/';
+  if (isTimerPage) {
     return null;
   }
-
-  // Timer button logic
-  const handleTimerClick = () => {
-    // If idle, start the timer without navigating
-    if (sessionState?.status === 'idle' && !isResting) {
-      const duration = sessionState.userPreferredDurationMinutes || 25;
-      startPomodoro(duration);
-      return;
+  
+  const handleTaskFormSubmit = async (data: TaskFormData) => {
+    setIsSubmittingTask(true);
+    try {
+      await addTask(data);
+      toast({ title: t('success'), description: t('toast.task.created') });
+      setIsTaskDialogOpen(false);
+    } catch (error) {
+      toast({ title: t('error'), description: t('toast.task.error.save'), variant: 'destructive' });
+    } finally {
+      setIsSubmittingTask(false);
     }
-    
-    // Otherwise, navigate to the main timer page for full controls
-    router.push(`/${currentLocale}/timer`);
   };
 
-  // Contextual "Create" button logic
+  // Contextual "Create" button logic for flashcards
   let contextualAction: React.ReactNode = null;
   const showContextualButton = 
     basePathname.startsWith('/flashcards') ||
@@ -73,25 +81,29 @@ export default function UniversalFab() {
   return (
     <div className="fixed bottom-6 right-6 z-40 flex flex-col items-center gap-4">
       {contextualAction}
-      
-      <Button
-        variant="outline"
-        className="h-14 w-14 rounded-full p-0 shadow-lg border-2 border-primary bg-background text-primary hover:bg-muted"
-        title={t('nav.pomodoro')}
-        onClick={handleTimerClick}
-      >
-        <Play className="h-7 w-7" />
-      </Button>
-      
-      <Link href={`/${currentLocale}/tasks/new?returnTo=${returnToPath}`} passHref>
-        <Button
-          variant="default"
-          className="h-14 w-14 rounded-full bg-primary p-0 shadow-lg text-primary-foreground"
-          title={t('tasks.button.create')}
-        >
-          <ListChecks className="h-7 w-7" />
-        </Button>
-      </Link>
+      <FloatingPomodoroTimer />
+      <Dialog open={isTaskDialogOpen} onOpenChange={setIsTaskDialogOpen}>
+        <DialogTrigger asChild>
+            <Button
+              variant="default"
+              className="h-14 w-14 rounded-full bg-primary p-0 shadow-lg text-primary-foreground"
+              title={t('tasks.button.create')}
+            >
+              <ListChecks className="h-7 w-7" />
+            </Button>
+        </DialogTrigger>
+        <DialogContent className="sm:max-w-xl md:max-w-2xl max-h-[90vh] flex flex-col">
+          <DialogHeader>
+            <DialogTitle>{t('task.form.page.title.create')}</DialogTitle>
+          </DialogHeader>
+          <TaskForm
+            mode="create"
+            onSubmit={handleTaskFormSubmit}
+            isLoading={isSubmittingTask}
+            onCancel={() => setIsTaskDialogOpen(false)}
+          />
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

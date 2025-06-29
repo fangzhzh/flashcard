@@ -16,9 +16,11 @@ import type { CodeProps } from 'react-markdown/lib/ast-to-react';
 import MermaidDiagram from '@/components/MermaidDiagram';
 import { useI18n, useCurrentLocale } from '@/lib/i18n/client';
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { useSearchParams, useRouter, usePathname } from 'next/navigation';
+import { useSearchParams, useRouter } from 'next/navigation';
 import { cn } from '@/lib/utils';
 import MarkmapRenderer from '@/components/MarkmapRenderer';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogTrigger } from "@/components/ui/dialog";
+import TaskForm, { type TaskFormData } from '@/components/TaskForm';
 
 
 const MASTERED_MULTIPLIER = 2;
@@ -65,7 +67,10 @@ const CustomMarkdownComponents = {
 
 export default function ReviewModeClient() {
   const { user, loading: authLoading } = useAuth();
-  const { getReviewQueue, updateFlashcard, flashcards: allFlashcardsFromContext, isLoading: contextLoading, isSeeding, getDeckById, decks } = useFlashcards();
+  const { 
+    getReviewQueue, updateFlashcard, flashcards: allFlashcardsFromContext, 
+    isLoading: contextLoading, isSeeding, getDeckById, decks, addTask 
+  } = useFlashcards();
   
   const [reviewQueue, setReviewQueue] = useState<Flashcard[]>([]);
   const [currentCardIndex, setCurrentCardIndex] = useState(0);
@@ -76,6 +81,7 @@ export default function ReviewModeClient() {
   
   const [isMindmapFullscreen, setIsMindmapFullscreen] = useState(false);
   const [mindmapDataForFullscreen, setMindmapDataForFullscreen] = useState<string | null>(null);
+  const [isCreateTaskOpen, setIsCreateTaskOpen] = useState(false);
 
   const restorationAttempted = useRef(false);
   
@@ -83,7 +89,6 @@ export default function ReviewModeClient() {
   const t = useI18n();
   const currentLocale = useCurrentLocale();
   const router = useRouter();
-  const pathname = usePathname();
   const searchParams = useSearchParams();
   const deckIdFromParams = searchParams.get('deckId');
   const [currentDeck, setCurrentDeck] = useState<Deck | null>(null);
@@ -157,10 +162,11 @@ export default function ReviewModeClient() {
 
     // Critical check: Do not attempt to restore until the flashcard data from the context is available.
     // This prevents the race condition where restoration fails because the card list is empty.
-    if (allFlashcardsFromContext.length === 0) {
+    if (allFlashcardsFromContext.length === 0 && dueCardsForCurrentScope.length === 0) {
         // If there are cards to be loaded, wait for the next render when allFlashcardsFromContext is populated.
         // If we know there are truly no cards for this user, we can proceed.
         // For simplicity, we just wait. The contextLoading flag helps, but this is a final check.
+        restorationAttempted.current = true; // No cards to restore from, don't try again.
         return;
     }
 
@@ -170,12 +176,13 @@ export default function ReviewModeClient() {
       restorationAttempted.current = true;
       return;
     }
+    restorationAttempted.current = true; // Attempt restoration only once.
+
 
     // --- At this point, we have data and believe a session needs to be restored ---
     const savedDeckId = sessionStorage.getItem(SS_DECK_ID);
     if ((deckIdFromParams || null) !== (savedDeckId || null)) {
       // This saved session is for a different deck or scope. Ignore it.
-      restorationAttempted.current = true;
       return;
     }
 
@@ -210,40 +217,9 @@ export default function ReviewModeClient() {
             }
         } catch (e) {
           console.error("Failed to parse or restore review queue from sessionStorage:", e);
-        } finally {
-            // IMPORTANT: Mark restoration as complete (or failed) to prevent this logic from re-running on this page load.
-            restorationAttempted.current = true;
         }
-    } else {
-        // Not enough data in session storage to restore.
-        restorationAttempted.current = true;
     }
-  }, [deckIdFromParams, user, authLoading, contextLoading, allFlashcardsFromContext]);
-
-
-  const handleCreateTaskNavigation = () => {
-    if (!user) {
-        toast({ title: t('error'), description: t('auth.pleaseSignIn'), variant: "destructive" });
-        return;
-    }
-    sessionStorage.setItem(SS_DECK_ID, deckIdFromParams || '');
-    sessionStorage.setItem(SS_IS_SESSION_STARTED, String(isSessionStarted));
-    if (currentCard && isSessionStarted) {
-      sessionStorage.setItem(SS_CARD_ID, currentCard.id); 
-    }
-    if (isSessionStarted && reviewQueue.length > 0) {
-        sessionStorage.setItem(SS_QUEUE_IDS, JSON.stringify(reviewQueue.map(c => c.id)));
-    }
-    sessionStorage.setItem(SS_IS_FLIPPED, String(isFlipped));
-    if (currentSessionType) {
-        sessionStorage.setItem(SS_SESSION_TYPE, currentSessionType);
-    }
-
-    const currentPathWithoutLocale = pathname.replace(`/${currentLocale}`, '') || '/';
-    const currentQueryString = searchParams.toString();
-    const returnToPath = currentPathWithoutLocale + (currentQueryString ? `?${currentQueryString}` : '');
-    router.push(`/${currentLocale}/tasks/new?returnTo=${encodeURIComponent(returnToPath)}`);
-  };
+  }, [deckIdFromParams, user, authLoading, contextLoading, allFlashcardsFromContext, dueCardsForCurrentScope]);
 
   const handleFlip = () => {
     setIsFlipped(!isFlipped);
@@ -336,6 +312,21 @@ export default function ReviewModeClient() {
     })();
   };
 
+  const [isSubmittingTask, setIsSubmittingTask] = useState(false);
+  const handleCreateTaskSubmit = async (data: TaskFormData) => {
+    setIsSubmittingTask(true);
+    try {
+      await addTask(data);
+      toast({ title: t('success'), description: t('toast.task.created') });
+      setIsCreateTaskOpen(false);
+    } catch (error) {
+      toast({ title: t('error'), description: t('toast.task.error.save'), variant: 'destructive' });
+    } finally {
+      setIsSubmittingTask(false);
+    }
+  };
+
+
   if (authLoading || (contextLoading && user && !isSessionStarted) || (isSeeding && user)) { 
     return (
       <div className="flex flex-col items-center justify-center min-h-[calc(100vh-10rem)] p-4 text-center">
@@ -396,14 +387,28 @@ export default function ReviewModeClient() {
                 </Button>
             </Link>
            )}
-          <Button
-              variant="default"
-              className="fixed bottom-6 right-6 z-40 rounded-full h-14 w-14 p-0 shadow-lg"
-              title={t('tasks.button.create')}
-              onClick={handleCreateTaskNavigation}
-          >
-              <ListChecks className="h-7 w-7" />
-          </Button>
+          <Dialog open={isCreateTaskOpen} onOpenChange={setIsCreateTaskOpen}>
+            <DialogTrigger asChild>
+                <Button
+                    variant="default"
+                    className="fixed bottom-6 right-6 z-40 rounded-full h-14 w-14 p-0 shadow-lg"
+                    title={t('tasks.button.create')}
+                >
+                    <ListChecks className="h-7 w-7" />
+                </Button>
+            </DialogTrigger>
+            <DialogContent className="sm:max-w-xl md:max-w-2xl max-h-[90vh] flex flex-col">
+              <DialogHeader>
+                <DialogTitle>{t('task.form.page.title.create')}</DialogTitle>
+              </DialogHeader>
+              <TaskForm
+                mode="create"
+                onSubmit={handleCreateTaskSubmit}
+                isLoading={isSubmittingTask}
+                onCancel={() => setIsCreateTaskOpen(false)}
+              />
+            </DialogContent>
+          </Dialog>
         </div>
       );
     }
@@ -452,14 +457,28 @@ export default function ReviewModeClient() {
                 {currentDeck ? t('review.tip.noSpacedRepetition.deck') : t('review.tip.noSpacedRepetition')}
             </p>
         )}
-        <Button
-            variant="default"
-            className="fixed bottom-6 right-6 z-40 rounded-full h-14 w-14 p-0 shadow-lg"
-            title={t('tasks.button.create')}
-            onClick={handleCreateTaskNavigation}
-        >
-            <ListChecks className="h-7 w-7" />
-        </Button>
+        <Dialog open={isCreateTaskOpen} onOpenChange={setIsCreateTaskOpen}>
+            <DialogTrigger asChild>
+                <Button
+                    variant="default"
+                    className="fixed bottom-6 right-6 z-40 rounded-full h-14 w-14 p-0 shadow-lg"
+                    title={t('tasks.button.create')}
+                >
+                    <ListChecks className="h-7 w-7" />
+                </Button>
+            </DialogTrigger>
+            <DialogContent className="sm:max-w-xl md:max-w-2xl max-h-[90vh] flex flex-col">
+              <DialogHeader>
+                <DialogTitle>{t('task.form.page.title.create')}</DialogTitle>
+              </DialogHeader>
+              <TaskForm
+                mode="create"
+                onSubmit={handleCreateTaskSubmit}
+                isLoading={isSubmittingTask}
+                onCancel={() => setIsCreateTaskOpen(false)}
+              />
+            </DialogContent>
+          </Dialog>
       </div>
     );
   }
@@ -503,14 +522,28 @@ export default function ReviewModeClient() {
             </Button>
           </Link>
         </div>
-        <Button
-            variant="default"
-            className="fixed bottom-6 right-6 z-40 rounded-full h-14 w-14 p-0 shadow-lg"
-            title={t('tasks.button.create')}
-            onClick={handleCreateTaskNavigation}
-        >
-            <ListChecks className="h-7 w-7" />
-        </Button>
+        <Dialog open={isCreateTaskOpen} onOpenChange={setIsCreateTaskOpen}>
+            <DialogTrigger asChild>
+                <Button
+                    variant="default"
+                    className="fixed bottom-6 right-6 z-40 rounded-full h-14 w-14 p-0 shadow-lg"
+                    title={t('tasks.button.create')}
+                >
+                    <ListChecks className="h-7 w-7" />
+                </Button>
+            </DialogTrigger>
+            <DialogContent className="sm:max-w-xl md:max-w-2xl max-h-[90vh] flex flex-col">
+              <DialogHeader>
+                <DialogTitle>{t('task.form.page.title.create')}</DialogTitle>
+              </DialogHeader>
+              <TaskForm
+                mode="create"
+                onSubmit={handleCreateTaskSubmit}
+                isLoading={isSubmittingTask}
+                onCancel={() => setIsCreateTaskOpen(false)}
+              />
+            </DialogContent>
+          </Dialog>
       </div>
     );
   }
@@ -634,14 +667,28 @@ export default function ReviewModeClient() {
         )}
       </Card>
       {user && (
-          <Button
-              variant="default"
-              className="fixed bottom-6 right-6 z-40 rounded-full h-14 w-14 p-0 shadow-lg"
-              title={t('tasks.button.create')}
-              onClick={handleCreateTaskNavigation}
-          >
-              <ListChecks className="h-7 w-7" />
-          </Button>
+          <Dialog open={isCreateTaskOpen} onOpenChange={setIsCreateTaskOpen}>
+            <DialogTrigger asChild>
+                <Button
+                    variant="default"
+                    className="fixed bottom-6 right-6 z-40 rounded-full h-14 w-14 p-0 shadow-lg"
+                    title={t('tasks.button.create')}
+                >
+                    <ListChecks className="h-7 w-7" />
+                </Button>
+            </DialogTrigger>
+            <DialogContent className="sm:max-w-xl md:max-w-2xl max-h-[90vh] flex flex-col">
+              <DialogHeader>
+                <DialogTitle>{t('task.form.page.title.create')}</DialogTitle>
+              </DialogHeader>
+              <TaskForm
+                mode="create"
+                onSubmit={handleCreateTaskSubmit}
+                isLoading={isSubmittingTask}
+                onCancel={() => setIsCreateTaskOpen(false)}
+              />
+            </DialogContent>
+          </Dialog>
       )}
     </div>
   );
@@ -649,6 +696,7 @@ export default function ReviewModeClient() {
     
 
     
+
 
 
 

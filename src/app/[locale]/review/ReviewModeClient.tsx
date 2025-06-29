@@ -138,20 +138,20 @@ export default function ReviewModeClient() {
   }, [contextLoading, user, dueCardsForCurrentScope, allCardsForCurrentScope, setReviewQueue, setCurrentSessionType, setIsSessionStarted, setCurrentCardIndex, setIsFlipped]);
 
   useEffect(() => {
-    if (authLoading || contextLoading || !user) {
+    if (authLoading || contextLoading || !user || typeof window === 'undefined') {
         return;
     }
 
     const savedDeckId = sessionStorage.getItem(SS_DECK_ID);
     const savedIsSessionStarted = sessionStorage.getItem(SS_IS_SESSION_STARTED);
-    const savedCardId = sessionStorage.getItem(SS_CARD_ID); 
+    const savedCardId = sessionStorage.getItem(SS_CARD_ID);
     const savedIsFlippedStr = sessionStorage.getItem(SS_IS_FLIPPED);
     const savedSessionType = sessionStorage.getItem(SS_SESSION_TYPE) as 'spaced' | 'all' | null;
     const savedQueueIds = sessionStorage.getItem(SS_QUEUE_IDS);
 
     sessionStorage.removeItem(SS_DECK_ID);
     sessionStorage.removeItem(SS_IS_SESSION_STARTED);
-    sessionStorage.removeItem(SS_CARD_ID); 
+    sessionStorage.removeItem(SS_CARD_ID);
     sessionStorage.removeItem(SS_IS_FLIPPED);
     sessionStorage.removeItem(SS_SESSION_TYPE);
     sessionStorage.removeItem(SS_QUEUE_IDS);
@@ -159,17 +159,23 @@ export default function ReviewModeClient() {
     if (
       savedIsSessionStarted === 'true' &&
       (deckIdFromParams || null) === (savedDeckId || null) &&
-      savedSessionType
+      savedSessionType &&
+      savedQueueIds
     ) {
-      // Try restoring from a saved queue first (preserves shuffled order)
-      if (savedQueueIds) {
         try {
-          const parsedIds = JSON.parse(savedQueueIds);
-          if (Array.isArray(parsedIds)) {
+            const parsedIds = JSON.parse(savedQueueIds);
+            if (!Array.isArray(parsedIds)) {
+              throw new Error("Saved queue is not an array");
+            }
+
             const restoredQueue = parsedIds
               .map(id => getFlashcardById(id))
               .filter((c): c is Flashcard => !!c);
             
+            if (restoredQueue.length !== parsedIds.length) {
+                console.warn("Could not restore all cards from session. Some may have been deleted.");
+            }
+
             if (restoredQueue.length > 0) {
               const restoredIndex = restoredQueue.findIndex(c => c.id === savedCardId);
               
@@ -178,25 +184,12 @@ export default function ReviewModeClient() {
               setIsFlipped(savedIsFlippedStr === 'true');
               setCurrentSessionType(savedSessionType);
               setIsSessionStarted(true);
-              return; // Restoration successful, exit.
+              return;
             }
-          }
         } catch (e) {
-          console.error("Failed to restore review queue from sessionStorage", e);
+          console.error("Failed to restore review queue from sessionStorage:", e);
         }
-      }
-
-      // Fallback for sessions without a saved queue (e.g., spaced repetition)
-      if( (savedSessionType === 'all' && allCardsForCurrentScope.length > 0) ||
-          (savedSessionType === 'spaced' && dueCardsForCurrentScope.length > 0)
-      ) {
-        startReviewSession(savedSessionType);
-      } else {
-        setIsSessionStarted(false);
-        setCurrentSessionType(null);
-      }
     }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [deckIdFromParams, user, authLoading, contextLoading, getFlashcardById]);
 
 
@@ -625,4 +618,6 @@ export default function ReviewModeClient() {
     </div>
   );
 }
+    
+
     

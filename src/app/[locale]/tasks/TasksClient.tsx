@@ -659,11 +659,38 @@ function TasksClientContent() {
     const isNowCompleted = newCurrentCheckins >= task.checkinInfo.totalCheckinsRequired;
 
     try {
+      const updatedCheckinInfo: CheckinInfo = { ...task.checkinInfo, currentCheckins: newCurrentCheckins };
+      
       if (isNowCompleted) {
-         await handleToggleTaskCompletion(task);
-         toast({ title: t('success'), description: t('toast.task.checkInCompleted', { title: task.title }) });
+        // Task is now complete. Update status AND checkinInfo.
+        const updates: Partial<Task> = {
+          status: 'completed',
+          checkinInfo: updatedCheckinInfo,
+          updatedAt: new Date().toISOString(),
+        };
+
+        // Also handle the repeating task logic
+        if (task.repeat && task.repeat !== 'none') {
+            const nextTimeInfo = calculateNextOccurrence(task);
+            if (nextTimeInfo) {
+              const newTaskData: Omit<Task, 'id' | 'createdAt' | 'updatedAt' | 'userId'> = {
+                ...task,
+                timeInfo: nextTimeInfo,
+                status: 'pending',
+                isSilent: true,
+                checkinInfo: task.checkinInfo ? { ...task.checkinInfo, currentCheckins: 0 } : null,
+              };
+              const { id, ...dataForNewTask } = newTaskData;
+              await addTaskInContext(dataForNewTask);
+              toast({ title: t('toast.task.rescheduled.title'), description: t('toast.task.rescheduled.description', { title: task.title }) });
+            }
+        }
+
+        await updateTaskInContext(task.id, updates);
+        toast({ title: t('success'), description: t('toast.task.checkInCompleted', { title: task.title }) });
+
       } else {
-        const updatedCheckinInfo: CheckinInfo = { ...task.checkinInfo, currentCheckins: newCurrentCheckins };
+        // Task is not yet complete, just update checkinInfo.
         await updateTaskInContext(task.id, { checkinInfo: updatedCheckinInfo, updatedAt: new Date().toISOString() });
         toast({
           title: t('success'),
@@ -674,6 +701,7 @@ function TasksClientContent() {
         });
       }
     } catch (error) {
+      console.error("Error during check-in:", error);
       toast({ title: t('error'), description: t('toast.task.error.checkInFailed'), variant: "destructive" });
     } finally {
       setIsCheckingIn(prev => ({ ...prev, [task.id]: false }));
@@ -1066,5 +1094,7 @@ export default function TasksClient() {
   );
 }
 
+
+    
 
     

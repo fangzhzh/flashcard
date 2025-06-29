@@ -1,6 +1,6 @@
 
 "use client";
-import { useState, useEffect, useCallback, useMemo } from 'react';
+import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { useFlashcards } from '@/contexts/FlashcardsContext';
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
@@ -76,6 +76,8 @@ export default function ReviewModeClient() {
   
   const [isMindmapFullscreen, setIsMindmapFullscreen] = useState(false);
   const [mindmapDataForFullscreen, setMindmapDataForFullscreen] = useState<string | null>(null);
+
+  const restorationAttempted = useRef(false);
   
   const { toast } = useToast();
   const t = useI18n();
@@ -120,6 +122,8 @@ export default function ReviewModeClient() {
     type: 'spaced' | 'all',
   ) => {
     if (contextLoading || !user) return;
+    
+    restorationAttempted.current = false; // Reset restoration attempt flag for new session
 
     let queueToSet: Flashcard[];
     if (type === 'spaced') {
@@ -138,11 +142,10 @@ export default function ReviewModeClient() {
   }, [contextLoading, user, dueCardsForCurrentScope, allCardsForCurrentScope, setReviewQueue, setCurrentSessionType, setIsSessionStarted, setCurrentCardIndex, setIsFlipped]);
 
   useEffect(() => {
-    if (authLoading || contextLoading || !user || typeof window === 'undefined') {
+    if (restorationAttempted.current || authLoading || contextLoading || !user || typeof window === 'undefined') {
         return;
     }
 
-    // Read session state without immediately clearing it
     const savedDeckId = sessionStorage.getItem(SS_DECK_ID);
     const savedIsSessionStarted = sessionStorage.getItem(SS_IS_SESSION_STARTED);
     const savedCardId = sessionStorage.getItem(SS_CARD_ID);
@@ -156,12 +159,13 @@ export default function ReviewModeClient() {
       savedSessionType &&
       savedQueueIds
     ) {
+        restorationAttempted.current = true;
         try {
             const parsedIds = JSON.parse(savedQueueIds);
             if (!Array.isArray(parsedIds)) {
               throw new Error("Saved queue is not an array");
             }
-
+            
             const restoredQueue = parsedIds
               .map(id => getFlashcardById(id))
               .filter((c): c is Flashcard => !!c);
@@ -169,31 +173,27 @@ export default function ReviewModeClient() {
             if (restoredQueue.length !== parsedIds.length) {
                 console.warn("Could not restore all cards from session. Some may have been deleted.");
             }
+            
+            sessionStorage.removeItem(SS_DECK_ID);
+            sessionStorage.removeItem(SS_IS_SESSION_STARTED);
+            sessionStorage.removeItem(SS_CARD_ID);
+            sessionStorage.removeItem(SS_IS_FLIPPED);
+            sessionStorage.removeItem(SS_SESSION_TYPE);
+            sessionStorage.removeItem(SS_QUEUE_IDS);
 
             if (restoredQueue.length > 0) {
               const restoredIndex = restoredQueue.findIndex(c => c.id === savedCardId);
               
-              // Set the state
               setReviewQueue(restoredQueue);
               setCurrentCardIndex(restoredIndex !== -1 ? restoredIndex : 0);
               setIsFlipped(savedIsFlippedStr === 'true');
               setCurrentSessionType(savedSessionType);
               setIsSessionStarted(true);
-
-              // NOW, clear the session state after successful restoration
-              sessionStorage.removeItem(SS_DECK_ID);
-              sessionStorage.removeItem(SS_IS_SESSION_STARTED);
-              sessionStorage.removeItem(SS_CARD_ID);
-              sessionStorage.removeItem(SS_IS_FLIPPED);
-              sessionStorage.removeItem(SS_SESSION_TYPE);
-              sessionStorage.removeItem(SS_QUEUE_IDS);
-              
-              return; // Restoration successful, exit effect.
+              return;
             }
         } catch (e) {
           console.error("Failed to restore review queue from sessionStorage:", e);
-           // If parsing fails, clear the bad data
-          sessionStorage.removeItem(SS_QUEUE_IDS);
+           sessionStorage.removeItem(SS_QUEUE_IDS);
         }
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -205,7 +205,6 @@ export default function ReviewModeClient() {
         toast({ title: t('error'), description: t('auth.pleaseSignIn'), variant: "destructive" });
         return;
     }
-    // Save state to sessionStorage before navigating away
     sessionStorage.setItem(SS_DECK_ID, deckIdFromParams || '');
     sessionStorage.setItem(SS_IS_SESSION_STARTED, String(isSessionStarted));
     if (currentCard && isSessionStarted) {
@@ -629,4 +628,5 @@ export default function ReviewModeClient() {
     
 
     
+
 

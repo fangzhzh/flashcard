@@ -65,7 +65,7 @@ const CustomMarkdownComponents = {
 
 export default function ReviewModeClient() {
   const { user, loading: authLoading } = useAuth();
-  const { getReviewQueue, updateFlashcard, flashcards: allFlashcardsFromContext, isLoading: contextLoading, isSeeding, getDeckById, decks, getFlashcardById } = useFlashcards();
+  const { getReviewQueue, updateFlashcard, flashcards: allFlashcardsFromContext, isLoading: contextLoading, isSeeding, getDeckById, decks } = useFlashcards();
   
   const [reviewQueue, setReviewQueue] = useState<Flashcard[]>([]);
   const [currentCardIndex, setCurrentCardIndex] = useState(0);
@@ -148,18 +148,28 @@ export default function ReviewModeClient() {
 
     const savedDeckId = sessionStorage.getItem(SS_DECK_ID);
     const savedIsSessionStarted = sessionStorage.getItem(SS_IS_SESSION_STARTED);
+    
+    if (savedIsSessionStarted !== 'true' || (deckIdFromParams || null) !== (savedDeckId || null)) {
+      restorationAttempted.current = true; // Mark as attempted so we don't try again on this page load
+      return;
+    }
+
+    // Read and immediately clear session data to prevent race conditions or re-restoration
     const savedCardId = sessionStorage.getItem(SS_CARD_ID);
     const savedIsFlippedStr = sessionStorage.getItem(SS_IS_FLIPPED);
     const savedSessionType = sessionStorage.getItem(SS_SESSION_TYPE) as 'spaced' | 'all' | null;
     const savedQueueIds = sessionStorage.getItem(SS_QUEUE_IDS);
 
-    if (
-      savedIsSessionStarted === 'true' &&
-      (deckIdFromParams || null) === (savedDeckId || null) &&
-      savedSessionType &&
-      savedQueueIds
-    ) {
-        restorationAttempted.current = true;
+    sessionStorage.removeItem(SS_DECK_ID);
+    sessionStorage.removeItem(SS_IS_SESSION_STARTED);
+    sessionStorage.removeItem(SS_CARD_ID);
+    sessionStorage.removeItem(SS_IS_FLIPPED);
+    sessionStorage.removeItem(SS_SESSION_TYPE);
+    sessionStorage.removeItem(SS_QUEUE_IDS);
+
+    restorationAttempted.current = true; // Mark restoration as attempted
+
+    if (savedSessionType && savedQueueIds) {
         try {
             const parsedIds = JSON.parse(savedQueueIds);
             if (!Array.isArray(parsedIds)) {
@@ -167,20 +177,9 @@ export default function ReviewModeClient() {
             }
             
             const restoredQueue = parsedIds
-              .map(id => getFlashcardById(id))
+              .map(id => allFlashcardsFromContext.find(c => c.id === id)) // Use allFlashcardsFromContext for lookup
               .filter((c): c is Flashcard => !!c);
             
-            if (restoredQueue.length !== parsedIds.length) {
-                console.warn("Could not restore all cards from session. Some may have been deleted.");
-            }
-            
-            sessionStorage.removeItem(SS_DECK_ID);
-            sessionStorage.removeItem(SS_IS_SESSION_STARTED);
-            sessionStorage.removeItem(SS_CARD_ID);
-            sessionStorage.removeItem(SS_IS_FLIPPED);
-            sessionStorage.removeItem(SS_SESSION_TYPE);
-            sessionStorage.removeItem(SS_QUEUE_IDS);
-
             if (restoredQueue.length > 0) {
               const restoredIndex = restoredQueue.findIndex(c => c.id === savedCardId);
               
@@ -189,15 +188,13 @@ export default function ReviewModeClient() {
               setIsFlipped(savedIsFlippedStr === 'true');
               setCurrentSessionType(savedSessionType);
               setIsSessionStarted(true);
-              return;
             }
         } catch (e) {
           console.error("Failed to restore review queue from sessionStorage:", e);
-           sessionStorage.removeItem(SS_QUEUE_IDS);
         }
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [deckIdFromParams, user, authLoading, contextLoading, getFlashcardById]);
+  }, [deckIdFromParams, user, authLoading, contextLoading, allFlashcardsFromContext]);
 
 
   const handleCreateTaskNavigation = () => {
@@ -628,5 +625,6 @@ export default function ReviewModeClient() {
     
 
     
+
 
 

@@ -123,6 +123,14 @@ export default function ReviewModeClient() {
   ) => {
     if (contextLoading || !user) return;
     
+    // Clear any previous session data when explicitly starting a new session.
+    sessionStorage.removeItem(SS_DECK_ID);
+    sessionStorage.removeItem(SS_IS_SESSION_STARTED);
+    sessionStorage.removeItem(SS_CARD_ID);
+    sessionStorage.removeItem(SS_IS_FLIPPED);
+    sessionStorage.removeItem(SS_SESSION_TYPE);
+    sessionStorage.removeItem(SS_QUEUE_IDS);
+
     restorationAttempted.current = false; // Reset restoration attempt flag for new session
 
     let queueToSet: Flashcard[];
@@ -139,7 +147,7 @@ export default function ReviewModeClient() {
     setIsSessionStarted(true);
     setCurrentCardIndex(0);
     setIsFlipped(false);
-  }, [contextLoading, user, dueCardsForCurrentScope, allCardsForCurrentScope, setReviewQueue, setCurrentSessionType, setIsSessionStarted, setCurrentCardIndex, setIsFlipped]);
+  }, [contextLoading, user, dueCardsForCurrentScope, allCardsForCurrentScope]);
 
   useEffect(() => {
     if (restorationAttempted.current || authLoading || contextLoading || !user || typeof window === 'undefined') {
@@ -154,18 +162,11 @@ export default function ReviewModeClient() {
       return;
     }
 
-    // Read and immediately clear session data to prevent race conditions or re-restoration
+    // Read session data
     const savedCardId = sessionStorage.getItem(SS_CARD_ID);
     const savedIsFlippedStr = sessionStorage.getItem(SS_IS_FLIPPED);
     const savedSessionType = sessionStorage.getItem(SS_SESSION_TYPE) as 'spaced' | 'all' | null;
     const savedQueueIds = sessionStorage.getItem(SS_QUEUE_IDS);
-
-    sessionStorage.removeItem(SS_DECK_ID);
-    sessionStorage.removeItem(SS_IS_SESSION_STARTED);
-    sessionStorage.removeItem(SS_CARD_ID);
-    sessionStorage.removeItem(SS_IS_FLIPPED);
-    sessionStorage.removeItem(SS_SESSION_TYPE);
-    sessionStorage.removeItem(SS_QUEUE_IDS);
 
     restorationAttempted.current = true; // Mark restoration as attempted
 
@@ -625,6 +626,7 @@ export default function ReviewModeClient() {
     
 
     
+
 
 
 

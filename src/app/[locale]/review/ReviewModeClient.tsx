@@ -142,18 +142,18 @@ export default function ReviewModeClient() {
         return;
     }
 
+    // Read and immediately clear session state from storage to prevent race conditions or stale data.
     const savedDeckId = sessionStorage.getItem(SS_DECK_ID);
-    const savedIsSessionStarted = sessionStorage.getItem(SS_IS_SESSION_STARTED);
-    const savedCardId = sessionStorage.getItem(SS_CARD_ID);
-    const savedIsFlippedStr = sessionStorage.getItem(SS_IS_FLIPPED);
-    const savedSessionType = sessionStorage.getItem(SS_SESSION_TYPE) as 'spaced' | 'all' | null;
-    const savedQueueIds = sessionStorage.getItem(SS_QUEUE_IDS);
-
     sessionStorage.removeItem(SS_DECK_ID);
+    const savedIsSessionStarted = sessionStorage.getItem(SS_IS_SESSION_STARTED);
     sessionStorage.removeItem(SS_IS_SESSION_STARTED);
+    const savedCardId = sessionStorage.getItem(SS_CARD_ID);
     sessionStorage.removeItem(SS_CARD_ID);
+    const savedIsFlippedStr = sessionStorage.getItem(SS_IS_FLIPPED);
     sessionStorage.removeItem(SS_IS_FLIPPED);
+    const savedSessionType = sessionStorage.getItem(SS_SESSION_TYPE) as 'spaced' | 'all' | null;
     sessionStorage.removeItem(SS_SESSION_TYPE);
+    const savedQueueIds = sessionStorage.getItem(SS_QUEUE_IDS);
     sessionStorage.removeItem(SS_QUEUE_IDS);
 
     if (
@@ -184,7 +184,7 @@ export default function ReviewModeClient() {
               setIsFlipped(savedIsFlippedStr === 'true');
               setCurrentSessionType(savedSessionType);
               setIsSessionStarted(true);
-              return;
+              return; // Restoration successful, exit effect.
             }
         } catch (e) {
           console.error("Failed to restore review queue from sessionStorage:", e);
@@ -198,6 +198,7 @@ export default function ReviewModeClient() {
         toast({ title: t('error'), description: t('auth.pleaseSignIn'), variant: "destructive" });
         return;
     }
+    // Save state to sessionStorage before navigating away
     sessionStorage.setItem(SS_DECK_ID, deckIdFromParams || '');
     sessionStorage.setItem(SS_IS_SESSION_STARTED, String(isSessionStarted));
     if (currentCard && isSessionStarted) {

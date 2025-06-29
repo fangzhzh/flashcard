@@ -262,95 +262,130 @@ export default function OverviewDetailClient({ overviewId }: { overviewId: strin
     let statusIconTooltipContent: React.ReactNode | null = null;
     let currentRemainingPercentage = 0;
     let totalDaysInRangeForLabel = 0;
-
+  
     if (task.status === 'completed') {
-        statusIcon = <CheckSquare className="h-4 w-4 text-green-500 mx-1 flex-shrink-0" />;
-        statusIconTooltipContent = <p>{t('task.item.status.completed')}</p>;
+      statusIcon = <CheckSquare className="h-4 w-4 text-green-500 mx-1 flex-shrink-0" />;
+      statusIconTooltipContent = <p>{t('task.item.status.completed')}</p>;
     } else {
-        if (timeStatus === 'upcoming' && task.timeInfo?.startDate) {
-            const sDate = parseISO(task.timeInfo.startDate);
-            if (isValid(sDate)) {
-                 statusIcon = <Hourglass className="h-4 w-4 text-yellow-500 mx-1 flex-shrink-0" />;
-                 statusIconTooltipContent = <p>{t('task.display.status.upcoming')}</p>;
-            }
-        } else if (timeStatus === 'active' && task.timeInfo?.type === 'date_range' && task.timeInfo.startDate && task.timeInfo.endDate) {
-            const sDate = parseISO(task.timeInfo.startDate);
-            const eDate = parseISO(task.timeInfo.endDate);
-            if (isValid(sDate) && isValid(eDate) && eDate >= sDate) {
-                totalDaysInRangeForLabel = differenceInCalendarDays(eDate, sDate) + 1;
-                const now = new Date();
-                const isTaskTodayOnly = isToday(sDate) && isToday(eDate) && totalDaysInRangeForLabel === 1;
-
-                if (isTaskTodayOnly) {
-                    const taskStartDateTime = startOfDay(sDate);
-                    const taskEndDateTime = endOfDay(eDate);
-                    const totalDurationInMs = taskEndDateTime.getTime() - taskStartDateTime.getTime();
-                    if (totalDurationInMs > 0) {
-                        let elapsedMs = now.getTime() - taskStartDateTime.getTime();
-                        elapsedMs = Math.max(0, Math.min(elapsedMs, totalDurationInMs));
-                        const remainingMs = totalDurationInMs - elapsedMs;
-                        currentRemainingPercentage = (remainingMs / totalDurationInMs) * 100;
-                    } else {
-                        currentRemainingPercentage = (now >= taskEndDateTime) ? 0 : 100;
-                    }
-                } else {
-                    if (now > endOfDay(eDate)) currentRemainingPercentage = 0;
-                    else if (now < startOfDay(sDate)) currentRemainingPercentage = 100;
-                    else {
-                        const daysEffectivelyRemaining = differenceInCalendarDays(eDate, startOfDay(now)) + 1;
-                        currentRemainingPercentage = totalDaysInRangeForLabel > 0 ? (daysEffectivelyRemaining / totalDaysInRangeForLabel) * 100 : 0;
-                    }
-                }
-                currentRemainingPercentage = Math.max(0, Math.min(currentRemainingPercentage, 100));
-                statusIcon = <TaskDurationPie remainingPercentage={currentRemainingPercentage} totalDurationDays={totalDaysInRangeForLabel} variant="active" size={16} className="mx-1 flex-shrink-0" />;
-                const durationTextKey: TranslationKeys = totalDaysInRangeForLabel === 1 ? 'task.display.totalDurationDay' : 'task.display.totalDurationDaysPlural';
-                statusIconTooltipContent = <p>{formatDateStringForDisplay(sDate, today, dateFnsLocale, true)} - {formatDateStringForDisplay(eDate, today, dateFnsLocale, true)} {t(durationTextKey, {count: totalDaysInRangeForLabel})}</p>;
-            }
-        } else if (timeStatus === 'active') {
-             statusIcon = <Zap className="h-4 w-4 text-green-500 mx-1 flex-shrink-0" />;
-             statusIconTooltipContent = <p>{t('task.display.status.active')}</p>;
-        } else if (timeStatus === 'overdue') {
-            statusIcon = <AlertTriangle className="h-4 w-4 text-red-500 mx-1 flex-shrink-0" />;
-            statusIconTooltipContent = <p>{t('task.display.status.overdue')}</p>;
+      if (timeStatus === 'upcoming' && task.timeInfo?.startDate) {
+        const sDate = parseISO(task.timeInfo.startDate);
+        if (isValid(sDate)) {
+          statusIcon = <Hourglass className="h-4 w-4 text-yellow-500 mx-1 flex-shrink-0" />;
+          statusIconTooltipContent = <p>{t('task.display.status.upcoming')}</p>;
         }
+      } else if (timeStatus === 'active' && task.timeInfo?.type === 'date_range' && task.timeInfo.startDate && task.timeInfo.endDate) {
+        const sDate = parseISO(task.timeInfo.startDate);
+        const eDate = parseISO(task.timeInfo.endDate);
+        if (isValid(sDate) && isValid(eDate) && eDate >= sDate) {
+          totalDaysInRangeForLabel = differenceInCalendarDays(eDate, sDate) + 1;
+          const now = new Date();
+          const isTaskTodayOnly = isToday(sDate) && isToday(eDate) && totalDaysInRangeForLabel === 1;
+  
+          if (isTaskTodayOnly) {
+            const taskStartDateTime = startOfDay(sDate);
+            const taskEndDateTime = endOfDay(eDate);
+            const totalDurationInMs = taskEndDateTime.getTime() - taskStartDateTime.getTime();
+            if (totalDurationInMs > 0) {
+              let elapsedMs = now.getTime() - taskStartDateTime.getTime();
+              elapsedMs = Math.max(0, Math.min(elapsedMs, totalDurationInMs));
+              const remainingMs = totalDurationInMs - elapsedMs;
+              currentRemainingPercentage = (remainingMs / totalDurationInMs) * 100;
+            } else {
+              currentRemainingPercentage = (now >= taskEndDateTime) ? 0 : 100;
+            }
+          } else {
+            if (now > endOfDay(eDate)) currentRemainingPercentage = 0;
+            else if (now < startOfDay(sDate)) currentRemainingPercentage = 100;
+            else {
+              const daysEffectivelyRemaining = differenceInCalendarDays(eDate, startOfDay(now)) + 1;
+              currentRemainingPercentage = totalDaysInRangeForLabel > 0 ? (daysEffectivelyRemaining / totalDaysInRangeForLabel) * 100 : 0;
+            }
+          }
+          currentRemainingPercentage = Math.max(0, Math.min(currentRemainingPercentage, 100));
+          statusIcon = <TaskDurationPie remainingPercentage={currentRemainingPercentage} totalDurationDays={totalDaysInRangeForLabel} variant="active" size={16} className="mx-1 flex-shrink-0" />;
+          const durationTextKey: TranslationKeys = totalDaysInRangeForLabel === 1 ? 'task.display.totalDurationDay' : 'task.display.totalDurationDaysPlural';
+          statusIconTooltipContent = <p>{formatDateStringForDisplay(sDate, today, dateFnsLocale, true)} - {formatDateStringForDisplay(eDate, today, dateFnsLocale, true)} {t(durationTextKey, { count: totalDaysInRangeForLabel })}</p>;
+        }
+      } else if (timeStatus === 'active') {
+        statusIcon = <Zap className="h-4 w-4 text-green-500 mx-1 flex-shrink-0" />;
+        statusIconTooltipContent = <p>{t('task.display.status.active')}</p>;
+      } else if (timeStatus === 'overdue') {
+        statusIcon = <AlertTriangle className="h-4 w-4 text-red-500 mx-1 flex-shrink-0" />;
+        statusIconTooltipContent = <p>{t('task.display.status.overdue')}</p>;
+      }
     }
-
-
+  
+    const linkedFlashcard = task.artifactLink?.flashcardId ? getFlashcardById(task.artifactLink.flashcardId) : null;
+  
     return (
-      <TooltipProvider key={task.id}>
-        <Link href={`/${currentLocale}/tasks/${task.id}/edit?returnTo=${returnToPath}`} passHref>
-          <Card className={cn("hover:shadow-md transition-shadow cursor-pointer", task.status === 'completed' && 'bg-muted/30')}>
-            <CardContent className="p-3 flex items-center justify-between">
+      <AccordionItem value={task.id} key={task.id} className="border rounded-lg bg-card shadow-sm data-[state=open]:shadow-md">
+        <AccordionTrigger className={cn("p-3 hover:no-underline w-full rounded-md", task.status === 'completed' && 'bg-muted/50')}>
+          <div className="flex items-center justify-between w-full">
+            <div className="flex-1 min-w-0 flex items-center gap-3">
+              {statusIcon && statusIconTooltipContent ? (
+                  <Tooltip>
+                    <TooltipTrigger asChild><div className="flex items-center">{statusIcon}</div></TooltipTrigger>
+                    <TooltipContent side="bottom">{statusIconTooltipContent}</TooltipContent>
+                  </Tooltip>
+              ) : (
+                  <div className="w-4 h-4 mx-1 flex-shrink-0" />
+              )}
               <div className="flex-1 min-w-0">
-                <p className={cn("text-sm font-medium truncate", task.status === 'completed' && "line-through text-muted-foreground")} title={task.title}>{task.title}</p>
+                <p className={cn("text-sm font-medium text-left truncate", task.status === 'completed' && "line-through text-muted-foreground")} title={task.title}>{task.title}</p>
                 {task.description && (
-                  <p className="text-xs text-muted-foreground truncate">{task.description}</p>
+                  <p className="text-xs text-muted-foreground text-left truncate">{task.description}</p>
                 )}
               </div>
-              <div className="flex items-center flex-shrink-0 ml-2">
-                  {visibleLabel && (
-                    <Tooltip delayDuration={300}>
-                      <TooltipTrigger asChild>
-                        <span className="text-xs text-muted-foreground mr-1 cursor-default">{visibleLabel}</span>
-                      </TooltipTrigger>
-                      <TooltipContent><p>{tooltipLabel}</p></TooltipContent>
-                    </Tooltip>
-                  )}
-                  {statusIcon && statusIconTooltipContent && (
-                    <Tooltip delayDuration={300}>
-                        <TooltipTrigger asChild>
-                            <div className="flex items-center">{statusIcon}</div>
-                        </TooltipTrigger>
-                        <TooltipContent>{statusIconTooltipContent}</TooltipContent>
-                    </Tooltip>
-                  )}
+            </div>
+            <div className="flex items-center flex-shrink-0 ml-2">
+              {visibleLabel && (
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <span className="text-xs text-muted-foreground mr-1 cursor-default">{visibleLabel}</span>
+                  </TooltipTrigger>
+                  <TooltipContent><p>{tooltipLabel}</p></TooltipContent>
+                </Tooltip>
+              )}
+            </div>
+          </div>
+        </AccordionTrigger>
+        <AccordionContent className="p-4 pt-0 space-y-4">
+          <div className="border-t pt-4 space-y-4">
+            {task.description && (
+              <div className="markdown-content">
+                <h4 className="text-sm font-semibold mb-1 text-muted-foreground">{t('task.form.label.description')}</h4>
+                <ReactMarkdown remarkPlugins={[remarkGfm]} components={CustomMarkdownComponents}>{task.description}</ReactMarkdown>
               </div>
-            </CardContent>
-          </Card>
-        </Link>
-      </TooltipProvider>
+            )}
+            {linkedFlashcard && (
+              <div>
+                <h4 className="text-sm font-semibold mb-2 text-muted-foreground">{t('overviewDetail.linkedFlashcardForTask')}</h4>
+                <Card className="bg-muted/50">
+                  <CardHeader className="p-3">
+                    <CardTitle className="text-sm markdown-content whitespace-pre-wrap"><ReactMarkdown remarkPlugins={[remarkGfm]} components={CustomMarkdownComponents}>{linkedFlashcard.front}</ReactMarkdown></CardTitle>
+                  </CardHeader>
+                  <CardContent className="p-3 border-t">
+                    <div className="markdown-content text-sm whitespace-pre-wrap">
+                      <ReactMarkdown remarkPlugins={[remarkGfm]} components={CustomMarkdownComponents}>{linkedFlashcard.back}</ReactMarkdown>
+                    </div>
+                  </CardContent>
+                </Card>
+              </div>
+            )}
+            <div className="flex justify-end pt-2">
+              <Link href={`/${currentLocale}/tasks/${task.id}/edit?returnTo=${returnToPath}`} passHref>
+                <Button variant="outline" size="sm">
+                  <FilePenLine className="mr-2 h-4 w-4" />
+                  {t('task.item.edit')}
+                </Button>
+              </Link>
+            </div>
+          </div>
+        </AccordionContent>
+      </AccordionItem>
     );
   };
+  
 
   const renderFlashcardItem = (flashcard: FlashcardType) => {
     return (
@@ -434,9 +469,11 @@ export default function OverviewDetailClient({ overviewId }: { overviewId: strin
           </Link>
         </div>
         {pendingLinkedTasks.length > 0 ? (
-          <div className="space-y-3">
-            {pendingLinkedTasks.map(task => renderTaskItem(task))}
-          </div>
+           <TooltipProvider>
+            <Accordion type="single" collapsible className="w-full space-y-3">
+              {pendingLinkedTasks.map(task => renderTaskItem(task))}
+            </Accordion>
+          </TooltipProvider>
         ) : (
           <Alert>
             <Info className="h-5 w-5" />
@@ -456,9 +493,11 @@ export default function OverviewDetailClient({ overviewId }: { overviewId: strin
                     </div>
                 </AccordionTrigger>
                 <AccordionContent>
-                    <div className="space-y-3 pt-2">
-                        {completedLinkedTasks.map(task => renderTaskItem(task))}
-                    </div>
+                    <TooltipProvider>
+                      <Accordion type="single" collapsible className="w-full space-y-3 pt-2">
+                          {completedLinkedTasks.map(task => renderTaskItem(task))}
+                      </Accordion>
+                    </TooltipProvider>
                 </AccordionContent>
             </AccordionItem>
         </Accordion>

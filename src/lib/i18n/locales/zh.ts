@@ -544,6 +544,7 @@ export default {
   'overviewDetail.linkedTasksTitle': '关联的任务 (待处理)',
   'overviewDetail.completedTasksTitle': '已完成的任务',
   'overviewDetail.linkedFlashcardsTitle': "相关抽认卡",
+  'overviewDetail.linkedFlashcardForTask': '关联的抽认卡',
   'overviewDetail.noLinkedTasks.title': '没有关联的待处理任务',
   'overviewDetail.noLinkedTasks.description': '将此总览分解为可操作的任务。点击“为此总览添加任务”。',
   'overviewDetail.noLinkedFlashcards.title': "没有相关的抽认卡",

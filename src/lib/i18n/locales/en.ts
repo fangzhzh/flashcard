@@ -543,6 +543,7 @@ export default {
   'overviewDetail.linkedTasksTitle': 'Linked Tasks (Pending)',
   'overviewDetail.completedTasksTitle': 'Completed Tasks',
   'overviewDetail.linkedFlashcardsTitle': "Related Flashcards",
+  'overviewDetail.linkedFlashcardForTask': 'Linked Flashcard',
   'overviewDetail.noLinkedTasks.title': 'No Pending Tasks Linked',
   'overviewDetail.noLinkedTasks.description': 'Break down this overview into actionable tasks. Click "Add Task to this Overview".',
   'overviewDetail.noLinkedFlashcards.title': "No Related Flashcards",

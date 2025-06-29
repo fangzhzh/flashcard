@@ -65,7 +65,7 @@ const CustomMarkdownComponents = {
 
 export default function ReviewModeClient() {
   const { user, loading: authLoading } = useAuth();
-  const { getReviewQueue, updateFlashcard, flashcards: allFlashcardsFromContext, isLoading: contextLoading, isSeeding, getDeckById, decks } = useFlashcards();
+  const { getReviewQueue, updateFlashcard, flashcards: allFlashcardsFromContext, isLoading: contextLoading, isSeeding, getDeckById, decks, getFlashcardById } = useFlashcards();
   
   const [reviewQueue, setReviewQueue] = useState<Flashcard[]>([]);
   const [currentCardIndex, setCurrentCardIndex] = useState(0);
@@ -625,6 +625,4 @@ export default function ReviewModeClient() {
     </div>
   );
 }
-    
-
     

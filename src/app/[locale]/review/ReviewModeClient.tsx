@@ -131,7 +131,7 @@ export default function ReviewModeClient() {
     sessionStorage.removeItem(SS_SESSION_TYPE);
     sessionStorage.removeItem(SS_QUEUE_IDS);
 
-    restorationAttempted.current = false; // Reset restoration attempt flag for new session
+    restorationAttempted.current = true; // Mark as "attempted" so a refresh doesn't try to restore this new session
 
     let queueToSet: Flashcard[];
     if (type === 'spaced') {
@@ -150,25 +150,40 @@ export default function ReviewModeClient() {
   }, [contextLoading, user, dueCardsForCurrentScope, allCardsForCurrentScope]);
 
   useEffect(() => {
+    // Exit conditions: already restored, essential data is loading, or not in a browser context.
     if (restorationAttempted.current || authLoading || contextLoading || !user || typeof window === 'undefined') {
         return;
     }
 
-    const savedDeckId = sessionStorage.getItem(SS_DECK_ID);
+    // Critical check: Do not attempt to restore until the flashcard data from the context is available.
+    // This prevents the race condition where restoration fails because the card list is empty.
+    if (allFlashcardsFromContext.length === 0) {
+        // If there are cards to be loaded, wait for the next render when allFlashcardsFromContext is populated.
+        // If we know there are truly no cards for this user, we can proceed.
+        // For simplicity, we just wait. The contextLoading flag helps, but this is a final check.
+        return;
+    }
+
     const savedIsSessionStarted = sessionStorage.getItem(SS_IS_SESSION_STARTED);
-    
-    if (savedIsSessionStarted !== 'true' || (deckIdFromParams || null) !== (savedDeckId || null)) {
-      restorationAttempted.current = true; // Mark as attempted so we don't try again on this page load
+    if (savedIsSessionStarted !== 'true') {
+      // No active session to restore. Mark as attempted to prevent re-checking on this page load.
+      restorationAttempted.current = true;
       return;
     }
 
-    // Read session data
+    // --- At this point, we have data and believe a session needs to be restored ---
+    const savedDeckId = sessionStorage.getItem(SS_DECK_ID);
+    if ((deckIdFromParams || null) !== (savedDeckId || null)) {
+      // This saved session is for a different deck or scope. Ignore it.
+      restorationAttempted.current = true;
+      return;
+    }
+
+    // Read the rest of the session data from storage
     const savedCardId = sessionStorage.getItem(SS_CARD_ID);
     const savedIsFlippedStr = sessionStorage.getItem(SS_IS_FLIPPED);
     const savedSessionType = sessionStorage.getItem(SS_SESSION_TYPE) as 'spaced' | 'all' | null;
     const savedQueueIds = sessionStorage.getItem(SS_QUEUE_IDS);
-
-    restorationAttempted.current = true; // Mark restoration as attempted
 
     if (savedSessionType && savedQueueIds) {
         try {
@@ -177,24 +192,32 @@ export default function ReviewModeClient() {
               throw new Error("Saved queue is not an array");
             }
             
+            // Reconstruct the queue from the full list of cards, preserving the original order
             const restoredQueue = parsedIds
-              .map(id => allFlashcardsFromContext.find(c => c.id === id)) // Use allFlashcardsFromContext for lookup
-              .filter((c): c is Flashcard => !!c);
-            
-            if (restoredQueue.length > 0) {
+              .map(id => allFlashcardsFromContext.find(c => c.id === id))
+              .filter((c): c is Flashcard => !!c); // Filter out any cards that might have been deleted
+
+            // Only restore if we could successfully find all the cards in the saved queue
+            if (restoredQueue.length > 0 && restoredQueue.length === parsedIds.length) {
               const restoredIndex = restoredQueue.findIndex(c => c.id === savedCardId);
               
+              // Set all state variables to restore the session
               setReviewQueue(restoredQueue);
               setCurrentCardIndex(restoredIndex !== -1 ? restoredIndex : 0);
               setIsFlipped(savedIsFlippedStr === 'true');
               setCurrentSessionType(savedSessionType);
-              setIsSessionStarted(true);
+              setIsSessionStarted(true); // This is what shows the review card view instead of the "Ready" screen
             }
         } catch (e) {
-          console.error("Failed to restore review queue from sessionStorage:", e);
+          console.error("Failed to parse or restore review queue from sessionStorage:", e);
+        } finally {
+            // IMPORTANT: Mark restoration as complete (or failed) to prevent this logic from re-running on this page load.
+            restorationAttempted.current = true;
         }
+    } else {
+        // Not enough data in session storage to restore.
+        restorationAttempted.current = true;
     }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [deckIdFromParams, user, authLoading, contextLoading, allFlashcardsFromContext]);
 
 
@@ -626,6 +649,7 @@ export default function ReviewModeClient() {
     
 
     
+
 
 
 

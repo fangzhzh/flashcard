@@ -142,19 +142,13 @@ export default function ReviewModeClient() {
         return;
     }
 
-    // Read and immediately clear session state from storage to prevent race conditions or stale data.
+    // Read session state without immediately clearing it
     const savedDeckId = sessionStorage.getItem(SS_DECK_ID);
-    sessionStorage.removeItem(SS_DECK_ID);
     const savedIsSessionStarted = sessionStorage.getItem(SS_IS_SESSION_STARTED);
-    sessionStorage.removeItem(SS_IS_SESSION_STARTED);
     const savedCardId = sessionStorage.getItem(SS_CARD_ID);
-    sessionStorage.removeItem(SS_CARD_ID);
     const savedIsFlippedStr = sessionStorage.getItem(SS_IS_FLIPPED);
-    sessionStorage.removeItem(SS_IS_FLIPPED);
     const savedSessionType = sessionStorage.getItem(SS_SESSION_TYPE) as 'spaced' | 'all' | null;
-    sessionStorage.removeItem(SS_SESSION_TYPE);
     const savedQueueIds = sessionStorage.getItem(SS_QUEUE_IDS);
-    sessionStorage.removeItem(SS_QUEUE_IDS);
 
     if (
       savedIsSessionStarted === 'true' &&
@@ -179,17 +173,30 @@ export default function ReviewModeClient() {
             if (restoredQueue.length > 0) {
               const restoredIndex = restoredQueue.findIndex(c => c.id === savedCardId);
               
+              // Set the state
               setReviewQueue(restoredQueue);
               setCurrentCardIndex(restoredIndex !== -1 ? restoredIndex : 0);
               setIsFlipped(savedIsFlippedStr === 'true');
               setCurrentSessionType(savedSessionType);
               setIsSessionStarted(true);
+
+              // NOW, clear the session state after successful restoration
+              sessionStorage.removeItem(SS_DECK_ID);
+              sessionStorage.removeItem(SS_IS_SESSION_STARTED);
+              sessionStorage.removeItem(SS_CARD_ID);
+              sessionStorage.removeItem(SS_IS_FLIPPED);
+              sessionStorage.removeItem(SS_SESSION_TYPE);
+              sessionStorage.removeItem(SS_QUEUE_IDS);
+              
               return; // Restoration successful, exit effect.
             }
         } catch (e) {
           console.error("Failed to restore review queue from sessionStorage:", e);
+           // If parsing fails, clear the bad data
+          sessionStorage.removeItem(SS_QUEUE_IDS);
         }
     }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [deckIdFromParams, user, authLoading, contextLoading, getFlashcardById]);
 
 
@@ -622,3 +629,4 @@ export default function ReviewModeClient() {
     
 
     
+

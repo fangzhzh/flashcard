@@ -16,12 +16,14 @@ import remarkGfm from 'remark-gfm';
 import type { CodeProps } from 'react-markdown/lib/ast-to-react';
 import MermaidDiagram from '@/components/MermaidDiagram';
 import { cn } from '@/lib/utils';
-import { format, parseISO, differenceInCalendarDays, isToday, isTomorrow, isValid, isSameYear, startOfDay, addDays, startOfWeek, endOfWeek, areIntervalsOverlapping, endOfDay } from 'date-fns';
+import { format, parseISO, differenceInCalendarDays, isToday, isTomorrow, isValid, isSameYear, startOfDay, addDays, startOfWeek, endOfWeek, areIntervalsOverlapping, endOfDay, subWeeks, subMonths, subDays } from 'date-fns';
 import { enUS } from 'date-fns/locale/en-US';
 import { zhCN } from 'date-fns/locale/zh-CN';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import TaskDurationPie from '@/components/TaskDurationPie';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Input } from '@/components/ui/input';
 
 interface FormattedTimeInfo {
   visibleLabel: string;
@@ -29,6 +31,7 @@ interface FormattedTimeInfo {
   timeStatus: 'upcoming' | 'active' | 'overdue' | 'none';
 }
 type TranslationKeys = keyof typeof import('@/lib/i18n/locales/en').default;
+type CompletedTaskFilter = 'lastWeek' | 'last2Weeks' | 'lastMonth' | 'last3Months' | 'custom';
 
 const CustomMarkdownComponents = {
   code({ node, inline, className, children, ...props }: CodeProps) {
@@ -71,6 +74,8 @@ export default function OverviewDetailClient({ overviewId }: { overviewId: strin
   const currentSearchParams = useSearchParams();
 
   const [currentOverview, setCurrentOverview] = useState<Overview | null | undefined>(undefined);
+  const [completedTaskFilter, setCompletedTaskFilter] = useState<CompletedTaskFilter>('lastWeek');
+  const [customDays, setCustomDays] = useState<number>(7);
 
   useEffect(() => {
     if (!isLoadingOverviews && user) {
@@ -96,12 +101,48 @@ export default function OverviewDetailClient({ overviewId }: { overviewId: strin
     });
   }, [currentOverview, tasks]);
 
-  const completedLinkedTasks = useMemo(() => {
+  const allCompletedLinkedTasks = useMemo(() => {
     if (!currentOverview) return [];
-    return tasks.filter(task => task.overviewId === currentOverview.id && task.status === 'completed').sort((a,b) => {
-        return (b.updatedAt && a.updatedAt) ? (new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime()) : 0;
-    });
+    return tasks.filter(task => task.overviewId === currentOverview.id && task.status === 'completed');
   }, [currentOverview, tasks]);
+
+  const filteredCompletedLinkedTasks = useMemo(() => {
+    const now = new Date();
+    let cutoffDate: Date;
+
+    switch (completedTaskFilter) {
+      case 'last2Weeks':
+        cutoffDate = subWeeks(now, 2);
+        break;
+      case 'lastMonth':
+        cutoffDate = subMonths(now, 1);
+        break;
+      case 'last3Months':
+        cutoffDate = subMonths(now, 3);
+        break;
+      case 'custom':
+        cutoffDate = subDays(now, customDays > 0 ? customDays : 0);
+        break;
+      case 'lastWeek':
+      default:
+        cutoffDate = subWeeks(now, 1);
+        break;
+    }
+
+    const filtered = allCompletedLinkedTasks
+      .filter(task => {
+        if (!task.updatedAt) return false;
+        const completionDate = parseISO(task.updatedAt);
+        return isValid(completionDate) && completionDate >= cutoffDate;
+      });
+
+    return filtered.sort((a, b) => {
+        const dateA = new Date(a.updatedAt || 0).getTime();
+        const dateB = new Date(b.updatedAt || 0).getTime();
+        return dateB - dateA;
+    });
+  }, [allCompletedLinkedTasks, completedTaskFilter, customDays]);
+
 
   const relatedFlashcards = useMemo(() => {
     if (!currentOverview) return [];
@@ -302,7 +343,7 @@ export default function OverviewDetailClient({ overviewId }: { overviewId: strin
             }
           }
           currentRemainingPercentage = Math.max(0, Math.min(currentRemainingPercentage, 100));
-          statusIcon = <TaskDurationPie remainingPercentage={currentRemainingPercentage} totalDurationDays={totalDaysInRangeForLabel} variant="active" size={16} className="mx-1 flex-shrink-0" />;
+          statusIcon = <TaskDurationPie remainingPercentage={currentRemainingPercentage} totalDurationDays={totalDaysInRangeForLabel} size={16} className="mx-1 flex-shrink-0" />;
           const durationTextKey: TranslationKeys = totalDaysInRangeForLabel === 1 ? 'task.display.totalDurationDay' : 'task.display.totalDurationDaysPlural';
           statusIconTooltipContent = <p>{formatDateStringForDisplay(sDate, today, dateFnsLocale, true)} - {formatDateStringForDisplay(eDate, today, dateFnsLocale, true)} {t(durationTextKey, { count: totalDaysInRangeForLabel })}</p>;
         }
@@ -483,19 +524,51 @@ export default function OverviewDetailClient({ overviewId }: { overviewId: strin
         )}
       </div>
 
-      {completedLinkedTasks.length > 0 && (
-        <Accordion type="single" collapsible className="w-full mt-4 border-t pt-4">
+      {allCompletedLinkedTasks.length > 0 && (
+        <Accordion type="single" collapsible className="w-full mt-4 border-t pt-4" defaultValue="completed-tasks">
             <AccordionItem value="completed-tasks">
                 <AccordionTrigger>
                     <div className="flex items-center text-lg font-semibold">
                         {t('overviewDetail.completedTasksTitle')}
-                        <span className="ml-2 text-muted-foreground text-base">({completedLinkedTasks.length})</span>
+                        <span className="ml-2 text-muted-foreground text-base">({allCompletedLinkedTasks.length})</span>
                     </div>
                 </AccordionTrigger>
                 <AccordionContent>
+                    <div className="flex items-center gap-2 pb-4 border-b">
+                        <Select value={completedTaskFilter} onValueChange={(value) => setCompletedTaskFilter(value as CompletedTaskFilter)}>
+                            <SelectTrigger className="w-auto sm:w-[180px] text-sm h-9">
+                                <SelectValue placeholder="Filter by date" />
+                            </SelectTrigger>
+                            <SelectContent>
+                                <SelectItem value="lastWeek">{t('overviewDetail.filter.lastWeek')}</SelectItem>
+                                <SelectItem value="last2Weeks">{t('overviewDetail.filter.last2Weeks')}</SelectItem>
+                                <SelectItem value="lastMonth">{t('overviewDetail.filter.lastMonth')}</SelectItem>
+                                <SelectItem value="last3Months">{t('overviewDetail.filter.last3Months')}</SelectItem>
+                                <SelectItem value="custom">{t('overviewDetail.filter.custom')}</SelectItem>
+                            </SelectContent>
+                        </Select>
+                        {completedTaskFilter === 'custom' && (
+                            <div className="flex items-center gap-2">
+                                <Input
+                                    type="number"
+                                    value={customDays}
+                                    onChange={(e) => setCustomDays(parseInt(e.target.value, 10) || 0)}
+                                    className="w-[70px] h-9"
+                                    min="1"
+                                />
+                                <span className="text-sm text-muted-foreground hidden sm:inline">{t('overviewDetail.filter.daysAgo')}</span>
+                            </div>
+                        )}
+                    </div>
                     <TooltipProvider>
                       <Accordion type="single" collapsible className="w-full space-y-3 pt-2">
-                          {completedLinkedTasks.map(task => renderTaskItem(task))}
+                          {filteredCompletedLinkedTasks.length > 0 ? (
+                            filteredCompletedLinkedTasks.map(task => renderTaskItem(task))
+                          ) : (
+                            <p className="text-sm text-muted-foreground py-4 text-center">
+                                {t('overviewDetail.noCompletedTasksInFilter')}
+                            </p>
+                          )}
                       </Accordion>
                     </TooltipProvider>
                 </AccordionContent>
@@ -505,3 +578,5 @@ export default function OverviewDetailClient({ overviewId }: { overviewId: strin
     </div>
   );
 }
+
+

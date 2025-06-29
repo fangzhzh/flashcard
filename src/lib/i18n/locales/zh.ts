@@ -553,6 +553,13 @@ export default {
   'overviewDetail.button.editOverview': '编辑总览详情',
   'overviewDetail.button.backToList': '所有总览',
   'overview.viewTasks': '查看详情和任务',
+  'overviewDetail.filter.lastWeek': '过去 7 天',
+  'overviewDetail.filter.last2Weeks': '过去 14 天',
+  'overviewDetail.filter.lastMonth': '过去一个月',
+  'overviewDetail.filter.last3Months': '过去三个月',
+  'overviewDetail.filter.custom': '自定义',
+  'overviewDetail.filter.daysAgo': '天内',
+  'overviewDetail.noCompletedTasksInFilter': '在此时间段内未找到已完成的任务。',
 
 
   'success': '成功',

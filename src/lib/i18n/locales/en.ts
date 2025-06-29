@@ -552,6 +552,13 @@ export default {
   'overviewDetail.button.editOverview': 'Edit Overview Details',
   'overviewDetail.button.backToList': 'All Overviews',
   'overview.viewTasks': 'View Details & Tasks',
+  'overviewDetail.filter.lastWeek': 'Last 7 Days',
+  'overviewDetail.filter.last2Weeks': 'Last 14 Days',
+  'overviewDetail.filter.lastMonth': 'Last Month',
+  'overviewDetail.filter.last3Months': 'Last 3 Months',
+  'overviewDetail.filter.custom': 'Custom',
+  'overviewDetail.filter.daysAgo': 'days ago',
+  'overviewDetail.noCompletedTasksInFilter': 'No completed tasks found in this time period.',
 
 
   'success': 'Success',

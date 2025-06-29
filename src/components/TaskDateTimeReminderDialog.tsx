@@ -1,7 +1,7 @@
 
 "use client";
 import * as React from 'react';
-import { Dialog, DialogContent, DialogHeader, DialogFooter, DialogDescription } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogFooter, DialogDescription, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Calendar } from "@/components/ui/calendar";
 import { Input } from "@/components/ui/input";
@@ -137,7 +137,7 @@ export default function TaskDateTimeReminderDialog({
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-3xl max-h-[90vh] flex flex-col">
         <DialogHeader>
-          {/* DialogTitle removed as per request */}
+          <DialogTitle className="sr-only">{t('task.form.dateTimeReminder.dialog.title')}</DialogTitle>
           <DialogDescription className="sr-only">
             {t('task.form.dateTimeReminder.dialog.title')}
           </DialogDescription>

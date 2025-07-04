@@ -22,10 +22,11 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
-import { useI18n } from '@/lib/i18n/client';
+import { useI18n, useCurrentLocale } from '@/lib/i18n/client';
 import { useFlashcards } from '@/contexts/FlashcardsContext';
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
+import { usePathname, useSearchParams } from 'next/navigation';
 
 interface FlashcardItemProps {
   flashcard: Flashcard;
@@ -68,6 +69,9 @@ export default function FlashcardItem({ flashcard, onDelete }: FlashcardItemProp
   const t = useI18n();
   const { getDeckById } = useFlashcards();
   const { toast } = useToast();
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
+  const currentLocale = useCurrentLocale();
 
   const deckName = useMemo(() => {
     if (flashcard.deckId) {
@@ -100,6 +104,10 @@ export default function FlashcardItem({ flashcard, onDelete }: FlashcardItemProp
     }
     return 'en-US';
   };
+
+  const currentQueryString = searchParams.toString();
+  const returnToPath = encodeURIComponent(`${pathname}${currentQueryString ? `?${currentQueryString}` : ''}`);
+
 
   return (
     <>
@@ -183,7 +191,7 @@ export default function FlashcardItem({ flashcard, onDelete }: FlashcardItemProp
             {showBack ? t('flashcard.item.hideAnswer') : t('flashcard.item.showAnswer')}
           </Button>
           <div className="flex flex-wrap justify-end gap-1.5 w-full sm:w-auto">
-            <Link href={`/flashcards/${flashcard.id}/edit`} passHref legacyBehavior>
+            <Link href={`/${currentLocale}/flashcards/${flashcard.id}/edit?returnTo=${returnToPath}`} passHref legacyBehavior>
               <Button variant="outline" size="sm" className="flex-1 sm:flex-none">
                 <FilePenLine className="mr-2 h-4 w-4" /> {t('flashcard.item.edit')}
               </Button>

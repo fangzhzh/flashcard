@@ -79,10 +79,6 @@ export default function FlashcardListClient() {
     ? t('flashcards.list.title.deck', { deckName: currentDeck.name })
     : t('flashcards.list.title.all');
 
-  const createCardLink = deckIdFromParams 
-    ? `/${currentLocale}/flashcards/new?deckId=${deckIdFromParams}`
-    : `/${currentLocale}/flashcards/new`;
-
   const emptyStateTitle = deckIdFromParams 
     ? (currentDeck ? t('flashcards.list.empty.deck.title', { deckName: currentDeck.name }) : t('flashcards.list.empty.deck.notFound.title'))
     : t('flashcards.list.empty.title');
@@ -99,7 +95,7 @@ export default function FlashcardListClient() {
           {deckIdFromParams && currentDeck && <Library className="mr-3 h-7 w-7 text-primary/80 flex-shrink-0" />}
           {pageTitle}
         </h1>
-        {/* Removed Create new card button from here */}
+        {/* Create new card button is now handled by the global UniversalFab component */}
       </div>
 
       {filteredFlashcards.length === 0 ? (
@@ -126,16 +122,6 @@ export default function FlashcardListClient() {
           ))}
         </div>
       )}
-
-      <Link href={createCardLink} passHref>
-        <Button
-          variant="default"
-          className="fixed bottom-6 right-6 z-40 rounded-full h-14 w-14 p-0 shadow-lg"
-          title={t('flashcards.button.create')}
-        >
-          <PlusCircle className="h-7 w-7" />
-        </Button>
-      </Link>
     </>
   );
 }

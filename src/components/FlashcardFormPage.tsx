@@ -10,7 +10,7 @@ import type { Flashcard } from '@/types';
 import { useToast } from '@/hooks/use-toast';
 import { Button } from '@/components/ui/button';
 import { ArrowLeft, ListPlus, FilePlus2, Loader2 } from 'lucide-react';
-import { useI18n } from '@/lib/i18n/client';
+import { useI18n, useCurrentLocale } from '@/lib/i18n/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { ShieldAlert } from 'lucide-react';
@@ -23,6 +23,7 @@ export default function FlashcardFormPage({ mode }: FlashcardFormPageProps) {
   const router = useRouter();
   const params = useParams();
   const searchParams = useSearchParams();
+  const currentLocale = useCurrentLocale();
   const { user, loading: authLoading } = useAuth();
   const {
     addFlashcard,
@@ -76,29 +77,29 @@ export default function FlashcardFormPage({ mode }: FlashcardFormPageProps) {
         await updateFlashcard(cardId, data);
         toast({ title: t('success'), description: t('toast.flashcard.updated') });
       }
+      
+      const returnTo = searchParams.get('returnTo');
+      if (returnTo) {
+        router.push(returnTo);
+        return;
+      }
 
-      const initialDeckIdFromParams = searchParams.get('deckId'); // Deck context when form page was loaded
+      // Fallback navigation logic
+      const initialDeckIdFromParams = searchParams.get('deckId');
 
       if (mode === 'edit') {
         if (initialDeckIdFromParams) {
-          // Came from a deck view to edit, return to that deck view
-          router.push(`/${params.locale}/flashcards?deckId=${initialDeckIdFromParams}`);
+          router.push(`/${currentLocale}/flashcards?deckId=${initialDeckIdFromParams}`);
         } else {
-          // Came from "all cards" view to edit, return to "all cards" view
-          router.push(`/${params.locale}/flashcards`);
+          router.push(`/${currentLocale}/flashcards`);
         }
       } else { // mode === 'create'
         if (data.deckId) {
-          // Created a card and assigned it to a deck in the form
-          router.push(`/${params.locale}/flashcards?deckId=${data.deckId}`);
+          router.push(`/${currentLocale}/flashcards?deckId=${data.deckId}`);
         } else if (initialDeckIdFromParams) {
-          // Created a card from within a deck view (e.g. "Add card to this deck")
-          // and didn't assign it to a *different* deck in the form, or kept it unassigned.
-          // Redirect to the initial deck context.
-          router.push(`/${params.locale}/flashcards?deckId=${initialDeckIdFromParams}`);
+          router.push(`/${currentLocale}/flashcards?deckId=${initialDeckIdFromParams}`);
         } else {
-          // Created a card from "all cards" view and didn't assign a deck
-          router.push(`/${params.locale}/flashcards`);
+          router.push(`/${currentLocale}/flashcards`);
         }
       }
     } catch (error) {
@@ -178,11 +179,16 @@ export default function FlashcardFormPage({ mode }: FlashcardFormPageProps) {
         toast({ title: t('success'), description: t('toast.batch.success', { count: createdCount} ) });
       }
       if (createdCount > 0 || parseErrors.length === 0) { // Redirect even if some errors but some success
-         if (deckIdFromQuery) {
-            router.push(`/${params.locale}/flashcards?deckId=${deckIdFromQuery}`);
-         } else {
-            router.push(`/${params.locale}/flashcards`);
-         }
+        const returnTo = searchParams.get('returnTo');
+        if (returnTo) {
+          router.push(returnTo);
+          return;
+        }
+        if (deckIdFromQuery) {
+            router.push(`/${currentLocale}/flashcards?deckId=${deckIdFromQuery}`);
+        } else {
+            router.push(`/${currentLocale}/flashcards`);
+        }
       }
     } catch (error) {
       toast({ title: t('error'), description: t('toast.batch.error.save'), variant: "destructive" });

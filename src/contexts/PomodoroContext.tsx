@@ -24,8 +24,9 @@ interface PomodoroContextType {
   continuePomodoro: () => Promise<void>;
   giveUpPomodoro: () => Promise<void>;
   updateUserPreferredDuration: (minutes: number) => Promise<void>;
-  updateUserPreferredRestDuration: (minutes: number) => Promise<void>; // Added
+  updateUserPreferredRestDuration: (minutes: number) => Promise<void>;
   updateNotes: (text: string) => Promise<void>;
+  updateCurrentTaskTitle: (taskTitle: string | null) => Promise<void>;
   isResting: boolean;
   restTimeLeftSeconds: number;
   skipRest: () => void;
@@ -490,6 +491,13 @@ export const PomodoroProvider = ({ children }: { children: ReactNode }) => {
     await setDoc(docRef, { notes: text, updatedAt: serverTimestamp() }, { merge: true }).catch(e => console.error("Error updating notes:", e));
   };
 
+  const updateCurrentTaskTitle = async (taskTitle: string | null) => {
+    const docRef = pomodoroDocRef();
+    if (!docRef || !user?.uid) return;
+    await setDoc(docRef, { currentTaskTitle: taskTitle, updatedAt: serverTimestamp() }, { merge: true })
+      .catch(e => console.error("Error updating pomodoro task title:", e));
+  };
+
   const handleStartRestPeriod = (selectedOptionId: string) => {
     setIsBreakDialogOpen(false);
     if (pomodoroIntervalRef.current) {
@@ -518,6 +526,7 @@ export const PomodoroProvider = ({ children }: { children: ReactNode }) => {
       updateUserPreferredDuration,
       updateUserPreferredRestDuration,
       updateNotes,
+      updateCurrentTaskTitle,
       isResting,
       restTimeLeftSeconds,
       skipRest,

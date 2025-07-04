@@ -13,7 +13,7 @@ import type { Task, TimeInfo, TaskStatus, RepeatFrequency, ReminderType, TaskTyp
 import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert";
 import TaskForm, { type TaskFormData } from '@/components/TaskForm';
 import { usePomodoro } from '@/contexts/PomodoroContext';
-import { format, parseISO, differenceInCalendarDays, isToday, isTomorrow, isValid, isSameYear, startOfDay, addDays, startOfWeek, endOfWeek, areIntervalsOverlapping, endOfDay, isYesterday, addWeeks, addMonths, addYears, nextSaturday, isSunday, formatISO } from 'date-fns';
+import { format, parseISO, differenceInCalendarDays, isToday, isTomorrow, isValid, isSameYear, startOfDay, addDays, startOfWeek, endOfWeek, areIntervalsOverlapping, endOfDay, isYesterday, addWeeks, addMonths, addYears, nextSaturday, isSunday, formatISO as dateFnsFormatISO } from 'date-fns';
 import { enUS } from 'date-fns/locale/en-US';
 import { zhCN } from 'date-fns/locale/zh-CN';
 import { cn } from '@/lib/utils';
@@ -117,8 +117,8 @@ function calculateNextOccurrence(task: Task): TimeInfo | null {
 
   return {
     ...task.timeInfo,
-    startDate: formatISO(nextStartDate, { representation: 'date' }),
-    endDate: nextEndDate ? formatISO(nextEndDate, { representation: 'date' }) : null,
+    startDate: dateFnsFormatISO(nextStartDate, { representation: 'date' }),
+    endDate: nextEndDate ? dateFnsFormatISO(nextEndDate, { representation: 'date' }) : null,
   };
 }
 
@@ -556,11 +556,14 @@ function TasksClientContent() {
         toast({ title: t('error'), description: t('auth.pleaseSignIn'), variant: "destructive" });
         return;
     }
-    const pomodoroState = pomodoroContext.sessionState;
-    const startFn = pomodoroContext.startPomodoro;
-    const duration = pomodoroState?.userPreferredDurationMinutes || 25;
-    startFn(duration, taskTitle); 
-    toast({ title: t('pomodoro.button.start'), description: t('task.pomodoroStartedFor', { title: taskTitle }) });
+    const { sessionState, startPomodoro, updateCurrentTaskTitle } = pomodoroContext;
+
+    if (sessionState?.status === 'running' || sessionState?.status === 'paused') {
+      updateCurrentTaskTitle(taskTitle);
+    } else { // Assumes 'idle'
+      const duration = sessionState?.userPreferredDurationMinutes || 25;
+      startPomodoro(duration, taskTitle);
+    }
   };
 
   const handleMainFormSubmit = async (data: TaskFormData) => {
@@ -660,15 +663,14 @@ function TasksClientContent() {
     try {
       const updatedCheckinInfo: CheckinInfo = { ...task.checkinInfo, currentCheckins: newCurrentCheckins };
       
+      const updates: Partial<Task> = {
+        checkinInfo: updatedCheckinInfo,
+        updatedAt: new Date().toISOString(),
+      };
+      
       if (isNowCompleted) {
-        // Task is now complete. Update status AND checkinInfo.
-        const updates: Partial<Task> = {
-          status: 'completed',
-          checkinInfo: updatedCheckinInfo,
-          updatedAt: new Date().toISOString(),
-        };
-
-        // Also handle the repeating task logic
+        updates.status = 'completed';
+        
         if (task.repeat && task.repeat !== 'none') {
             const nextTimeInfo = calculateNextOccurrence(task);
             if (nextTimeInfo) {
@@ -684,13 +686,13 @@ function TasksClientContent() {
               toast({ title: t('toast.task.rescheduled.title'), description: t('toast.task.rescheduled.description', { title: task.title }) });
             }
         }
+      }
+      
+      await updateTaskInContext(task.id, updates);
 
-        await updateTaskInContext(task.id, updates);
+      if (isNowCompleted) {
         toast({ title: t('success'), description: t('toast.task.checkInCompleted', { title: task.title }) });
-
       } else {
-        // Task is not yet complete, just update checkinInfo.
-        await updateTaskInContext(task.id, { checkinInfo: updatedCheckinInfo, updatedAt: new Date().toISOString() });
         toast({
           title: t('success'),
           description: t('toast.task.checkedIn', {
@@ -699,6 +701,7 @@ function TasksClientContent() {
           }),
         });
       }
+
     } catch (error) {
       console.error("Error during check-in:", error);
       toast({ title: t('error'), description: t('toast.task.error.checkInFailed'), variant: "destructive" });
@@ -1097,5 +1100,6 @@ export default function TasksClient() {
     
 
     
+
 
 

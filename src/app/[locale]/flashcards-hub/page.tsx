@@ -55,7 +55,7 @@ export default function FlashcardsHubPage() {
                   <ClipboardCheck className="mr-3 h-6 w-6" /> {t('flashcards.dashboard.button.review')}
                 </Button>
               </Link>
-              <Link href={`/${currentLocale}/flashcards/new`} passHref>
+              <Link href={`/${currentLocale}/flashcards/new?returnTo=${encodeURIComponent(returnToPath)}`} passHref>
                 <Button size="lg" className="w-full py-8 text-lg shadow-md hover:shadow-lg transition-shadow">
                   <PlusCircle className="mr-3 h-6 w-6" /> {t('flashcards.dashboard.button.create')}
                 </Button>
@@ -99,4 +99,3 @@ export default function FlashcardsHubPage() {
     </PageContainer>
   );
 }
-

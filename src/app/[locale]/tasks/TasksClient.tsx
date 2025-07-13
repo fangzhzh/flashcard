@@ -510,7 +510,7 @@ function TasksClientContent() {
             timeInfo: nextTimeInfo,
             status: 'pending',
             isSilent: true, 
-            checkinInfo: task.checkinInfo ? { ...task.checkinInfo, currentCheckins: 0 } : null,
+            checkinInfo: task.checkinInfo ? { ...task.checkinInfo, currentCheckins: 0, history: [] } : null,
           };
           const { id, ...dataForNewTask } = newTaskData;
           await addTaskInContext(dataForNewTask);
@@ -530,7 +530,7 @@ function TasksClientContent() {
               timeInfo: nextTimeInfo,
               status: 'pending',
               isSilent: true,
-              checkinInfo: task.checkinInfo ? { ...task.checkinInfo, currentCheckins: 0 } : null,
+              checkinInfo: task.checkinInfo ? { ...task.checkinInfo, currentCheckins: 0, history: [] } : null,
             };
             const { id, ...dataForNewTask } = newTaskData;
             await addTaskInContext(dataForNewTask);
@@ -659,9 +659,14 @@ function TasksClientContent() {
 
     const newCurrentCheckins = (task.checkinInfo.currentCheckins || 0) + 1;
     const isNowCompleted = newCurrentCheckins >= task.checkinInfo.totalCheckinsRequired;
+    const newHistory = [...(task.checkinInfo.history || []), new Date().toISOString()];
 
     try {
-      const updatedCheckinInfo: CheckinInfo = { ...task.checkinInfo, currentCheckins: newCurrentCheckins };
+      const updatedCheckinInfo: CheckinInfo = { 
+        ...task.checkinInfo, 
+        currentCheckins: newCurrentCheckins,
+        history: newHistory,
+      };
       
       const updates: Partial<Task> = {
         checkinInfo: updatedCheckinInfo,
@@ -679,7 +684,7 @@ function TasksClientContent() {
                 timeInfo: nextTimeInfo,
                 status: 'pending',
                 isSilent: true,
-                checkinInfo: task.checkinInfo ? { ...task.checkinInfo, currentCheckins: 0 } : null,
+                checkinInfo: task.checkinInfo ? { ...task.checkinInfo, currentCheckins: 0, history: [] } : null,
               };
               const { id, ...dataForNewTask } = newTaskData;
               await addTaskInContext(dataForNewTask);
@@ -1095,11 +1100,3 @@ export default function TasksClient() {
     </SidebarProvider>
   );
 }
-
-
-    
-
-    
-
-
-

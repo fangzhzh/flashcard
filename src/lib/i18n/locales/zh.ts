@@ -429,6 +429,7 @@ export default {
   'task.form.checkin.enableLabelShort': '打卡模式',
   'task.form.checkin.placeholder.times': '次',
   'task.form.checkin.timesUnit': '次',
+  'task.form.checkin.historyTitle': '打卡记录',
 
 
   'toast.task.error.flashcardLinkFailed': '创建或链接新抽认卡失败。',
@@ -508,7 +509,7 @@ export default {
   'tasks.unsavedChanges.button.discardAndCreate': '放弃并创建',
   'tasks.unsavedChanges.button.discardAndEdit': '放弃并编辑',
   'tasks.unsavedChanges.button.discard': '放弃',
-
+  
   'task.form.isSilent.label': '直到开始日期前隐藏',
   'task.form.isSilent.description': '任务在其开始日期之前不会出现在列表中。',
 

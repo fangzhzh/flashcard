@@ -79,6 +79,7 @@ const reminderInfoSchema = z.object({
 const checkinInfoSchema = z.object({
   totalCheckinsRequired: z.number().min(1, 'task.form.checkin.error.totalRequiredMin').max(100, 'task.form.checkin.error.totalRequiredMax'),
   currentCheckins: z.number().default(0),
+  history: z.array(z.string()).default([]), // Array of ISO date strings
 }).nullable().optional();
 
 
@@ -436,7 +437,7 @@ export default function TaskForm({
 
   const handleCheckinModeChange = (checked: boolean) => {
     if (checked) {
-      setValue("checkinInfo", { totalCheckinsRequired: 5, currentCheckins: 0 }, { shouldValidate: true, shouldDirty: true });
+      setValue("checkinInfo", { totalCheckinsRequired: 5, currentCheckins: 0, history: [] }, { shouldValidate: true, shouldDirty: true });
     } else {
       setValue("checkinInfo", null, { shouldValidate: true, shouldDirty: true });
     }
@@ -676,47 +677,64 @@ export default function TaskForm({
               />
             )}
 
-            <FormItem className="space-y-3">
-              <div className="flex items-center space-x-2 p-3 border rounded-md">
-                <Switch
-                  id="checkinModeSwitch"
-                  checked={isCheckinModeEnabled}
-                  onCheckedChange={handleCheckinModeChange}
-                  aria-label={t('task.form.checkin.enableLabel')}
-                  disabled={isReadOnly}
-                />
-                <Label htmlFor="checkinModeSwitch" className="text-sm font-normal">
-                  {t('task.form.checkin.enableLabel')}
-                </Label>
-              </div>
-
-              {isCheckinModeEnabled && (
-                <FormField
-                  control={control}
-                  name="checkinInfo.totalCheckinsRequired"
-                  render={({ field }) => (
-                    <FormItem className="pl-3">
-                      <FormLabel>{t('task.form.checkin.totalRequiredLabel')}</FormLabel>
-                      <FormControl>
-                        <Input
-                          type="number"
-                          {...field}
-                          value={field.value || ''}
-                          onChange={(e) => field.onChange(e.target.value === '' ? null : parseInt(e.target.value, 10))}
-                          placeholder={t('task.form.checkin.totalRequiredPlaceholder')}
-                          min="1"
-                          max="100"
-                          readOnly={isReadOnly}
+            <FormItem className="space-y-2">
+                <div className="flex items-center gap-4 p-3 border rounded-md">
+                    <div className="flex items-center gap-2">
+                        <Switch
+                          id="checkinModeSwitch"
+                          checked={isCheckinModeEnabled}
+                          onCheckedChange={handleCheckinModeChange}
+                          aria-label={t('task.form.checkin.enableLabel')}
+                          disabled={isReadOnly}
                         />
-                      </FormControl>
-                      <FormMessage>{form.formState.errors.checkinInfo?.totalCheckinsRequired?.message && t(form.formState.errors.checkinInfo.totalCheckinsRequired.message as any)}</FormMessage>
-                    </FormItem>
-                  )}
-                />
-              )}
-              <FormMessage>{form.formState.errors.checkinInfo?.root?.message && t(form.formState.errors.checkinInfo.root.message as any)}</FormMessage>
-            </FormItem>
+                        <Label htmlFor="checkinModeSwitch" className="text-sm font-normal cursor-pointer">
+                          {t('task.form.checkin.enableLabel')}
+                        </Label>
+                    </div>
 
+                    {isCheckinModeEnabled && (
+                        <div className="flex-1">
+                            <FormField
+                              control={control}
+                              name="checkinInfo.totalCheckinsRequired"
+                              render={({ field }) => (
+                                <FormItem className="flex items-center gap-2">
+                                  <FormLabel className="text-sm whitespace-nowrap text-muted-foreground">{t('task.form.checkin.totalRequiredLabel')}</FormLabel>
+                                  <FormControl>
+                                    <Input
+                                      type="number"
+                                      {...field}
+                                      value={field.value || ''}
+                                      onChange={(e) => field.onChange(e.target.value === '' ? null : parseInt(e.target.value, 10))}
+                                      placeholder={t('task.form.checkin.timesUnit')}
+                                      min="1"
+                                      max="100"
+                                      className="h-8 w-20 text-center"
+                                      readOnly={isReadOnly}
+                                    />
+                                  </FormControl>
+                                  <FormMessage className="ml-2 text-xs">{form.formState.errors.checkinInfo?.totalCheckinsRequired?.message && t(form.formState.errors.checkinInfo.totalCheckinsRequired.message as any)}</FormMessage>
+                                </FormItem>
+                              )}
+                            />
+                        </div>
+                    )}
+                </div>
+                 {isCheckinModeEnabled && watchedCheckinInfo && watchedCheckinInfo.history && watchedCheckinInfo.history.length > 0 && (
+                    <div className="pl-4 pt-2">
+                        <h4 className="text-sm font-medium text-muted-foreground mb-1">{t('task.form.checkin.historyTitle')}</h4>
+                        <ul className="space-y-1 list-disc list-inside">
+                            {watchedCheckinInfo.history.map((timestamp, index) => (
+                                <li key={index} className="text-xs text-muted-foreground">
+                                    {format(parseISO(timestamp), 'yyyy-MM-dd HH:mm:ss', { locale: dateFnsLocale })}
+                                </li>
+                            ))}
+                        </ul>
+                    </div>
+                )}
+
+                <FormMessage>{form.formState.errors.checkinInfo?.root?.message && t(form.formState.errors.checkinInfo.root.message as any)}</FormMessage>
+            </FormItem>
 
             <FormItem>
                 <FormLabel className="text-base flex items-center text-muted-foreground">
@@ -1077,4 +1095,3 @@ function SelectFlashcardDialog({
     </Dialog>
   );
 }
-

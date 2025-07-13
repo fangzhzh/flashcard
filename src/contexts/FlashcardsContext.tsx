@@ -347,14 +347,15 @@ export const FlashcardsProvider = ({ children }: { children: ReactNode }) => {
     try {
       const tasksCollectionRef = collection(db, 'users', user.uid, 'tasks');
       const now = serverTimestamp();
+      const newCheckinInfo = data.checkinInfo ? { ...data.checkinInfo, history: [] } : null;
       const newTaskData = {
         ...data,
+        checkinInfo: newCheckinInfo,
         type: data.type || 'innie',
         userId: user.uid,
         status: data.status || 'pending',
         artifactLink: data.artifactLink || { flashcardId: null },
         reminderInfo: data.reminderInfo || { type: 'none' },
-        checkinInfo: data.checkinInfo || null,
         overviewId: data.overviewId || null,
         isSilent: data.isSilent || false, // Handle new isSilent flag
         createdAt: now,
@@ -366,12 +367,12 @@ export const FlashcardsProvider = ({ children }: { children: ReactNode }) => {
         id: docRef.id,
         userId: user.uid,
         ...data,
+        checkinInfo: newCheckinInfo,
         type: data.type || 'innie',
         status: data.status || 'pending',
         isSilent: data.isSilent || false,
         artifactLink: data.artifactLink || { flashcardId: null },
         reminderInfo: data.reminderInfo || { type: 'none' },
-        checkinInfo: data.checkinInfo || null,
         overviewId: data.overviewId || null,
         createdAt: localCreatedAt,
         updatedAt: localCreatedAt
@@ -384,6 +385,15 @@ export const FlashcardsProvider = ({ children }: { children: ReactNode }) => {
     try {
       const taskDocRef = doc(db, 'users', user.uid, 'tasks', id);
       const currentTask = tasks.find(t => t.id === id);
+      
+      const newCheckinInfo = updates.checkinInfo;
+      if (updates.hasOwnProperty('checkinInfo') && newCheckinInfo) {
+        // If checkin mode is being enabled, initialize history array
+        if (!newCheckinInfo.history) {
+            newCheckinInfo.history = [];
+        }
+      }
+
       const updateData: Partial<Omit<Task, 'id' | 'userId' | 'createdAt'>> & { updatedAt: any } = {
         ...updates,
         type: updates.type || currentTask?.type || 'innie',

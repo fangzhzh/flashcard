@@ -429,6 +429,7 @@ export default {
   'task.form.checkin.enableLabelShort': 'Check-in Mode',
   'task.form.checkin.placeholder.times': 'times',
   'task.form.checkin.timesUnit': 'times',
+  'task.form.checkin.historyTitle': 'Check-in History',
 
 
   'toast.task.error.flashcardLinkFailed': 'Failed to create or link new flashcard.',

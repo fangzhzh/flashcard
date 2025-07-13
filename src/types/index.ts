@@ -81,6 +81,7 @@ export interface ReminderInfo {
 export interface CheckinInfo {
   totalCheckinsRequired: number;
   currentCheckins: number;
+  history: string[]; // Array of ISO date strings
 }
 
 export interface Task {

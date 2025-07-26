@@ -51,6 +51,7 @@ export interface PomodoroSessionState {
   currentSessionInitialDurationMinutes: number;
   userPreferredDurationMinutes: number;
   userPreferredRestDurationMinutes?: number;
+  restTargetEndTime?: number | null; // Added for server-driven rest timer
   notes: string;
   updatedAt: any; // Firestore Timestamp or serverTimestamp()
   currentTaskTitle?: string | null;

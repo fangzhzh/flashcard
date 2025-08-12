@@ -44,6 +44,7 @@ import { Input as SearchInput } from "@/components/ui/input";
 import { Search } from 'lucide-react';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import FlashcardForm from '@/components/FlashcardForm';
+import { cn } from '@/lib/utils';
 
 const CustomMarkdownComponents = {
   code({ node, inline, className, children, ...props }: CodeProps) {
@@ -90,8 +91,8 @@ export default function OverviewsClient() {
   const [isSubmittingOverview, setIsSubmittingOverview] = useState(false);
 
   // State for linked flashcard UI
-  const [linkedFlashcard, setLinkedFlashcard] = React.useState<FlashcardType | null | undefined>(undefined);
-  const [isFetchingFlashcard, setIsFetchingFlashcard] = React.useState(false);
+  const [linkedFlashcards, setLinkedFlashcards] = React.useState<(FlashcardType | null)[]>([]);
+  const [isFetchingFlashcards, setIsFetchingFlashcards] = React.useState(false);
   const [isNewFlashcardDialogOpen, setIsNewFlashcardDialogOpen] = React.useState(false);
   const [isSubmittingNewFlashcard, setIsSubmittingNewFlashcard] = React.useState(false);
   const [isEditFlashcardDialogOpen, setIsEditFlashcardDialogOpen] = React.useState(false);
@@ -100,18 +101,18 @@ export default function OverviewsClient() {
   const [isSelectFlashcardDialogOpen, setIsSelectFlashcardDialogOpen] = React.useState(false);
 
   React.useEffect(() => {
-    const fetchCard = async () => {
-        if (overviewArtifactLink?.flashcardId) {
-            setIsFetchingFlashcard(true);
-            const card = getFlashcardById(overviewArtifactLink.flashcardId);
-            setLinkedFlashcard(card || null);
-            setIsFetchingFlashcard(false);
+    const fetchCards = async () => {
+        if (overviewArtifactLink?.flashcardIds && overviewArtifactLink.flashcardIds.length > 0) {
+            setIsFetchingFlashcards(true);
+            const cards = overviewArtifactLink.flashcardIds.map(id => getFlashcardById(id) || null);
+            setLinkedFlashcards(cards);
+            setIsFetchingFlashcards(false);
         } else {
-            setLinkedFlashcard(null);
+            setLinkedFlashcards([]);
         }
     };
-    fetchCard();
-  }, [overviewArtifactLink?.flashcardId, getFlashcardById]);
+    fetchCards();
+  }, [overviewArtifactLink?.flashcardIds, getFlashcardById]);
 
   const openNewOverviewDialog = () => {
     setCurrentOverview(null);
@@ -179,8 +180,10 @@ export default function OverviewsClient() {
   };
 
   // Flashcard linking handlers
-  const handleRemoveLink = () => {
-    setOverviewArtifactLink(null);
+  const handleRemoveLink = (flashcardIdToRemove: string) => {
+    const currentIds = overviewArtifactLink?.flashcardIds || [];
+    const newIds = currentIds.filter(id => id !== flashcardIdToRemove);
+    setOverviewArtifactLink({ flashcardIds: newIds });
     toast({ title: t('success'), description: t('toast.task.linkRemoved') });
   };
 
@@ -189,7 +192,8 @@ export default function OverviewsClient() {
     try {
       const newCard = await addFlashcard(data);
       if (newCard && newCard.id) {
-        setOverviewArtifactLink({ flashcardId: newCard.id });
+        const currentIds = overviewArtifactLink?.flashcardIds || [];
+        setOverviewArtifactLink({ flashcardIds: [...currentIds, newCard.id] });
         toast({ title: t('success'), description: t('toast.task.flashcardLinked') });
         setIsNewFlashcardDialogOpen(false);
       } else {
@@ -208,10 +212,9 @@ export default function OverviewsClient() {
     try {
       await updateFlashcard(editingFlashcardData.id, data);
       toast({ title: t('success'), description: t('toast.flashcard.updated') });
-      if (overviewArtifactLink?.flashcardId) {
-        const updatedCard = getFlashcardById(overviewArtifactLink.flashcardId);
-        setLinkedFlashcard(updatedCard || null);
-      }
+      const currentIds = overviewArtifactLink?.flashcardIds || [];
+      const updatedCards = currentIds.map(id => getFlashcardById(id) || null);
+      setLinkedFlashcards(updatedCards);
       setIsEditFlashcardDialogOpen(false);
       setEditingFlashcardData(null);
     } catch (error) {
@@ -222,8 +225,13 @@ export default function OverviewsClient() {
   };
 
   const handleSelectFlashcardFromDialog = (flashcardId: string) => {
-    setOverviewArtifactLink({ flashcardId: flashcardId });
-    toast({ title: t('success'), description: t('toast.task.flashcardSelected') });
+    const currentIds = overviewArtifactLink?.flashcardIds || [];
+    if (!currentIds.includes(flashcardId)) {
+        setOverviewArtifactLink({ flashcardIds: [...currentIds, flashcardId] });
+        toast({ title: t('success'), description: t('toast.task.flashcardSelected') });
+    } else {
+        toast({ title: t('error'), description: t('toast.task.flashcardAlreadyLinked'), variant: 'destructive' });
+    }
     setIsSelectFlashcardDialogOpen(false);
   };
 
@@ -376,47 +384,49 @@ export default function OverviewsClient() {
                       {t('overview.form.artifactLink.sectionTitle')}
                   </Label>
                   <div className="p-3 border rounded-md space-y-3 text-sm">
-                      {isFetchingFlashcard && overviewArtifactLink?.flashcardId && (
+                      {isFetchingFlashcards && (
                           <div className="flex items-center text-muted-foreground">
                               <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                               {t('task.form.artifactLink.loadingFlashcard')}
                           </div>
                       )}
-                      {!isFetchingFlashcard && overviewArtifactLink?.flashcardId && linkedFlashcard && (
-                           <div className="flex items-center justify-between text-sm">
-                              <span className="font-medium mr-1 text-foreground whitespace-nowrap">{t('task.form.artifactLink.flashcardPrefix')}</span>
-                              <p className="text-primary truncate" title={linkedFlashcard.front}>
-                                  {linkedFlashcard.front}
-                              </p>
-                              <div className="flex gap-1 flex-shrink-0 ml-2">
-                                  <Button type="button" variant="ghost" size="xsIcon" onClick={() => { setEditingFlashcardData(linkedFlashcard); setIsEditFlashcardDialogOpen(true); }} title={t('task.form.artifactLink.button.editLinkedFlashcard')}>
-                                      <FilePenLine className="h-4 w-4" />
-                                  </Button>
-                                  <Button type="button" variant="ghost" size="xsIcon" onClick={() => setIsSelectFlashcardDialogOpen(true)} title={t('task.form.artifactLink.button.change')}>
-                                      <ListChecks className="h-4 w-4" />
-                                  </Button>
-                                  <Button type="button" variant="ghost" size="xsIcon" onClick={handleRemoveLink} title={t('task.form.artifactLink.button.remove')}>
-                                      <Trash2 className="h-4 w-4 text-destructive" />
-                                  </Button>
-                              </div>
-                          </div>
+                      {!isFetchingFlashcards && linkedFlashcards.length > 0 && (
+                        <div className="space-y-2">
+                          {linkedFlashcards.map((card, index) => card ? (
+                             <div key={card.id} className="flex items-center justify-between text-sm p-2 rounded-md bg-muted/50">
+                                <p className="text-primary truncate" title={card.front}>
+                                    {card.front}
+                                </p>
+                                <div className="flex gap-1 flex-shrink-0 ml-2">
+                                    <Button type="button" variant="ghost" size="xsIcon" onClick={() => { setEditingFlashcardData(card); setIsEditFlashcardDialogOpen(true); }} title={t('task.form.artifactLink.button.editLinkedFlashcard')}>
+                                        <FilePenLine className="h-4 w-4" />
+                                    </Button>
+                                    <Button type="button" variant="ghost" size="xsIcon" onClick={() => handleRemoveLink(card.id)} title={t('task.form.artifactLink.button.remove')}>
+                                        <Trash2 className="h-4 w-4 text-destructive" />
+                                    </Button>
+                                </div>
+                            </div>
+                          ) : (
+                            <div key={`not-found-${index}`} className="text-destructive text-xs">
+                              {t('task.form.artifactLink.flashcardNotFound')}
+                            </div>
+                          ))}
+                        </div>
                       )}
-                       {!isFetchingFlashcard && overviewArtifactLink?.flashcardId && !linkedFlashcard && (
+                       {!isFetchingFlashcards && overviewArtifactLink?.flashcardIds && overviewArtifactLink.flashcardIds.length > 0 && linkedFlashcards.length === 0 && (
                           <div className="space-y-1 text-sm text-destructive">
                              <p>{t('task.form.artifactLink.flashcardNotFound')}</p>
                           </div>
                       )}
 
-                      {!overviewArtifactLink?.flashcardId && (
-                          <div className="flex flex-wrap gap-2 pt-1">
-                               <Button type="button" variant="outline" size="xs" onClick={() => setIsNewFlashcardDialogOpen(true)}>
-                                   <FilePlus className="mr-1 h-3 w-3" /> {t('task.form.artifactLink.button.newFlashcard')}
-                               </Button>
-                              <Button type="button" variant="outline" size="xs" onClick={() => setIsSelectFlashcardDialogOpen(true)}>
-                                 <ListChecks className="mr-1 h-3 w-3" /> {t('task.form.artifactLink.button.selectFlashcard')}
-                              </Button>
-                          </div>
-                      )}
+                      <div className="flex flex-wrap gap-2 pt-1">
+                           <Button type="button" variant="outline" size="xs" onClick={() => setIsNewFlashcardDialogOpen(true)}>
+                               <FilePlus className="mr-1 h-3 w-3" /> {t('task.form.artifactLink.button.newFlashcard')}
+                           </Button>
+                          <Button type="button" variant="outline" size="xs" onClick={() => setIsSelectFlashcardDialogOpen(true)}>
+                             <ListChecks className="mr-1 h-3 w-3" /> {t('task.form.artifactLink.button.selectFlashcard')}
+                          </Button>
+                      </div>
                   </div>
               </div>
             </div>
@@ -564,3 +574,5 @@ function SelectFlashcardDialog({ isOpen, onOpenChange, onSelect, allFlashcards, 
     </SelectDialog>
   );
 }
+
+    

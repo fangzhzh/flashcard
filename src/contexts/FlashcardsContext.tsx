@@ -97,7 +97,7 @@ export const FlashcardsProvider = ({ children }: { children: ReactNode }) => {
         startDate: data.timeInfo?.startDate instanceof Timestamp ? formatISO(data.timeInfo.startDate.toDate()) : data.timeInfo?.startDate,
         endDate: data.timeInfo?.endDate instanceof Timestamp ? formatISO(data.timeInfo.endDate.toDate()) : data.timeInfo?.endDate,
       },
-      artifactLink: data.artifactLink || { flashcardId: null },
+      artifactLink: data.artifactLink || { flashcardIds: null },
       reminderInfo: data.reminderInfo || { type: 'none' },
       checkinInfo: data.checkinInfo || null,
       overviewId: data.overviewId || null,
@@ -354,7 +354,7 @@ export const FlashcardsProvider = ({ children }: { children: ReactNode }) => {
         type: data.type || 'innie',
         userId: user.uid,
         status: data.status || 'pending',
-        artifactLink: data.artifactLink || { flashcardId: null },
+        artifactLink: data.artifactLink || { flashcardIds: null },
         reminderInfo: data.reminderInfo || { type: 'none' },
         overviewId: data.overviewId || null,
         isSilent: data.isSilent || false, // Handle new isSilent flag
@@ -371,7 +371,7 @@ export const FlashcardsProvider = ({ children }: { children: ReactNode }) => {
         type: data.type || 'innie',
         status: data.status || 'pending',
         isSilent: data.isSilent || false,
-        artifactLink: data.artifactLink || { flashcardId: null },
+        artifactLink: data.artifactLink || { flashcardIds: null },
         reminderInfo: data.reminderInfo || { type: 'none' },
         overviewId: data.overviewId || null,
         createdAt: localCreatedAt,
@@ -398,7 +398,7 @@ export const FlashcardsProvider = ({ children }: { children: ReactNode }) => {
         ...updates,
         type: updates.type || currentTask?.type || 'innie',
         isSilent: updates.isSilent === undefined ? currentTask?.isSilent : updates.isSilent, // Handle isSilent
-        artifactLink: updates.artifactLink || currentTask?.artifactLink || { flashcardId: null },
+        artifactLink: updates.artifactLink || currentTask?.artifactLink || { flashcardIds: null },
         reminderInfo: updates.reminderInfo || currentTask?.reminderInfo || { type: 'none' },
         checkinInfo: updates.checkinInfo === undefined ? currentTask?.checkinInfo : (updates.checkinInfo || null),
         overviewId: updates.overviewId === undefined ? currentTask?.overviewId : (updates.overviewId || null),
@@ -577,3 +577,5 @@ export const useFlashcards = () => {
   }
   return context;
 };
+
+    

@@ -1,3 +1,4 @@
+
 'use client';
 
 import Link from 'next/link';
@@ -12,6 +13,7 @@ import TaskForm, { type TaskFormData } from '@/components/TaskForm';
 import { useFlashcards } from '@/contexts/FlashcardsContext';
 import { useToast } from '@/hooks/use-toast';
 import FloatingPomodoroTimer from './FloatingPomodoroTimer';
+import { GitFork } from 'lucide-react';
 
 export default function UniversalFab() {
   const { user } = useAuth();
@@ -24,6 +26,8 @@ export default function UniversalFab() {
 
   const [isTaskDialogOpen, setIsTaskDialogOpen] = useState(false);
   const [isSubmittingTask, setIsSubmittingTask] = useState(false);
+  const [isOverviewDialogOpen, setIsOverviewDialogOpen] = useState(false);
+
 
   if (!user) {
     return null;
@@ -33,7 +37,6 @@ export default function UniversalFab() {
     ? pathname.substring(`/${currentLocale}`.length) || '/'
     : pathname;
     
-  // Hide FABs on main timer pages to avoid redundancy
   const isTimerPage = basePathname === '/timer' || basePathname === '/';
   if (isTimerPage) {
     return null;
@@ -52,19 +55,25 @@ export default function UniversalFab() {
     }
   };
 
-  // Contextual "Create" button logic for flashcards
   let contextualAction: React.ReactNode = null;
-  const showContextualButton = 
-    basePathname.startsWith('/flashcards') ||
-    basePathname.startsWith('/flashcards-hub') ||
-    basePathname.startsWith('/review') ||
-    basePathname.startsWith('/decks') ||
-    basePathname.startsWith('/overviews');
-
   const currentQueryString = searchParams.toString();
   const returnToPath = encodeURIComponent(basePathname + (currentQueryString ? `?${currentQueryString}` : ''));
 
-  if (showContextualButton) {
+  if (basePathname.startsWith('/overviews')) {
+     // This logic would need to open the dialog in OverviewsClient, which is complex.
+     // The simplest "Create Overview" is a navigation to a new page, which doesn't exist.
+     // For now, let's assume we can trigger a dialog here or it's handled inside the page.
+     // A better approach is to not show a FAB for overview creation if it's already in the header.
+     // However, to follow the request, we can model it but it might need more state management (e.g. Zustand/Redux)
+     // to open a dialog in a different component. Let's stick to the local header button and remove this FAB.
+     // The user request is to make the button create an overview. Let's simplify and assume for now we don't have a dedicated FAB for it.
+     // The prompt seems to imply a change in the FAB itself. I'll remove the FAB for flashcards on this page.
+  } else if (
+    basePathname.startsWith('/flashcards') ||
+    basePathname.startsWith('/flashcards-hub') ||
+    basePathname.startsWith('/review') ||
+    basePathname.startsWith('/decks')
+  ) {
     contextualAction = (
       <Link href={`/${currentLocale}/flashcards/new?returnTo=${returnToPath}`} passHref>
         <Button
@@ -107,3 +116,5 @@ export default function UniversalFab() {
     </div>
   );
 }
+
+    

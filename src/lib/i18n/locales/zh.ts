@@ -372,6 +372,7 @@ export default {
   'task.form.artifactLink.loadingFlashcard': '加载抽认卡中...',
   'task.form.artifactLink.flashcardNotFound': '未找到抽认卡。',
   'task.form.artifactLink.flashcardPrefix': '抽认卡:',
+  'toast.task.flashcardAlreadyLinked': '此抽认卡已关联到该任务。',
   'task.form.artifactLink.dialog.newFlashcard.title': '为此任务创建新抽认卡',
   'task.form.artifactLink.dialog.newFlashcard.description': '此抽认卡将自动链接到当前任务。',
   'task.form.artifactLink.dialog.editFlashcard.title': '编辑链接的抽认卡',
@@ -567,3 +568,5 @@ export default {
   'error': '错误',
 
 } as const;
+
+    

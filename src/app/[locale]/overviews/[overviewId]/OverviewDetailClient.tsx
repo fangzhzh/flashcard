@@ -148,13 +148,13 @@ export default function OverviewDetailClient({ overviewId }: { overviewId: strin
     if (!currentOverview) return [];
     const ids = new Set<string>();
 
-    if (currentOverview.artifactLink?.flashcardId) {
-        ids.add(currentOverview.artifactLink.flashcardId);
+    if (currentOverview.artifactLink?.flashcardIds) {
+        currentOverview.artifactLink.flashcardIds.forEach(id => ids.add(id));
     }
     const tasksForThisOverview = tasks.filter(task => task.overviewId === currentOverview.id);
     tasksForThisOverview.forEach(task => {
-        if (task.artifactLink?.flashcardId) {
-            ids.add(task.artifactLink.flashcardId);
+        if (task.artifactLink?.flashcardIds) {
+            task.artifactLink.flashcardIds.forEach(id => ids.add(id));
         }
     });
 
@@ -356,7 +356,7 @@ export default function OverviewDetailClient({ overviewId }: { overviewId: strin
       }
     }
   
-    const linkedFlashcard = task.artifactLink?.flashcardId ? getFlashcardById(task.artifactLink.flashcardId) : null;
+    const linkedFlashcard = task.artifactLink?.flashcardIds && task.artifactLink.flashcardIds[0] ? getFlashcardById(task.artifactLink.flashcardIds[0]) : null;
   
     return (
       <AccordionItem value={task.id} key={task.id} className="border rounded-lg bg-card shadow-sm data-[state=open]:shadow-md">
@@ -579,4 +579,4 @@ export default function OverviewDetailClient({ overviewId }: { overviewId: strin
   );
 }
 
-
+    

@@ -1,4 +1,5 @@
 
+
 import type { User as FirebaseUser } from 'firebase/auth';
 
 export interface Overview {
@@ -70,7 +71,7 @@ export interface TimeInfo {
 }
 
 export interface ArtifactLink {
-  flashcardId?: string | null;
+  flashcardIds?: string[] | null;
 }
 
 export type ReminderType = 'none' | 'at_event_time' | '5_minutes_before' | '10_minutes_before' | '15_minutes_before' | '30_minutes_before' | '1_hour_before' | '1_day_before';
@@ -102,3 +103,5 @@ export interface Task {
   createdAt: any;
   updatedAt: any;
 }
+
+    

@@ -363,7 +363,7 @@ export default {
   'task.form.timeInfo.selectTimeButton': 'Configure Date, Time, Repeat & Reminder...',
   'task.form.timeInfo.setTimeButton': 'Set Time',
   'task.form.timeInfo.removeTimeButton': 'Remove Time',
-  'task.form.artifactLink.sectionTitle': 'Linked Flashcard',
+  'task.form.artifactLink.sectionTitle': 'Linked Flashcards',
   'task.form.artifactLink.button.newFlashcard': 'New Flashcard',
   'task.form.artifactLink.button.selectFlashcard': 'Select Flashcard',
   'task.form.artifactLink.button.change': 'Change',
@@ -372,6 +372,7 @@ export default {
   'task.form.artifactLink.loadingFlashcard': 'Loading flashcard...',
   'task.form.artifactLink.flashcardNotFound': 'Flashcard not found.',
   'task.form.artifactLink.flashcardPrefix': 'Flashcard:',
+  'toast.task.flashcardAlreadyLinked': 'This flashcard is already linked to the task.',
   'task.form.artifactLink.dialog.newFlashcard.title': 'Create New Flashcard for Task',
   'task.form.artifactLink.dialog.newFlashcard.description': 'This flashcard will be automatically linked to the current task.',
   'task.form.artifactLink.dialog.editFlashcard.title': 'Edit Linked Flashcard',
@@ -530,7 +531,7 @@ export default {
   'overview.form.placeholder.description': 'Describe your principle, goal, or area of focus... (Markdown supported)',
   'overview.form.button.create': 'Create Overview',
   'overview.form.button.update': 'Update Overview',
-  'overview.form.artifactLink.sectionTitle': "Linked Flashcard",
+  'overview.form.artifactLink.sectionTitle': "Linked Flashcards",
   'toast.overview.created': 'Overview created successfully.',
   'toast.overview.updated': 'Overview updated successfully.',
   'toast.overview.deleted': 'Overview deleted successfully.',
@@ -566,3 +567,5 @@ export default {
   'error': 'Error',
 
 } as const;
+
+    

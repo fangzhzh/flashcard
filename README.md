@@ -75,5 +75,3 @@ Overviews are a unique feature for defining high-level goals, principles, or are
   - **Theme:** A clean, modern aesthetic with a defined color palette (deep purple primary, light gray background, soft pink accent).
   - **Dark Mode:** Fully supported.
   - **Layout:** UI is built with ShadCN components and styled with Tailwind CSS, following professional design patterns with rounded corners and shadows.
-
-This README provides a complete picture of the FlashFlow application, from its core user-facing features to its underlying design philosophy and technical implementation.

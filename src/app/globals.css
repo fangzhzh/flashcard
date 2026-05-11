@@ -113,3 +113,61 @@ body {
   .markdown-content img { @apply max-w-full h-auto rounded-md my-3; }
 }
 
+
+/* ============================
+   Card War RPG — Game Animations
+   ============================ */
+
+@keyframes playerAttack {
+  0%   { transform: translateX(0) scale(1); }
+  25%  { transform: translateX(70px) scale(1.25) rotate(-5deg); }
+  55%  { transform: translateX(70px) scale(1.15); }
+  100% { transform: translateX(0) scale(1); }
+}
+@keyframes bossAttack {
+  0%   { transform: translateX(0) scale(1); }
+  25%  { transform: translateX(-70px) scale(1.25) rotate(5deg); }
+  55%  { transform: translateX(-70px) scale(1.15); }
+  100% { transform: translateX(0) scale(1); }
+}
+@keyframes shake {
+  0%, 100% { transform: translateX(0) rotate(0deg); }
+  15%  { transform: translateX(-10px) rotate(-3deg); }
+  30%  { transform: translateX(10px)  rotate(3deg); }
+  45%  { transform: translateX(-8px)  rotate(-2deg); }
+  60%  { transform: translateX(8px)   rotate(2deg); }
+  75%  { transform: translateX(-4px); }
+}
+@keyframes flashRed {
+  0%, 100% { filter: brightness(1) saturate(1); }
+  40%      { filter: brightness(2.5) saturate(3) hue-rotate(340deg); }
+}
+@keyframes damageFloat {
+  0%   { opacity: 1; transform: translateY(0)    scale(1);   }
+  50%  { opacity: 1; transform: translateY(-40px) scale(1.3); }
+  100% { opacity: 0; transform: translateY(-70px) scale(0.8); }
+}
+@keyframes comboPopIn {
+  0%   { transform: scale(0.3); opacity: 0; }
+  60%  { transform: scale(1.3); opacity: 1; }
+  100% { transform: scale(1);   opacity: 1; }
+}
+@keyframes rageGlow {
+  0%, 100% { text-shadow: 0 0 8px #ff4444; }
+  50%       { text-shadow: 0 0 24px #ff0000, 0 0 40px #ff4400; }
+}
+@keyframes stageEntrance {
+  from { opacity: 0; transform: scale(0.9) translateY(20px); }
+  to   { opacity: 1; transform: scale(1)   translateY(0); }
+}
+
+.animate-player-attack  { animation: playerAttack  0.7s ease-in-out forwards; }
+.animate-boss-attack    { animation: bossAttack    0.7s ease-in-out forwards; }
+.animate-shake          { animation: shake         0.5s ease-in-out; }
+.animate-flash-red      { animation: flashRed      0.5s ease-in-out; }
+.animate-damage-float   { animation: damageFloat   0.9s ease-out forwards; }
+.animate-combo-pop      { animation: comboPopIn    0.4s cubic-bezier(0.34,1.56,0.64,1) forwards; }
+.animate-rage-glow      { animation: rageGlow      1s ease-in-out infinite; }
+.animate-stage-entrance { animation: stageEntrance 0.5s ease-out forwards; }
+
+

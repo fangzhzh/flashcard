@@ -1,7 +1,7 @@
 
 "use client";
 import Link from 'next/link';
-import { BookOpenText, LayoutDashboard, Timer, Languages, LogIn, LogOut, UserCircle, KeyRound, ListChecks, GitFork } from 'lucide-react'; // Added GitFork for Overviews
+import { BookOpenText, LayoutDashboard, Timer, Languages, LogIn, LogOut, UserCircle, KeyRound, ListChecks, GitFork, Swords } from 'lucide-react';
 import { ThemeToggle } from '@/components/ThemeToggle';
 import { usePathname } from 'next/navigation';
 import { cn } from '@/lib/utils';
@@ -30,11 +30,13 @@ export default function Header() {
   const { getStatistics, isLoading: flashcardsLoading } = useFlashcards();
 
   const navItems = [
-    { href: '/overviews', labelKey: 'nav.overviews', icon: GitFork }, // New Overviews link
+    { href: '/overviews', labelKey: 'nav.overviews', icon: GitFork },
     { href: '/tasks', labelKey: 'nav.tasks', icon: ListChecks },
     { href: '/timer', labelKey: 'nav.pomodoro', icon: Timer },
     { href: '/flashcards-hub', labelKey: 'nav.flashcards', icon: LayoutDashboard },
+    { href: '/game', labelKey: 'nav.game', icon: Swords },
   ];
+
 
   const basePathname = pathname.startsWith(`/${currentLocale}`)
     ? pathname.substring(`/${currentLocale}`.length) || '/'

@@ -176,17 +176,17 @@ export default function WorldMap({ flashcards, decks, saveData, onStartWave }: P
                   )}
                 </div>
 
-                {/* Boss HP Bar Preview */}
+                {/* Stage Preview Bar */}
                 {!locked && (
                   <div className="mt-4">
                     <div className="flex justify-between text-[10px] text-white/30 font-bold mb-1 uppercase tracking-tighter">
-                      <span>Boss HP</span>
-                      <span>{stage.bossHP}</span>
+                      <span>关卡进度</span>
+                      <span>{stars > 0 ? '已通关' : '进行中'}</span>
                     </div>
                     <div className="h-1 bg-white/5 rounded-full overflow-hidden border border-white/5">
                       <div 
-                        className="h-full bg-gradient-to-r from-red-600 to-orange-400 rounded-full"
-                        style={{ width: '100%' }}
+                        className={`h-full rounded-full ${stars > 0 ? 'bg-green-500' : 'bg-violet-500 animate-pulse'}`}
+                        style={{ width: stars > 0 ? '100%' : '30%' }}
                       />
                     </div>
                   </div>

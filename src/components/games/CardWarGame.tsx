@@ -4,49 +4,47 @@ import { useFlashcards } from '@/contexts/FlashcardsContext';
 import { useAuth } from '@/contexts/AuthContext';
 import { useCurrentLocale } from '@/lib/i18n/client';
 import Link from 'next/link';
-import type { Deck } from '@/types';
+import type { Deck, Flashcard } from '@/types';
 import WorldMap from './WorldMap';
 import BattleScene from './BattleScene';
 import StageResult from './StageResult';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
-export type ItemType = 'potion' | 'lightning' | 'crystal' | 'shield';
-export interface Item { type: ItemType; emoji: string; name: string; desc: string; }
-export type AnimState = 'IDLE' | 'PLAYER_ATTACK' | 'BOSS_ATTACK' | 'SHOW_WRONG';
+export type UnitClass = 'melee' | 'ranged' | 'tank' | 'boss';
 
-export interface StageConfig {
-  id: number;         // wave number
-  worldId: string;    // deckId | 'all'
+export interface Entity {
+  id: string;
+  type: 'ally' | 'enemy';
+  class: UnitClass;
+  emoji: string;
   name: string;
-  boss: string;
-  bossEmoji: string;
-  bossHP: number;
-  cardCount: number;
-  bgFrom: string; bgVia: string; bgTo: string;
+  x: number; // 0 to 100 (percentage of lane)
+  hp: number;
+  maxHp: number;
+  atk: number;
+  speed: number;
+  range: number;
+  lastAtkTime: number;
+  atkCooldown: number;
 }
 
-export interface BattleCard { id: string; front: string; back: string; }
+export interface GameState {
+  mana: number;
+  maxMana: number;
+  playerBaseHP: number;
+  enemyBaseHP: number;
+  maxBaseHP: number;
+  entities: Entity[];
+  isPaused: boolean;
+  gameTime: number;
+}
 
-export interface BattleState {
-  stage: StageConfig;
-  playerHP: number; maxPlayerHP: number;
-  bossHP: number;   maxBossHP: number;
-  deck: BattleCard[];
-  deckIndex: number;
-  choices: string[];
-  choicesFull: string[];
-  correctIndex: number;
-  selectedIndex: number | null;
-  isCorrect: boolean | null;
-  combo: number; maxCombo: number;
-  wrongStreak: number; bossRage: boolean;
-  totalAnswered: number; correctCount: number;
-  inventory: Item[];
-  shieldActive: boolean; lightningActive: boolean;
-  eliminatedIndex: number | null;
-  animState: AnimState;
-  damageKey: number; damageAmount: number; damageToBoss: boolean;
+export interface Item {
+  type: 'potion' | 'lightning' | 'crystal' | 'shield';
+  emoji: string;
+  name: string;
+  desc: string;
 }
 
 export interface WorldSave {
@@ -65,26 +63,48 @@ export interface ResultData {
   victory: boolean;
   stageId: number;
   worldId: string;
-  correctCount: number;
-  totalAnswered: number;
-  maxCombo: number;
   stars: number;
   reward: Item | null;
 }
 
+export interface StageConfig {
+  id: number;         // wave number
+  worldId: string;    // deckId | 'all'
+  name: string;
+  boss: string;
+  bossEmoji: string;
+  enemyTypes: UnitClass[];
+  spawnRate: number; // Seconds between enemy spawns
+  bgFrom: string; bgVia: string; bgTo: string;
+}
+
 // ─── Constants ────────────────────────────────────────────────────────────────
 
-const SAVE_KEY = 'card_war_save_v2';
-const PLAYER_BASE_HP = 100;
-const PLAYER_ATTACK = 35; // Buffed slightly
-const BOSS_ATTACK = 20;
+const SAVE_KEY = 'card_war_auto_v1';
+const TICK_MS = 1000 / 60; // 60 FPS
+const BASE_MAX_HP = 500;
+const MANA_PER_CORRECT = 25;
+const MANA_MAX = 100;
 
-export const ITEM_POOL: Item[] = [
-  { type: 'potion',    emoji: '🧪', name: '治愈药水',  desc: '恢复 30 HP' },
-  { type: 'lightning', emoji: '⚡', name: '闪电符文',  desc: '下次答对伤害 ×3' },
-  { type: 'crystal',   emoji: '🔮', name: '预言水晶',  desc: '排除一个错误选项' },
-  { type: 'shield',    emoji: '🛡️', name: '铁壁盾牌',  desc: '下次答错不扣血' },
-];
+export const ALLY_UNITS: Record<string, Partial<Entity>> = {
+  melee: { name: '剑士', emoji: '⚔️', hp: 100, atk: 15, speed: 0.15, range: 5, atkCooldown: 1000 },
+  ranged: { name: '弓箭手', emoji: '🏹', hp: 50, atk: 20, speed: 0.12, range: 25, atkCooldown: 1200 },
+  tank: { name: '盾卫', emoji: '🛡️', hp: 250, atk: 5, speed: 0.08, range: 4, atkCooldown: 1500 },
+  boss: { name: '英雄', emoji: '🧙', hp: 500, atk: 50, speed: 0.05, range: 10, atkCooldown: 2000 },
+};
+
+export const ENEMY_UNITS: Record<string, Partial<Entity>> = {
+  melee: { name: '小鬼', emoji: '👹', hp: 80, atk: 10, speed: 0.12, range: 5, atkCooldown: 1200 },
+  ranged: { name: '投石鬼', emoji: '👺', hp: 40, atk: 12, speed: 0.1, range: 20, atkCooldown: 1500 },
+  tank: { name: '巨魔', emoji: '🐺', hp: 200, atk: 8, speed: 0.06, range: 4, atkCooldown: 1800 },
+  boss: { name: '魔王', emoji: '🐉', hp: 1000, atk: 30, speed: 0.04, range: 12, atkCooldown: 2500 },
+};
+
+export const UNIT_COSTS: Record<string, number> = {
+  melee: 20,
+  ranged: 35,
+  tank: 50,
+};
 
 // Boss pool — cycles with wave number, can be themed by deck
 const BOSS_POOL = [
@@ -97,6 +117,8 @@ const BOSS_POOL = [
   { name: '混沌恶魔',   emoji: '😈', bg: ['from-rose-950','via-red-900','to-orange-950']      },
   { name: '知识守护者', emoji: '👁️', bg: ['from-violet-950','via-indigo-900','to-slate-950']  },
 ];
+
+// ─── Wave generator ────────────────────────────────────────────────────────────
 
 // Deck-aware boss overrides based on keywords in deck name
 const THEMED_BOSSES: { keywords: string[]; bosses: typeof BOSS_POOL }[] = [
@@ -118,15 +140,6 @@ const THEMED_BOSSES: { keywords: string[]; bosses: typeof BOSS_POOL }[] = [
       { name: '瓶颈巨人',   emoji: '📡', bg: ['from-indigo-950','via-blue-900','to-cyan-950']    },
     ],
   },
-  {
-    keywords: ['algo', 'algorithm', '算法', 'data structure', '数据结构', 'leetcode'],
-    bosses: [
-      { name: '算法机器人', emoji: '🤖', bg: ['from-green-950','via-emerald-900','to-teal-950'] },
-      { name: '复杂度怪兽', emoji: '📊', bg: ['from-lime-950','via-green-900','to-emerald-950'] },
-      { name: '递归幽灵',   emoji: '🔮', bg: ['from-teal-950','via-green-900','to-emerald-950'] },
-      { name: '贪心恶魔',   emoji: '💻', bg: ['from-cyan-950','via-teal-900','to-green-950']    },
-    ],
-  },
 ];
 
 function pickBossPool(deckName: string | null) {
@@ -138,8 +151,6 @@ function pickBossPool(deckName: string | null) {
   return BOSS_POOL;
 }
 
-// ─── Wave generator ────────────────────────────────────────────────────────────
-
 export function generateWaveStage(
   wave: number,
   worldId: string,
@@ -148,69 +159,38 @@ export function generateWaveStage(
 ): StageConfig {
   const pool = pickBossPool(deckName);
   const boss = pool[(wave - 1) % pool.length];
-  const isElite = wave % 5 === 0;
-  const bossHP = Math.round(60 + wave * 28 * (isElite ? 1.8 : 1));
-  const cardCount = Math.min(4 + Math.floor(wave * 1.3), Math.min(totalCards, 25));
-
-  const waveNames: Record<number, string> = {
-    1: '迷雾入口', 2: '黑暗走廊', 3: '诅咒大厅',
-    4: '幽冥圣所', 5: '精英守卫',
-  };
-  const name = wave <= 5
-    ? (waveNames[wave] ?? `第 ${wave} 波`)
-    : wave % 5 === 0
-      ? `★ 精英波 ${wave}`
-      : `深渊第 ${wave} 层`;
+  
+  // Complexity increases with wave
+  const spawnRate = Math.max(2.5, 6 - (wave * 0.2));
+  const enemyTypes: UnitClass[] = ['melee'];
+  if (wave >= 3) enemyTypes.push('ranged');
+  if (wave >= 5) enemyTypes.push('tank');
 
   return {
-    id: wave, worldId,
-    name: isElite ? `⚔️ ${name}` : name,
-    boss: isElite ? `${boss.name}·精英` : boss.name,
+    id: wave,
+    worldId,
+    name: `第 ${wave} 关: ${boss.name}`,
+    boss: boss.name,
     bossEmoji: boss.emoji,
-    bossHP,
-    cardCount,
-    bgFrom: boss.bg[0], bgVia: boss.bg[1], bgTo: boss.bg[2],
+    enemyTypes,
+    spawnRate,
+    bgFrom: boss.bg[0],
+    bgVia: boss.bg[1],
+    bgTo: boss.bg[2],
   };
 }
 
-// ─── Helpers ──────────────────────────────────────────────────────────────────
+// ─── Persistence ──────────────────────────────────────────────────────────────
 
-export function shuffle<T>(arr: T[]): T[] {
-  const a = [...arr];
-  for (let i = a.length - 1; i > 0; i--) {
-    const j = Math.floor(Math.random() * (i + 1));
-    [a[i], a[j]] = [a[j], a[i]];
-  }
-  return a;
-}
-
-export function stripMarkdown(text: string): string {
-  return text
-    .replace(/```[\s\S]*?```/g, '[代码]')
-    .replace(/`[^`]*`/g, m => m.slice(1, -1))
-    .replace(/#{1,6}\s/g, '')
-    .replace(/\*\*([^*]+)\*\*/g, '$1')
-    .replace(/\*([^*]+)\*/g, '$1')
-    .replace(/\[([^\]]+)\]\([^)]+\)/g, '$1')
-    .replace(/!\[[^\]]*\]\([^)]+\)/g, '')
-    .replace(/^[-*+]\s/gm, '')
-    .replace(/^\d+\.\s/gm, '')
-    .replace(/\n+/g, ' ')
-    .trim();
-}
-
-export function truncate(text: string, max = 80): string {
-  const s = stripMarkdown(text);
-  return s.length > max ? s.slice(0, max) + '…' : s;
-}
-
-function loadSave(): SaveData {
+function readSave(): SaveData {
+  if (typeof window === 'undefined') return { worlds: {}, inventory: [], totalWins: 0 };
   try {
-    const raw = localStorage.getItem(SAVE_KEY);
-    if (raw) return JSON.parse(raw);
+    const s = localStorage.getItem(SAVE_KEY);
+    if (s) return JSON.parse(s);
   } catch {}
   return { worlds: {}, inventory: [], totalWins: 0 };
 }
+
 function writeSave(d: SaveData) {
   try { localStorage.setItem(SAVE_KEY, JSON.stringify(d)); } catch {}
 }
@@ -218,221 +198,219 @@ function writeSave(d: SaveData) {
 function getWorldSave(save: SaveData, worldId: string): WorldSave {
   const ws = save.worlds[worldId];
   if (!ws) return { currentWave: 1, bestWave: 0, stars: {} };
-  return {
-    ...ws,
-    stars: ws.stars || {},
-  };
+  return { ...ws, stars: ws.stars || {} };
 }
 
 // ─── Main Component ───────────────────────────────────────────────────────────
 
 export default function CardWarGame() {
-  const { flashcards, decks, isLoading } = useFlashcards();
+  const { flashcards, decks, isLoading: contextLoading } = useFlashcards();
   const { user } = useAuth();
   const currentLocale = useCurrentLocale();
 
   const [screen, setScreen] = useState<'MAP' | 'BATTLE' | 'RESULT'>('MAP');
-  const [saveData, setSaveData] = useState<SaveData>(() => loadSave());
-  const [battle, setBattle] = useState<BattleState | null>(null);
+  const [saveData, setSaveData] = useState<SaveData>(readSave);
+  const [stage, setStage] = useState<StageConfig | null>(null);
   const [result, setResult] = useState<ResultData | null>(null);
 
+  // Real-time Battle State
+  const [game, setGame] = useState<GameState | null>(null);
+  const [deck, setDeck] = useState<Flashcard[]>([]);
+  const [deckIndex, setDeckIndex] = useState(0);
+
+  // Persistence side-effect
   useEffect(() => { writeSave(saveData); }, [saveData]);
 
-  // ── Build one question ──────────────────────────────────────────────────────
-  const buildQuestion = useCallback((
-    deck: BattleCard[], index: number, allCards: BattleCard[]
-  ) => {
-    const card = deck[index % deck.length];
-    const distractors = shuffle(allCards.filter(c => c.id !== card.id))
-      .slice(0, 3).map(c => c.back);
-    while (distractors.length < 3) distractors.push('（无）');
-    const fullOptions = shuffle([card.back, ...distractors]);
-    return {
-      choices: fullOptions.map(o => truncate(o, 80)),
-      choicesFull: fullOptions,
-      correctIndex: fullOptions.indexOf(card.back),
-    };
-  }, []);
+  // ─── Actions ────────────────────────────────────────────────────────────────
 
-  // ── Start a wave ────────────────────────────────────────────────────────────
   const startStage = useCallback((worldId: string, wave: number) => {
-    // Collect cards for this world
-    const allCards: BattleCard[] = flashcards.map(f => ({ id: f.id, front: f.front, back: f.back }));
-    const worldCards = worldId === 'all'
-      ? allCards
-      : allCards.filter(c => {
-          const fc = flashcards.find(f => f.id === c.id);
-          return fc?.deckId === worldId;
-        });
-
+    const worldName = worldId === 'all' ? '全部卡片' : decks.find(d => d.id === worldId)?.name ?? null;
+    const worldCards = worldId === 'all' ? flashcards : flashcards.filter(f => f.deckId === worldId);
+    
     if (worldCards.length < 4) return;
 
-    const deckName = worldId === 'all'
-      ? null
-      : decks.find(d => d.id === worldId)?.name ?? null;
-
-    const stage = generateWaveStage(wave, worldId, deckName, worldCards.length);
-    const deck = shuffle(worldCards).slice(0, stage.cardCount);
-    const { choices, choicesFull, correctIndex } = buildQuestion(deck, 0, allCards);
-
-    setBattle({
-      stage,
-      playerHP: PLAYER_BASE_HP, maxPlayerHP: PLAYER_BASE_HP,
-      bossHP: stage.bossHP, maxBossHP: stage.bossHP,
-      deck, deckIndex: 0,
-      choices, choicesFull, correctIndex,
-      selectedIndex: null, isCorrect: null,
-      combo: 0, maxCombo: 0, wrongStreak: 0, bossRage: false,
-      totalAnswered: 0, correctCount: 0,
-      inventory: saveData.inventory,
-      shieldActive: false, lightningActive: false, eliminatedIndex: null,
-      animState: 'IDLE', damageKey: 0, damageAmount: 0, damageToBoss: true,
+    const config = generateWaveStage(wave, worldId, worldName, worldCards.length);
+    setStage(config);
+    setDeck([...worldCards].sort(() => Math.random() - 0.5));
+    setDeckIndex(0);
+    
+    setGame({
+      mana: 20,
+      maxMana: MANA_MAX,
+      playerBaseHP: BASE_MAX_HP,
+      enemyBaseHP: BASE_MAX_HP,
+      maxBaseHP: BASE_MAX_HP,
+      entities: [],
+      isPaused: false,
+      gameTime: 0,
     });
     setScreen('BATTLE');
-  }, [flashcards, decks, saveData.inventory, buildQuestion]);
+  }, [flashcards, decks]);
 
-  // ── Answer handler ──────────────────────────────────────────────────────────
-  const handleAnswer = useCallback((choiceIndex: number) => {
-    setBattle(prev => {
-      if (!prev || prev.animState !== 'IDLE' || prev.selectedIndex !== null) return prev;
-      const isCorrect = choiceIndex === prev.correctIndex;
-      return { ...prev, selectedIndex: choiceIndex, isCorrect, animState: isCorrect ? 'PLAYER_ATTACK' : 'SHOW_WRONG' };
+  const spawnUnit = useCallback((type: 'ally' | 'enemy', uClass: UnitClass) => {
+    const config = type === 'ally' ? ALLY_UNITS[uClass] : ENEMY_UNITS[uClass];
+    const newEntity: Entity = {
+      id: Math.random().toString(36).substr(2, 9),
+      type,
+      class: uClass,
+      emoji: config.emoji!,
+      name: config.name!,
+      x: type === 'ally' ? 0 : 100,
+      hp: config.hp!,
+      maxHp: config.hp!,
+      atk: config.atk!,
+      speed: config.speed!,
+      range: config.range!,
+      lastAtkTime: 0,
+      atkCooldown: config.atkCooldown!,
+    };
+    
+    setGame(prev => {
+      if (!prev) return null;
+      if (type === 'ally') {
+        const cost = UNIT_COSTS[uClass] || 0;
+        if (prev.mana < cost) return prev;
+        return { ...prev, mana: prev.mana - cost, entities: [...prev.entities, newEntity] };
+      }
+      return { ...prev, entities: [...prev.entities, newEntity] };
     });
   }, []);
 
-  // ── Resolve after animation ─────────────────────────────────────────────────
-  const resolveAnswer = useCallback(() => {
-    setBattle(prev => {
-      if (!prev) return prev;
-      const isCorrect = prev.isCorrect!;
-      const allCards: BattleCard[] = flashcards.map(f => ({ id: f.id, front: f.front, back: f.back }));
+  const resolveAnswer = useCallback((isCorrect: boolean) => {
+    if (isCorrect) {
+      setGame(prev => {
+        if (!prev) return null;
+        return { ...prev, mana: Math.min(prev.maxMana, prev.mana + MANA_PER_CORRECT) };
+      });
+    }
+    setDeckIndex(prev => (prev + 1) % deck.length);
+  }, [deck.length]);
 
-      let { playerHP, bossHP, combo, wrongStreak, bossRage } = prev;
-      let damageAmount = 0;
+  // ─── Game Loop (The Heart) ──────────────────────────────────────────────────
 
-      if (isCorrect) {
-        let dmg = PLAYER_ATTACK;
-        if (prev.lightningActive) dmg *= 3;
-        if (combo + 1 >= 3) dmg *= 2;
-        bossHP = Math.max(0, bossHP - dmg);
-        combo++;
-        wrongStreak = 0;
-        bossRage = false;
-        damageAmount = dmg;
-      } else {
-        if (!prev.shieldActive) {
-          const dmg = bossRage ? Math.round(BOSS_ATTACK * 1.5) : BOSS_ATTACK;
-          playerHP = Math.max(0, playerHP - dmg);
-          damageAmount = dmg;
+  useEffect(() => {
+    if (screen !== 'BATTLE' || !game || game.isPaused) return;
+
+    let lastTime = performance.now();
+    let spawnTimer = 0;
+    let frameId: number;
+
+    const tick = (now: number) => {
+      const dt = now - lastTime;
+      lastTime = now;
+
+      setGame(prev => {
+        if (!prev) return null;
+        
+        const entities = [...prev.entities];
+        let playerBaseHP = prev.playerBaseHP;
+        let enemyBaseHP = prev.enemyBaseHP;
+        const newGameTime = prev.gameTime + dt;
+
+        // 1. Enemy Spawning
+        spawnTimer += dt;
+        if (spawnTimer >= (stage?.spawnRate || 5) * 1000) {
+          spawnTimer = 0;
+          const eClass = stage?.enemyTypes[Math.floor(Math.random() * stage.enemyTypes.length)] || 'melee';
+          const config = ENEMY_UNITS[eClass];
+          entities.push({
+            id: Math.random().toString(36).substr(2, 9),
+            type: 'enemy',
+            class: eClass,
+            emoji: config.emoji!,
+            name: config.name!,
+            x: 100,
+            hp: config.hp!,
+            maxHp: config.hp!,
+            atk: config.atk!,
+            speed: config.speed!,
+            range: config.range!,
+            lastAtkTime: 0,
+            atkCooldown: config.atkCooldown!,
+          });
         }
-        combo = 0;
-        wrongStreak++;
-        bossRage = wrongStreak >= 2;
-      }
 
-      const maxCombo = Math.max(prev.maxCombo, combo);
-      const totalAnswered = prev.totalAnswered + 1;
-      const correctCount = prev.correctCount + (isCorrect ? 1 : 0);
-
-      if (bossHP <= 0 || playerHP <= 0) {
-        const victory = bossHP <= 0;
-        const { worldId, id: wave } = prev.stage;
-        const accuracy = totalAnswered > 0 ? (correctCount / totalAnswered) : 0;
-        let stars = 0;
-        if (victory) {
-          stars = accuracy >= 0.9 ? 3 : accuracy >= 0.7 ? 2 : 1;
-        }
-
-        const reward = victory ? ITEM_POOL[Math.floor(Math.random() * ITEM_POOL.length)] : null;
-
-        setSaveData(sd => {
-          const ws = getWorldSave(sd, worldId);
-          const newWave = victory ? Math.max(ws.currentWave, wave + 1) : ws.currentWave;
-          const newBest = victory ? Math.max(ws.bestWave, wave) : ws.bestWave;
-          const newStars = { ...ws.stars };
-          if (victory) {
-            newStars[wave] = Math.max(newStars[wave] ?? 0, stars);
+        // 2. Update Entities
+        for (let i = 0; i < entities.length; i++) {
+          const e = entities[i];
+          
+          // Find targets
+          const targets = entities.filter(t => t.type !== e.type);
+          const baseTargetX = e.type === 'ally' ? 100 : 0;
+          
+          // Check for collision with entities
+          let closestTarget: Entity | null = null;
+          let minDist = 1000;
+          
+          for (const t of targets) {
+            const dist = Math.abs(t.x - e.x);
+            if (dist < minDist) {
+              minDist = dist;
+              closestTarget = t;
+            }
           }
-          const newInventory = reward && victory ? [...sd.inventory, reward].slice(-4) : sd.inventory;
-          return {
-            ...sd,
-            worlds: { ...sd.worlds, [worldId]: { currentWave: newWave, bestWave: newBest, stars: newStars } },
-            inventory: newInventory,
-            totalWins: sd.totalWins + (victory ? 1 : 0),
-          };
-        });
 
-        setResult({ victory, stageId: wave, worldId, correctCount, totalAnswered, maxCombo, stars, reward });
-        setScreen('RESULT');
-        return null;
-      }
+          const distToBase = Math.abs(baseTargetX - e.x);
+          
+          // Attack Logic
+          if (closestTarget && minDist <= e.range) {
+            if (newGameTime - e.lastAtkTime >= e.atkCooldown) {
+              closestTarget.hp -= e.atk;
+              e.lastAtkTime = newGameTime;
+            }
+          } else if (distToBase <= e.range) {
+            if (newGameTime - e.lastAtkTime >= e.atkCooldown) {
+              if (e.type === 'ally') enemyBaseHP -= e.atk;
+              else playerBaseHP -= e.atk;
+              e.lastAtkTime = newGameTime;
+            }
+          } else {
+            // Movement
+            const direction = e.type === 'ally' ? 1 : -1;
+            e.x += direction * e.speed * (dt / 16);
+          }
+        }
 
-      const nextIndex = (prev.deckIndex + 1) % prev.deck.length;
-      const { choices, choicesFull, correctIndex } = buildQuestion(prev.deck, nextIndex, allCards);
-      return {
-        ...prev,
-        playerHP, bossHP, combo, maxCombo, wrongStreak, bossRage,
-        totalAnswered, correctCount,
-        deckIndex: nextIndex,
-        choices, choicesFull, correctIndex,
-        selectedIndex: null, isCorrect: null, animState: 'IDLE',
-        shieldActive: isCorrect ? prev.shieldActive : false,
-        lightningActive: isCorrect ? false : prev.lightningActive,
-        eliminatedIndex: null,
-        damageKey: prev.damageKey + 1, damageAmount, damageToBoss: isCorrect,
-      };
-    });
-  }, [flashcards, buildQuestion]);
+        // 3. Remove dead entities
+        const aliveEntities = entities.filter(e => e.hp > 0);
 
-  // ── Use item ────────────────────────────────────────────────────────────────
-  const handleUseItem = useCallback((idx: number) => {
-    setBattle(prev => {
-      if (!prev || prev.animState !== 'IDLE') return prev;
-      const item = prev.inventory[idx];
-      if (!item) return prev;
-      const newInv = prev.inventory.filter((_, i) => i !== idx);
-      setSaveData(sd => ({ ...sd, inventory: newInv }));
-      if (item.type === 'potion')    return { ...prev, playerHP: Math.min(prev.maxPlayerHP, prev.playerHP + 30), inventory: newInv };
-      if (item.type === 'lightning') return { ...prev, lightningActive: true, inventory: newInv };
-      if (item.type === 'shield')    return { ...prev, shieldActive: true, inventory: newInv };
-      if (item.type === 'crystal') {
-        const wrong = prev.choices.map((_, i) => i).filter(i => i !== prev.correctIndex && i !== prev.eliminatedIndex);
-        const elim = wrong[Math.floor(Math.random() * wrong.length)] ?? null;
-        return { ...prev, eliminatedIndex: elim, inventory: newInv };
-      }
-      return prev;
-    });
-  }, []);
+        // 4. Check Win/Loss
+        if (playerBaseHP <= 0 || enemyBaseHP <= 0) {
+          const victory = enemyBaseHP <= 0;
+          const { worldId, id: wave } = stage!;
+          
+          setSaveData(sd => {
+            const ws = getWorldSave(sd, worldId);
+            const newWave = victory ? Math.max(ws.currentWave, wave + 1) : ws.currentWave;
+            const newBest = victory ? Math.max(ws.bestWave, wave) : ws.bestWave;
+            const newStars = { ...ws.stars };
+            if (victory) newStars[wave] = Math.max(newStars[wave] ?? 0, 3); // Simplified stars for now
+            return {
+              ...sd,
+              worlds: { ...sd.worlds, [worldId]: { currentWave: newWave, bestWave: newBest, stars: newStars } },
+              totalWins: sd.totalWins + (victory ? 1 : 0),
+            };
+          });
 
-  // ── Guards ──────────────────────────────────────────────────────────────────
-  if (!user) {
-    return (
-      <div className="flex flex-col items-center justify-center min-h-[80vh] gap-4 text-center px-4">
-        <div className="text-6xl">⚔️</div>
-        <h1 className="text-2xl font-bold">卡牌战争冒险</h1>
-        <p className="text-muted-foreground">请先登录后游玩。</p>
-        <Link href={`/${currentLocale}/auth`} className="inline-flex items-center gap-2 rounded-lg bg-primary text-primary-foreground px-6 py-2.5 font-medium hover:bg-primary/90 transition-colors">登录</Link>
-      </div>
-    );
-  }
+          setResult({ victory, stageId: wave, worldId, stars: victory ? 3 : 0, reward: null });
+          setScreen('RESULT');
+          return null;
+        }
 
-  if (isLoading) {
-    return <div className="flex items-center justify-center min-h-[80vh]"><div className="text-5xl animate-spin">⚔️</div></div>;
-  }
+        return { ...prev, entities: aliveEntities, playerBaseHP, enemyBaseHP, gameTime: newGameTime };
+      });
 
-  if (flashcards.length < 4) {
-    return (
-      <div className="flex flex-col items-center justify-center min-h-[80vh] gap-4 text-center px-4">
-        <div className="text-6xl">😢</div>
-        <h1 className="text-2xl font-bold">卡片不足</h1>
-        <p className="text-muted-foreground">至少需要 4 张抽认卡才能游玩。当前：{flashcards.length} 张。</p>
-        <Link href={`/${currentLocale}/flashcards/new`} className="inline-flex items-center gap-2 rounded-lg bg-primary text-primary-foreground px-6 py-2.5 font-medium hover:bg-primary/90 transition-colors">去创建卡片</Link>
-      </div>
-    );
-  }
+      frameId = requestAnimationFrame(tick);
+    };
+
+    frameId = requestAnimationFrame(tick);
+    return () => cancelAnimationFrame(frameId);
+  }, [screen, game, stage]);
+
+  if (contextLoading) return <div className="h-full flex items-center justify-center text-white">加载中...</div>;
 
   return (
-    <div className="fixed inset-0 z-30 overflow-hidden" style={{ top: '64px' }}>
+    <div className="h-full w-full bg-black relative font-sans select-none overflow-hidden">
       {screen === 'MAP' && (
         <WorldMap
           flashcards={flashcards}
@@ -441,29 +419,33 @@ export default function CardWarGame() {
           onStartWave={startStage}
         />
       )}
-      {screen === 'BATTLE' && battle && (
+
+      {screen === 'BATTLE' && game && stage && (
         <BattleScene
-          battle={battle}
-          onAnswer={handleAnswer}
-          onUseItem={handleUseItem}
-          onAnimationDone={resolveAnswer}
+          game={game}
+          deck={deck}
+          deckIndex={deckIndex}
+          onAnswer={resolveAnswer}
+          onSpawnUnit={(uClass) => spawnUnit('ally', uClass)}
+          onBackToMap={() => setScreen('MAP')}
         />
       )}
+
       {screen === 'RESULT' && result && (
         <StageResult
           result={result}
           decks={decks}
           saveData={saveData}
           onNextWave={() => {
-            const ws = getWorldSave(saveData, result.worldId);
-            startStage(result.worldId, ws.currentWave);
+            const nextWave = result.stageId + 1;
             setResult(null);
+            startStage(result.worldId, nextWave);
           }}
           onRetry={() => {
-            startStage(result.worldId, result.stageId);
             setResult(null);
+            startStage(result.worldId, result.stageId);
           }}
-          onBackToMap={() => { setResult(null); setBattle(null); setScreen('MAP'); }}
+          onBackToMap={() => { setResult(null); setScreen('MAP'); }}
         />
       )}
     </div>

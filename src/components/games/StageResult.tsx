@@ -2,7 +2,7 @@
 import React from 'react';
 import type { ResultData, SaveData } from './CardWarGame';
 import type { Deck } from '@/types';
-import { Star, Trophy, Skull, RotateCcw, Map, ChevronRight } from 'lucide-react';
+import { Star, Skull, RotateCcw, Map, ChevronRight } from 'lucide-react';
 
 interface Props {
   result: ResultData;
@@ -14,10 +14,9 @@ interface Props {
 }
 
 export default function StageResult({ result, decks, onNextWave, onRetry, onBackToMap }: Props) {
-  const { victory, stageId, worldId, correctCount, totalAnswered, maxCombo, stars, reward } = result;
+  const { victory, stageId, worldId, stars, reward } = result;
   
   const deck = worldId === 'all' ? { name: '全部卡片' } : decks.find(d => d.id === worldId);
-  const accuracy = totalAnswered > 0 ? Math.round((correctCount / totalAnswered) * 100) : 0;
 
   return (
     <div className={`
@@ -40,11 +39,10 @@ export default function StageResult({ result, decks, onNextWave, onRetry, onBack
         {deck?.name} · 第 {stageId} 关
       </p>
 
-      {/* Stats card */}
+      {/* Stars card */}
       <div className="bg-white/5 border border-white/10 rounded-2xl p-6 w-full max-w-sm mb-6 space-y-4 shadow-2xl backdrop-blur-md">
-        {/* Stars */}
-        {victory && (
-          <div className="flex flex-col items-center gap-2 pb-4 border-b border-white/10">
+        {victory ? (
+          <div className="flex flex-col items-center gap-2">
             <div className="text-sm text-white/50 font-medium uppercase tracking-widest">获得星级</div>
             <div className="flex gap-2">
               {[1, 2, 3].map(n => (
@@ -56,16 +54,11 @@ export default function StageResult({ result, decks, onNextWave, onRetry, onBack
               ))}
             </div>
           </div>
+        ) : (
+          <div className="text-center text-white/60 py-4">
+            别灰心，下次答题快一点就能赢！
+          </div>
         )}
-
-        {/* Stats rows */}
-        <div className="space-y-3">
-          <StatRow label="正确率" value={`${accuracy}%`} icon="🎯"
-            highlight={accuracy >= 90 ? 'text-green-400' : accuracy >= 70 ? 'text-yellow-400' : 'text-red-400'} />
-          <StatRow label="答对题数" value={`${correctCount} / ${totalAnswered}`} icon="📝" />
-          <StatRow label="最大连击" value={maxCombo > 0 ? `×${maxCombo}` : '0'} icon="🔥"
-            highlight={maxCombo >= 3 ? 'text-orange-400' : undefined} />
-        </div>
 
         {/* Reward */}
         {victory && reward && (
@@ -115,18 +108,6 @@ export default function StageResult({ result, decks, onNextWave, onRetry, onBack
           返回地图
         </button>
       </div>
-    </div>
-  );
-}
-
-function StatRow({ label, value, icon, highlight }: { label: string; value: string; icon: string; highlight?: string }) {
-  return (
-    <div className="flex items-center justify-between">
-      <div className="flex items-center gap-2 text-white/60 text-sm">
-        <span>{icon}</span>
-        <span>{label}</span>
-      </div>
-      <span className={`font-bold text-sm ${highlight ?? 'text-white'}`}>{value}</span>
     </div>
   );
 }

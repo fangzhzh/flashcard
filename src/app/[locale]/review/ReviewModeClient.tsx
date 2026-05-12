@@ -10,9 +10,8 @@ import { useToast } from '@/hooks/use-toast';
 import { RefreshCw, CheckCircle2, SkipForward, RotateCcw, PlayCircle, ThumbsUp, PlusCircle, Layers, LayoutDashboard, Loader2, ShieldAlert, Volume2, Library, ListChecks, Brain, FileText, ArrowLeft } from 'lucide-react';
 import { formatISO, addDays } from 'date-fns';
 import Link from 'next/link';
-import ReactMarkdown from 'react-markdown';
+import ReactMarkdown, { type Components } from 'react-markdown';
 import remarkGfm from 'remark-gfm';
-import type { CodeProps } from 'react-markdown/lib/ast-to-react';
 import MermaidDiagram from '@/components/MermaidDiagram';
 import { useI18n, useCurrentLocale } from '@/lib/i18n/client';
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
@@ -37,16 +36,17 @@ const SS_IS_FLIPPED = `${SESSION_STORAGE_PREFIX}isFlipped`;
 const SS_SESSION_TYPE = `${SESSION_STORAGE_PREFIX}sessionType`;
 const SS_QUEUE_IDS = `${SESSION_STORAGE_PREFIX}queueIds`; // For preserving shuffled order
 
-const CustomMarkdownComponents = {
-  code({ node, inline, className, children, ...props }: CodeProps) {
+const CustomMarkdownComponents: Components = {
+  code({ className, children, ...props }) {
     const match = /language-(\w+)/.exec(className || '');
-    if (!inline && match && match[1] === 'mermaid') {
+    const isInline = !className;
+    if (!isInline && match && match[1] === 'mermaid') {
       return <MermaidDiagram chart={String(children).trim()} />;
     }
-    if (!inline && match) {
+    if (!isInline && match) {
       return (
-        <pre className={className} {...props}>
-          <code className={`language-${match[1]}`}>{children}</code>
+        <pre className={className}>
+          <code className={`language-${match[1]}`} {...props}>{children}</code>
         </pre>
       );
     }
@@ -56,7 +56,7 @@ const CustomMarkdownComponents = {
       </code>
     );
   },
-  a({ node, ...props }: React.ComponentPropsWithoutRef<'a'>) {
+  a({ ...props }) {
     if (props.href && (props.href.startsWith('http://') || props.href.startsWith('https://'))) {
       return <a {...props} target="_blank" rel="noopener noreferrer" />;
     }
@@ -660,7 +660,7 @@ export default function ReviewModeClient() {
                 disabled={isSubmittingProgress} 
               >
                 {isSubmittingProgress && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                <opt.icon className="mr-1 sm:mr-2 h-4 w-4 sm:h-5 sm:w-5" /> {t(opt.labelKey)}
+                <opt.icon className="mr-1 sm:mr-2 h-4 w-4 sm:h-5 sm:w-5" /> {t(opt.labelKey as any, {})}
               </Button>
             ))}
           </CardFooter>

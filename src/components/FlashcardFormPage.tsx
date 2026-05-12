@@ -123,7 +123,7 @@ export default function FlashcardFormPage({ mode }: FlashcardFormPageProps) {
     const deckIdFromQuery = searchParams.get('deckId');
 
     lines.forEach((line, index) => {
-      const parts = line.split(/:(.*)/s);
+      const parts = line.split(/:([\s\S]*)/);
       if (parts.length === 2 || parts.length === 3 ) {
         const front = parts[0].trim();
         const back = parts[1].trim();
@@ -242,7 +242,7 @@ export default function FlashcardFormPage({ mode }: FlashcardFormPageProps) {
           <ArrowLeft className="mr-2 h-4 w-4" /> {t('flashcard.form.page.button.back')}
         </Button>
         <h2 className="text-2xl font-semibold tracking-tight sm:absolute sm:left-1/2 sm:-translate-x-1/2 order-first sm:order-none">
-          {t(pageTitleKey)}
+          {t(pageTitleKey as any, {})}
         </h2>
         {mode === 'create' && (
           <Button

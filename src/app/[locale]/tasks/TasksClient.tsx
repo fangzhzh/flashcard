@@ -13,7 +13,7 @@ import type { Task, TimeInfo, TaskStatus, RepeatFrequency, ReminderType, TaskTyp
 import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert";
 import TaskForm, { type TaskFormData } from '@/components/TaskForm';
 import { usePomodoro } from '@/contexts/PomodoroContext';
-import { format, parseISO, differenceInCalendarDays, isToday, isTomorrow, isValid, isSameYear, startOfDay, addDays, startOfWeek, endOfWeek, areIntervalsOverlapping, endOfDay, isYesterday, addWeeks, addMonths, addYears, nextSaturday, isSunday, formatISO as dateFnsFormatISO } from 'date-fns';
+import { format, parseISO, differenceInCalendarDays, isToday, isTomorrow, isValid, isSameYear, startOfDay, addDays, startOfWeek, endOfWeek, areIntervalsOverlapping, endOfDay, isYesterday, addWeeks, addMonths, addYears, nextSaturday, isSunday, isSaturday, formatISO as dateFnsFormatISO, type Locale } from 'date-fns';
 import { enUS } from 'date-fns/locale/en-US';
 import { zhCN } from 'date-fns/locale/zh-CN';
 import { cn } from '@/lib/utils';
@@ -183,7 +183,7 @@ function TasksClientContent() {
     repeat: 'none' as RepeatFrequency,
     isSilent: false,
     timeInfo: { type: 'no_time' as 'no_time', startDate: null, endDate: null, time: null },
-    artifactLink: { flashcardId: null as string | null },
+    artifactLink: { flashcardIds: null as string[] | null },
     reminderInfo: { type: 'none' as ReminderType },
     checkinInfo: null,
   }), [activeTaskTypeFilter]);
@@ -310,7 +310,7 @@ function TasksClientContent() {
 
       const { timeInfo } = task;
       if (!timeInfo?.startDate || !isValid(parseISO(timeInfo.startDate))) {
-        return activeDateFilter === 'all'; 
+        return false; 
       }
       
       const taskStartDate = startOfDay(parseISO(timeInfo.startDate));
@@ -512,7 +512,7 @@ function TasksClientContent() {
             isSilent: true, 
             checkinInfo: task.checkinInfo ? { ...task.checkinInfo, currentCheckins: 0, history: [] } : null,
           };
-          const { id, ...dataForNewTask } = newTaskData;
+          const dataForNewTask = newTaskData;
           await addTaskInContext(dataForNewTask);
           toast({ title: t('toast.task.rescheduled.title'), description: t('toast.task.rescheduled.description', { title: task.title }) });
         }
@@ -532,7 +532,7 @@ function TasksClientContent() {
               isSilent: true,
               checkinInfo: task.checkinInfo ? { ...task.checkinInfo, currentCheckins: 0, history: [] } : null,
             };
-            const { id, ...dataForNewTask } = newTaskData;
+            const dataForNewTask = newTaskData;
             await addTaskInContext(dataForNewTask);
             toast({ title: t('toast.task.rescheduled.title'), description: t('toast.task.rescheduled.description', { title: task.title }) });
           }
@@ -637,7 +637,7 @@ function TasksClientContent() {
       if (task && task.type !== newType) {
         try {
           await updateTaskInContext(taskId, { type: newType });
-          toast({ title: t('success'), description: t('toast.task.typeChanged', { type: t(`task.type.${newType}` as any) }) });
+          toast({ title: t('success'), description: t('toast.task.typeChanged', { type: t(`task.type.${newType}` as any, {}) }) });
         } catch (error) {
           toast({ title: t('error'), description: t('toast.task.error.save'), variant: "destructive" });
         }
@@ -686,11 +686,10 @@ function TasksClientContent() {
                 isSilent: true,
                 checkinInfo: task.checkinInfo ? { ...task.checkinInfo, currentCheckins: 0, history: [] } : null,
               };
-              const { id, ...dataForNewTask } = newTaskData;
+              const dataForNewTask = newTaskData;
               await addTaskInContext(dataForNewTask);
               toast({ title: t('toast.task.rescheduled.title'), description: t('toast.task.rescheduled.description', { title: task.title }) });
-            }
-        }
+            }        }
       }
       
       await updateTaskInContext(task.id, updates);
@@ -951,10 +950,10 @@ function TasksClientContent() {
                     <SidebarMenuButton
                       onClick={() => handleTaskTypeFilterChange(typeOpt.value)}
                       isActive={activeTaskTypeFilter === typeOpt.value}
-                      tooltip={{ children: t(typeOpt.labelKey), side: 'right', align: 'center' }}
+                      tooltip={{ children: t(typeOpt.labelKey as any, {}), side: 'right', align: 'center' }}
                       className={cn(
                           "justify-start",
-                          draggedOverType === typeOpt.value && typeOpt.value !== 'all' && "ring-2 ring-primary ring-offset-1"
+                          draggedOverType === (typeOpt.value as any) && typeOpt.value !== 'all' && "ring-2 ring-primary ring-offset-1"
                       )}
                       onDragOver={typeOpt.value !== 'all' && !isMobile ? handleDragOver : undefined}
                       onDrop={typeOpt.value !== 'all' && !isMobile ? (e) => handleDropOnType(e, typeOpt.value as TaskType) : undefined}
@@ -962,7 +961,7 @@ function TasksClientContent() {
                       onDragLeave={typeOpt.value !== 'all' && !isMobile ? handleDragLeaveType : undefined}
                     >
                       <typeOpt.icon />
-                      <span className="flex-grow">{t(typeOpt.labelKey)}</span>
+                      <span className="flex-grow">{t(typeOpt.labelKey as any, {})}</span>
                       <span className="text-xs text-muted-foreground ml-auto pr-1">{typeOpt.count}</span>
                     </SidebarMenuButton>
                   </SidebarMenuItem>
@@ -1078,13 +1077,13 @@ function TasksClientContent() {
             <AlertDialogHeader>
             <AlertDialogTitle>{t('tasks.unsavedChanges.title')}</AlertDialogTitle>
             <AlertDialogDescription>
-                {pendingAction ? t(pendingAction.descriptionKey) : ""}
+                {pendingAction ? t(pendingAction.descriptionKey as any, {}) : ""}
             </AlertDialogDescription>
             </AlertDialogHeader>
             <AlertDialogFooter>
             <AlertDialogCancel onClick={() => setPendingAction(null)}>{t('tasks.unsavedChanges.button.stay')}</AlertDialogCancel>
             <AlertDialogAction onClick={proceedWithPendingAction}>
-                {pendingAction ? t(pendingAction.confirmButtonKey) : ""}
+                {pendingAction ? t(pendingAction.confirmButtonKey as any, {}) : ""}
             </AlertDialogAction>
             </AlertDialogFooter>
         </AlertDialogContent>

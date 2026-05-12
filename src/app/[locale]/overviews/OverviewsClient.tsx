@@ -35,9 +35,8 @@ import { useI18n, useCurrentLocale } from '@/lib/i18n/client';
 import type { Overview, Task, ArtifactLink, Flashcard as FlashcardType, Deck } from '@/types';
 import { Alert, AlertTitle, AlertDescription as UiAlertDescription } from '@/components/ui/alert';
 import Link from 'next/link';
-import ReactMarkdown from 'react-markdown';
+import ReactMarkdown, { type Components } from 'react-markdown';
 import remarkGfm from 'remark-gfm';
-import type { CodeProps } from 'react-markdown/lib/ast-to-react';
 import MermaidDiagram from '@/components/MermaidDiagram';
 import { Dialog as SelectDialog, DialogContent as SelectDialogContent, DialogHeader as SelectDialogHeader, DialogTitle as SelectDialogTitle, DialogFooter as SelectDialogFooter } from "@/components/ui/dialog";
 import { Input as SearchInput } from "@/components/ui/input";
@@ -46,16 +45,18 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import FlashcardForm from '@/components/FlashcardForm';
 import { cn } from '@/lib/utils';
 
-const CustomMarkdownComponents = {
-  code({ node, inline, className, children, ...props }: CodeProps) {
+const CustomMarkdownComponents: Components = {
+  code({ className, children, ...props }) {
     const match = /language-(\w+)/.exec(className || '');
-    if (!inline && match && match[1] === 'mermaid') {
+    if (match && match[1] === 'mermaid') {
       return <MermaidDiagram chart={String(children).trim()} />;
     }
-    if (!inline && match) {
+    if (match) {
       return (
-        <pre className={className} {...props}>
-          <code className={`language-${match[1]}`}>{children}</code>
+        <pre className={className}>
+          <code className={className} {...props}>
+            {children}
+          </code>
         </pre>
       );
     }
@@ -65,7 +66,7 @@ const CustomMarkdownComponents = {
       </code>
     );
   },
-  a({ node, ...props }: React.ComponentPropsWithoutRef<'a'>) {
+  a({ node, ...props }) {
     if (props.href && (props.href.startsWith('http://') || props.href.startsWith('https://'))) {
       return <a {...props} target="_blank" rel="noopener noreferrer" />;
     }
@@ -142,13 +143,17 @@ export default function OverviewsClient() {
     }
 
     setIsSubmittingOverview(true);
-    const dataToSave = { title: overviewTitle, description: overviewDescription.trim() || null, artifactLink: overviewArtifactLink };
+    const dataToSave: Partial<Omit<Overview, 'id' | 'userId'>> = { 
+      title: overviewTitle, 
+      description: overviewDescription.trim() || null, 
+      artifactLink: overviewArtifactLink || undefined 
+    };
     try {
       if (currentOverview && currentOverview.id) {
         await updateOverview(currentOverview.id, dataToSave);
         toast({ title: t('success'), description: t('toast.overview.updated') });
       } else {
-        await addOverview(dataToSave);
+        await addOverview({ ...dataToSave, title: overviewTitle });
         toast({ title: t('success'), description: t('toast.overview.created') });
       }
       setIsDialogOpen(false);

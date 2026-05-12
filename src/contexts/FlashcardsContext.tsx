@@ -408,7 +408,15 @@ export const FlashcardsProvider = ({ children }: { children: ReactNode }) => {
       await updateDoc(taskDocRef, updateData as any);
 
       const task = tasks.find(t => t.id === id);
-      return task ? { ...task, ...updates, type: updateData.type, isSilent: updateData.isSilent, checkinInfo: updateData.checkinInfo, overviewId: updateData.overviewId, updatedAt: formatISO(new Date()) } : null;
+      return task ? { 
+        ...task, 
+        ...updates, 
+        type: updateData.type, 
+        isSilent: updateData.isSilent, 
+        checkinInfo: updateData.checkinInfo, 
+        overviewId: updateData.overviewId, 
+        updatedAt: formatISO(new Date()) 
+      } as Task : null;
     } catch (error) { console.error("Error updating task:", error); return null; }
   }, [user, tasks]);
 
@@ -546,10 +554,10 @@ export const FlashcardsProvider = ({ children }: { children: ReactNode }) => {
     getCompletedTasksCountLast30Days, fetchCompletedTasksLast30Days,
     addOverview, updateOverview, deleteOverview, getOverviewById,
     getReviewQueue, getStatistics,
-    isLoading: isLoading || (user && isSeeding),
-    isLoadingDecks: isLoadingDecks || (user && isSeeding),
-    isLoadingTasks: isLoadingTasks || (user && isSeeding),
-    isLoadingOverviews: isLoadingOverviews || (user && isSeeding),
+    isLoading: isLoading || !!(user && isSeeding),
+    isLoadingDecks: isLoadingDecks || !!(user && isSeeding),
+    isLoadingTasks: isLoadingTasks || !!(user && isSeeding),
+    isLoadingOverviews: isLoadingOverviews || !!(user && isSeeding),
     isSeeding,
   }), [
       flashcards, decks, tasks, overviews,

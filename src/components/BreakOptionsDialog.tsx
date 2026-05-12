@@ -111,13 +111,13 @@ export default function BreakOptionsDialog({ isOpen, onClose, onStartRest, restD
                         onCheckedChange={(checked) => handleSelectionChange(option.id, !!checked)}
                       />
                       <Label htmlFor={option.id} className="font-normal cursor-pointer flex-1 flex items-center">
-                        <span>{t(option.labelKey)}</span>
+                        <span>{t(option.labelKey as any, {})}</span>
                         {renderStars(option.effectiveness)}
                       </Label>
                     </div>
                   </TooltipTrigger>
                   <TooltipContent side="top" align="start" className="max-w-xs text-sm">
-                    <p>{t(option.benefitKey)}</p>
+                    <p>{t(option.benefitKey as any, {})} </p>
                   </TooltipContent>
                 </Tooltip>
               </TooltipProvider>

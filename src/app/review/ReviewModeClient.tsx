@@ -80,17 +80,17 @@ export default function ReviewModeClient() {
         status: newStatus,
       });
       
-      const performanceTranslationMap = {
+      const performanceTranslationMap: Record<string, string> = {
         'Mastered': t('review.button.progress.mastered'),
         'Later': t('review.button.progress.later'),
         'Try Again': t('review.button.progress.tryAgain'),
       };
-      const translatedPerformance = performanceTranslationMap[performance] || performance;
+      const translatedPerformance = performanceTranslationMap[performance] || (performance as string);
 
 
       toast({
-        title: t('toast.progress.saved'),
-        description: t('toast.progress.saved.description', { performance: translatedPerformance, nextReviewDate: new Date(nextReviewDateString + 'T00:00:00').toLocaleDateString() }),
+        title: t('toast.progress.saved' as any, {}),
+        description: t('toast.progress.saved.description' as any, { performance: translatedPerformance, nextReviewDate: new Date(nextReviewDateString + 'T00:00:00').toLocaleDateString() }),
       });
 
       if (currentCardIndex < reviewQueue.length - 1) {
@@ -286,7 +286,7 @@ export default function ReviewModeClient() {
                 className="text-sm sm:text-base py-4 h-auto"
                 disabled={isSubmittingProgress}
               >
-                <opt.icon className="mr-1 sm:mr-2 h-4 w-4 sm:h-5 sm:w-5" /> {t(opt.labelKey)}
+                <opt.icon className="mr-1 sm:mr-2 h-4 w-4 sm:h-5 sm:w-5" /> {t(opt.labelKey as any, {})}
               </Button>
             ))}
           </CardFooter>

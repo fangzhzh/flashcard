@@ -129,7 +129,7 @@ export default function AuthClient() {
                       <FormControl>
                         <Input type="email" placeholder={t('auth.form.emailPlaceholder')} {...field} disabled={isSubmitting} />
                       </FormControl>
-                      <FormMessage>{emailPasswordForm.formState.errors.email && t(emailPasswordForm.formState.errors.email.message as any)}</FormMessage>
+                      <FormMessage>{emailPasswordForm.formState.errors.email && t(emailPasswordForm.formState.errors.email.message as any, {})}</FormMessage>
                     </FormItem>
                   )}
                 />
@@ -142,7 +142,7 @@ export default function AuthClient() {
                       <FormControl>
                         <Input type="password" placeholder={t('auth.form.passwordPlaceholder')} {...field} disabled={isSubmitting} />
                       </FormControl>
-                      <FormMessage>{emailPasswordForm.formState.errors.password && t(emailPasswordForm.formState.errors.password.message as any)}</FormMessage>
+                      <FormMessage>{emailPasswordForm.formState.errors.password && t(emailPasswordForm.formState.errors.password.message as any, {})}</FormMessage>
                     </FormItem>
                   )}
                 />
@@ -190,7 +190,7 @@ export default function AuthClient() {
                         <FormControl>
                           <Input type="email" placeholder={t('auth.form.emailPlaceholder')} {...field} disabled={isSubmitting} />
                         </FormControl>
-                        <FormMessage>{emailLinkForm.formState.errors.email && t(emailLinkForm.formState.errors.email.message as any)}</FormMessage>
+                        <FormMessage>{emailLinkForm.formState.errors.email && t(emailLinkForm.formState.errors.email.message as any, {})}</FormMessage>
                       </FormItem>
                     )}
                   />

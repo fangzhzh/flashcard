@@ -193,7 +193,7 @@ export default function TaskDateTimeReminderDialog({
                 <SelectContent>
                   {repeatOptions.map(option => (
                     <SelectItem key={option.value} value={option.value} className="text-sm">
-                      {t(option.labelKey as any)}
+                      {t(option.labelKey as any, {})}
                     </SelectItem>
                   ))}
                 </SelectContent>
@@ -211,7 +211,7 @@ export default function TaskDateTimeReminderDialog({
                 <SelectContent>
                   {reminderOptions.map(option => (
                     <SelectItem key={option.value} value={option.value} className="text-sm">
-                      {t(option.labelKey as any)}
+                      {t(option.labelKey as any, {})}
                     </SelectItem>
                   ))}
                 </SelectContent>

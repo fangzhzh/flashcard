@@ -6,9 +6,8 @@ import { Card, CardContent, CardFooter, CardHeader, CardTitle, CardDescription }
 import { FilePenLine, Trash2, Eye, EyeOff, Library, Volume2, Brain, ArrowLeft } from 'lucide-react';
 import type { Flashcard } from '@/types';
 import { useState, useMemo } from 'react';
-import ReactMarkdown from 'react-markdown';
+import ReactMarkdown, { type Components } from 'react-markdown';
 import remarkGfm from 'remark-gfm';
-import type { CodeProps } from 'react-markdown/lib/ast-to-react';
 import MermaidDiagram from '@/components/MermaidDiagram';
 import MarkmapRenderer from '@/components/MarkmapRenderer';
 import {
@@ -33,17 +32,19 @@ interface FlashcardItemProps {
   onDelete: (id: string) => void;
 }
 
-const CustomMarkdownComponents = {
-  code({ node, inline, className, children, ...props }: CodeProps) {
+const CustomMarkdownComponents: Components = {
+  code({ className, children, ...props }) {
     const match = /language-(\w+)/.exec(className || '');
-    if (!inline && match && match[1] === 'mermaid') {
+    if (match && match[1] === 'mermaid') {
       return <MermaidDiagram chart={String(children).trim()} />;
     }
     // Fallback for other code blocks (e.g., regular syntax highlighting or default)
-    if (!inline && match) {
+    if (match) {
       return (
-        <pre className={className} {...props}>
-          <code className={`language-${match[1]}`}>{children}</code>
+        <pre className={className}>
+          <code className={className} {...props}>
+            {children}
+          </code>
         </pre>
       );
     }
@@ -54,7 +55,7 @@ const CustomMarkdownComponents = {
       </code>
     );
   },
-  a({ node, ...props }: React.ComponentPropsWithoutRef<'a'>) {
+  a({ node, ...props }) {
     if (props.href && (props.href.startsWith('http://') || props.href.startsWith('https://'))) {
       return <a {...props} target="_blank" rel="noopener noreferrer" />;
     }
@@ -171,7 +172,7 @@ export default function FlashcardItem({ flashcard, onDelete }: FlashcardItemProp
                     e.stopPropagation();
                     handleSpeak(flashcard.back, detectLanguage(flashcard.back));
                   }}
-                  title={t('flashcard.item.speakBack' as any)}
+                  title={t('flashcard.item.speakBack' as any, {})}
                 >
                   <Volume2 className="h-4 w-4" />
                 </Button>

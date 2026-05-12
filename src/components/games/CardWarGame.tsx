@@ -4,6 +4,7 @@ import { useFlashcards } from '@/contexts/FlashcardsContext';
 import { useAuth } from '@/contexts/AuthContext';
 import { useCurrentLocale } from '@/lib/i18n/client';
 import Link from 'next/link';
+import type { Deck } from '@/types';
 import WorldMap from './WorldMap';
 import BattleScene from './BattleScene';
 import StageResult from './StageResult';
@@ -15,52 +16,47 @@ export interface Item { type: ItemType; emoji: string; name: string; desc: strin
 export type AnimState = 'IDLE' | 'PLAYER_ATTACK' | 'BOSS_ATTACK' | 'SHOW_WRONG';
 
 export interface StageConfig {
-  id: number;
+  id: number;         // wave number
+  worldId: string;    // deckId | 'all'
   name: string;
   boss: string;
   bossEmoji: string;
   bossHP: number;
   cardCount: number;
-  bgFrom: string;
-  bgVia: string;
-  bgTo: string;
+  bgFrom: string; bgVia: string; bgTo: string;
 }
 
 export interface BattleCard { id: string; front: string; back: string; }
 
 export interface BattleState {
   stage: StageConfig;
-  playerHP: number;
-  maxPlayerHP: number;
-  bossHP: number;
-  maxBossHP: number;
+  playerHP: number; maxPlayerHP: number;
+  bossHP: number;   maxBossHP: number;
   deck: BattleCard[];
   deckIndex: number;
-  choices: string[];           // 4 displayed options (truncated)
-  choicesFull: string[];       // 4 full backs for "view full answer"
+  choices: string[];
+  choicesFull: string[];
   correctIndex: number;
   selectedIndex: number | null;
   isCorrect: boolean | null;
-  combo: number;
-  maxCombo: number;
-  wrongStreak: number;
-  bossRage: boolean;
-  totalAnswered: number;
-  correctCount: number;
+  combo: number; maxCombo: number;
+  wrongStreak: number; bossRage: boolean;
+  totalAnswered: number; correctCount: number;
   inventory: Item[];
-  shieldActive: boolean;
-  lightningActive: boolean;
-  crystalActive: boolean;      // eliminates one wrong option
+  shieldActive: boolean; lightningActive: boolean;
   eliminatedIndex: number | null;
   animState: AnimState;
-  damageKey: number;           // bump to retrigger floating damage
-  damageAmount: number;
-  damageToBoss: boolean;
+  damageKey: number; damageAmount: number; damageToBoss: boolean;
+}
+
+export interface WorldSave {
+  currentWave: number;   // wave to attempt next
+  bestWave: number;      // highest wave cleared
+  stars: Record<number, number>; // wave -> stars (1-3)
 }
 
 export interface SaveData {
-  unlockedStages: number;
-  stageStars: Record<number, number>;
+  worlds: Record<string, WorldSave>;  // key = deckId | 'all'
   inventory: Item[];
   totalWins: number;
 }
@@ -68,6 +64,7 @@ export interface SaveData {
 export interface ResultData {
   victory: boolean;
   stageId: number;
+  worldId: string;
   correctCount: number;
   totalAnswered: number;
   maxCombo: number;
@@ -77,12 +74,10 @@ export interface ResultData {
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
-const SAVE_KEY = 'card_war_save_v1';
-const PLAYER_MAX_HP = 100;
-const PLAYER_ATTACK = 30;
+const SAVE_KEY = 'card_war_save_v2';
+const PLAYER_BASE_HP = 100;
+const PLAYER_ATTACK = 35; // Buffed slightly
 const BOSS_ATTACK = 20;
-const COMBO_THRESHOLD = 3;
-const RAGE_THRESHOLD = 2;
 
 export const ITEM_POOL: Item[] = [
   { type: 'potion',    emoji: '🧪', name: '治愈药水',  desc: '恢复 30 HP' },
@@ -91,35 +86,96 @@ export const ITEM_POOL: Item[] = [
   { type: 'shield',    emoji: '🛡️', name: '铁壁盾牌',  desc: '下次答错不扣血' },
 ];
 
-// Dynamic stages based on card count — called at game start
-export function buildStages(totalCards: number): StageConfig[] {
-  const stageTemplates = [
-    { name: '新手村',   boss: '石头傀儡',  bossEmoji: '🪨', hpMult: 2.5, cardFrac: 0.15, bgFrom: 'from-emerald-950', bgVia: 'via-green-900',  bgTo: 'to-teal-950'   },
-    { name: '暗黑森林', boss: '暗影精灵',  bossEmoji: '🧝', hpMult: 3.5, cardFrac: 0.20, bgFrom: 'from-purple-950', bgVia: 'via-violet-900', bgTo: 'to-slate-950'  },
-    { name: '冰雪神殿', boss: '冰霜法师',  bossEmoji: '❄️', hpMult: 4.5, cardFrac: 0.25, bgFrom: 'from-blue-950',   bgVia: 'via-cyan-900',   bgTo: 'to-indigo-950' },
-    { name: '火焰裂谷', boss: '熔岩巨人',  bossEmoji: '🌋', hpMult: 6.0, cardFrac: 0.30, bgFrom: 'from-red-950',    bgVia: 'via-orange-900', bgTo: 'to-amber-950'  },
-    { name: '最终之塔', boss: '知识守护者',bossEmoji: '👁️', hpMult: 8.0, cardFrac: 0.35, bgFrom: 'from-violet-950', bgVia: 'via-indigo-900', bgTo: 'to-slate-950'  },
-  ];
+// Boss pool — cycles with wave number, can be themed by deck
+const BOSS_POOL = [
+  { name: '石头傀儡',   emoji: '🪨', bg: ['from-emerald-950','via-green-900','to-teal-950']   },
+  { name: '暗影精灵',   emoji: '🧝', bg: ['from-purple-950','via-violet-900','to-slate-950']  },
+  { name: '冰霜法师',   emoji: '❄️', bg: ['from-blue-950','via-cyan-900','to-indigo-950']     },
+  { name: '熔岩巨人',   emoji: '🌋', bg: ['from-red-950','via-orange-900','to-amber-950']     },
+  { name: '暗龙领主',   emoji: '🐉', bg: ['from-violet-950','via-purple-900','to-indigo-950'] },
+  { name: '死亡骑士',   emoji: '💀', bg: ['from-gray-950','via-slate-900','to-zinc-950']      },
+  { name: '混沌恶魔',   emoji: '😈', bg: ['from-rose-950','via-red-900','to-orange-950']      },
+  { name: '知识守护者', emoji: '👁️', bg: ['from-violet-950','via-indigo-900','to-slate-950']  },
+];
 
-  const clampedCards = Math.max(totalCards, 4);
-  const stageCount = Math.min(5, Math.max(1, Math.ceil(clampedCards / 8)));
+// Deck-aware boss overrides based on keywords in deck name
+const THEMED_BOSSES: { keywords: string[]; bosses: typeof BOSS_POOL }[] = [
+  {
+    keywords: ['心理', 'psych', 'mental', 'cognitive'],
+    bosses: [
+      { name: '潜意识怪物', emoji: '🧠', bg: ['from-pink-950','via-rose-900','to-purple-950'] },
+      { name: '认知扭曲者', emoji: '🌀', bg: ['from-fuchsia-950','via-pink-900','to-rose-950'] },
+      { name: '情绪操控者', emoji: '🎭', bg: ['from-purple-950','via-fuchsia-900','to-pink-950'] },
+      { name: '记忆吞噬者', emoji: '🌫️', bg: ['from-slate-950','via-gray-900','to-zinc-950'] },
+    ],
+  },
+  {
+    keywords: ['system', 'design', '架构', 'architecture', 'infra'],
+    bosses: [
+      { name: '单点故障',   emoji: '🏗️', bg: ['from-sky-950','via-blue-900','to-indigo-950']   },
+      { name: '分布式恶魔', emoji: '⚡', bg: ['from-amber-950','via-yellow-900','to-orange-950'] },
+      { name: '一致性幽灵', emoji: '🔄', bg: ['from-teal-950','via-cyan-900','to-sky-950']       },
+      { name: '瓶颈巨人',   emoji: '📡', bg: ['from-indigo-950','via-blue-900','to-cyan-950']    },
+    ],
+  },
+  {
+    keywords: ['algo', 'algorithm', '算法', 'data structure', '数据结构', 'leetcode'],
+    bosses: [
+      { name: '算法机器人', emoji: '🤖', bg: ['from-green-950','via-emerald-900','to-teal-950'] },
+      { name: '复杂度怪兽', emoji: '📊', bg: ['from-lime-950','via-green-900','to-emerald-950'] },
+      { name: '递归幽灵',   emoji: '🔮', bg: ['from-teal-950','via-green-900','to-emerald-950'] },
+      { name: '贪心恶魔',   emoji: '💻', bg: ['from-cyan-950','via-teal-900','to-green-950']    },
+    ],
+  },
+];
 
-  return stageTemplates.slice(0, stageCount).map((t, i) => ({
-    id: i + 1,
-    name: t.name,
-    boss: t.boss,
-    bossEmoji: t.bossEmoji,
-    bossHP: Math.round(PLAYER_ATTACK * t.hpMult),
-    cardCount: Math.max(4, Math.round(clampedCards * t.cardFrac)),
-    bgFrom: t.bgFrom,
-    bgVia: t.bgVia,
-    bgTo: t.bgTo,
-  }));
+function pickBossPool(deckName: string | null) {
+  if (!deckName) return BOSS_POOL;
+  const lower = deckName.toLowerCase();
+  for (const theme of THEMED_BOSSES) {
+    if (theme.keywords.some(k => lower.includes(k))) return theme.bosses;
+  }
+  return BOSS_POOL;
+}
+
+// ─── Wave generator ────────────────────────────────────────────────────────────
+
+export function generateWaveStage(
+  wave: number,
+  worldId: string,
+  deckName: string | null,
+  totalCards: number,
+): StageConfig {
+  const pool = pickBossPool(deckName);
+  const boss = pool[(wave - 1) % pool.length];
+  const isElite = wave % 5 === 0;
+  const bossHP = Math.round(60 + wave * 28 * (isElite ? 1.8 : 1));
+  const cardCount = Math.min(4 + Math.floor(wave * 1.3), Math.min(totalCards, 25));
+
+  const waveNames: Record<number, string> = {
+    1: '迷雾入口', 2: '黑暗走廊', 3: '诅咒大厅',
+    4: '幽冥圣所', 5: '精英守卫',
+  };
+  const name = wave <= 5
+    ? (waveNames[wave] ?? `第 ${wave} 波`)
+    : wave % 5 === 0
+      ? `★ 精英波 ${wave}`
+      : `深渊第 ${wave} 层`;
+
+  return {
+    id: wave, worldId,
+    name: isElite ? `⚔️ ${name}` : name,
+    boss: isElite ? `${boss.name}·精英` : boss.name,
+    bossEmoji: boss.emoji,
+    bossHP,
+    cardCount,
+    bgFrom: boss.bg[0], bgVia: boss.bg[1], bgTo: boss.bg[2],
+  };
 }
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
-function shuffle<T>(arr: T[]): T[] {
+export function shuffle<T>(arr: T[]): T[] {
   const a = [...arr];
   for (let i = a.length - 1; i > 0; i--) {
     const j = Math.floor(Math.random() * (i + 1));
@@ -128,31 +184,24 @@ function shuffle<T>(arr: T[]): T[] {
   return a;
 }
 
-function stripMarkdown(text: string): string {
+export function stripMarkdown(text: string): string {
   return text
     .replace(/```[\s\S]*?```/g, '[代码]')
-    .replace(/`[^`]*`/g, match => match.slice(1, -1))
+    .replace(/`[^`]*`/g, m => m.slice(1, -1))
     .replace(/#{1,6}\s/g, '')
     .replace(/\*\*([^*]+)\*\*/g, '$1')
     .replace(/\*([^*]+)\*/g, '$1')
     .replace(/\[([^\]]+)\]\([^)]+\)/g, '$1')
-    .replace(/!\[([^\]]*)\]\([^)]+\)/g, '')
+    .replace(/!\[[^\]]*\]\([^)]+\)/g, '')
     .replace(/^[-*+]\s/gm, '')
     .replace(/^\d+\.\s/gm, '')
     .replace(/\n+/g, ' ')
     .trim();
 }
 
-function truncate(text: string, max = 80): string {
-  const stripped = stripMarkdown(text);
-  return stripped.length > max ? stripped.slice(0, max) + '…' : stripped;
-}
-
-function calcStars(correctCount: number, total: number, maxCombo: number): number {
-  const acc = correctCount / Math.max(total, 1);
-  if (acc >= 0.9 && maxCombo >= COMBO_THRESHOLD) return 3;
-  if (acc >= 0.7) return 2;
-  return 1;
+export function truncate(text: string, max = 80): string {
+  const s = stripMarkdown(text);
+  return s.length > max ? s.slice(0, max) + '…' : s;
 }
 
 function loadSave(): SaveData {
@@ -160,17 +209,25 @@ function loadSave(): SaveData {
     const raw = localStorage.getItem(SAVE_KEY);
     if (raw) return JSON.parse(raw);
   } catch {}
-  return { unlockedStages: 1, stageStars: {}, inventory: [], totalWins: 0 };
+  return { worlds: {}, inventory: [], totalWins: 0 };
+}
+function writeSave(d: SaveData) {
+  try { localStorage.setItem(SAVE_KEY, JSON.stringify(d)); } catch {}
 }
 
-function writeSave(data: SaveData) {
-  try { localStorage.setItem(SAVE_KEY, JSON.stringify(data)); } catch {}
+function getWorldSave(save: SaveData, worldId: string): WorldSave {
+  const ws = save.worlds[worldId];
+  if (!ws) return { currentWave: 1, bestWave: 0, stars: {} };
+  return {
+    ...ws,
+    stars: ws.stars || {},
+  };
 }
 
 // ─── Main Component ───────────────────────────────────────────────────────────
 
 export default function CardWarGame() {
-  const { flashcards, isLoading } = useFlashcards();
+  const { flashcards, decks, isLoading } = useFlashcards();
   const { user } = useAuth();
   const currentLocale = useCurrentLocale();
 
@@ -178,66 +235,63 @@ export default function CardWarGame() {
   const [saveData, setSaveData] = useState<SaveData>(() => loadSave());
   const [battle, setBattle] = useState<BattleState | null>(null);
   const [result, setResult] = useState<ResultData | null>(null);
-  const stages = React.useMemo(() => buildStages(flashcards.length), [flashcards.length]);
 
-  // Keep saveData synced to localStorage
   useEffect(() => { writeSave(saveData); }, [saveData]);
 
-  // ── Build question for current deck index ──
-  const buildQuestion = useCallback((deck: BattleCard[], index: number, allCards: BattleCard[]) => {
+  // ── Build one question ──────────────────────────────────────────────────────
+  const buildQuestion = useCallback((
+    deck: BattleCard[], index: number, allCards: BattleCard[]
+  ) => {
     const card = deck[index % deck.length];
-    const correct = card.back;
-
-    // Pick 3 distractors from all cards (excluding current)
     const distractors = shuffle(allCards.filter(c => c.id !== card.id))
-      .slice(0, 3)
-      .map(c => c.back);
-
-    // Ensure we always have 3 distractors (pad if insufficient)
+      .slice(0, 3).map(c => c.back);
     while (distractors.length < 3) distractors.push('（无）');
-
-    const fullOptions = shuffle([correct, ...distractors]);
-    const correctIndex = fullOptions.indexOf(correct);
-
+    const fullOptions = shuffle([card.back, ...distractors]);
     return {
       choices: fullOptions.map(o => truncate(o, 80)),
       choicesFull: fullOptions,
-      correctIndex,
+      correctIndex: fullOptions.indexOf(card.back),
     };
   }, []);
 
-  // ── Start a stage ──
-  const startStage = useCallback((stageId: number) => {
-    const stage = stages.find(s => s.id === stageId);
-    if (!stage) return;
-
+  // ── Start a wave ────────────────────────────────────────────────────────────
+  const startStage = useCallback((worldId: string, wave: number) => {
+    // Collect cards for this world
     const allCards: BattleCard[] = flashcards.map(f => ({ id: f.id, front: f.front, back: f.back }));
-    if (allCards.length < 4) return;
+    const worldCards = worldId === 'all'
+      ? allCards
+      : allCards.filter(c => {
+          const fc = flashcards.find(f => f.id === c.id);
+          return fc?.deckId === worldId;
+        });
 
-    const deck = shuffle(allCards).slice(0, Math.min(stage.cardCount, allCards.length));
+    if (worldCards.length < 4) return;
+
+    const deckName = worldId === 'all'
+      ? null
+      : decks.find(d => d.id === worldId)?.name ?? null;
+
+    const stage = generateWaveStage(wave, worldId, deckName, worldCards.length);
+    const deck = shuffle(worldCards).slice(0, stage.cardCount);
     const { choices, choicesFull, correctIndex } = buildQuestion(deck, 0, allCards);
 
     setBattle({
       stage,
-      playerHP: PLAYER_MAX_HP,
-      maxPlayerHP: PLAYER_MAX_HP,
-      bossHP: stage.bossHP,
-      maxBossHP: stage.bossHP,
-      deck,
-      deckIndex: 0,
+      playerHP: PLAYER_BASE_HP, maxPlayerHP: PLAYER_BASE_HP,
+      bossHP: stage.bossHP, maxBossHP: stage.bossHP,
+      deck, deckIndex: 0,
       choices, choicesFull, correctIndex,
       selectedIndex: null, isCorrect: null,
       combo: 0, maxCombo: 0, wrongStreak: 0, bossRage: false,
       totalAnswered: 0, correctCount: 0,
       inventory: saveData.inventory,
-      shieldActive: false, lightningActive: false, crystalActive: false,
-      eliminatedIndex: null,
+      shieldActive: false, lightningActive: false, eliminatedIndex: null,
       animState: 'IDLE', damageKey: 0, damageAmount: 0, damageToBoss: true,
     });
     setScreen('BATTLE');
-  }, [stages, flashcards, saveData.inventory, buildQuestion]);
+  }, [flashcards, decks, saveData.inventory, buildQuestion]);
 
-  // ── Handle answer ──
+  // ── Answer handler ──────────────────────────────────────────────────────────
   const handleAnswer = useCallback((choiceIndex: number) => {
     setBattle(prev => {
       if (!prev || prev.animState !== 'IDLE' || prev.selectedIndex !== null) return prev;
@@ -246,26 +300,22 @@ export default function CardWarGame() {
     });
   }, []);
 
-  // ── Resolve after animation ──
+  // ── Resolve after animation ─────────────────────────────────────────────────
   const resolveAnswer = useCallback(() => {
     setBattle(prev => {
       if (!prev) return prev;
       const isCorrect = prev.isCorrect!;
       const allCards: BattleCard[] = flashcards.map(f => ({ id: f.id, front: f.front, back: f.back }));
 
-      let playerHP = prev.playerHP;
-      let bossHP = prev.bossHP;
-      let combo = prev.combo;
-      let wrongStreak = prev.wrongStreak;
-      let bossRage = prev.bossRage;
+      let { playerHP, bossHP, combo, wrongStreak, bossRage } = prev;
       let damageAmount = 0;
 
       if (isCorrect) {
         let dmg = PLAYER_ATTACK;
         if (prev.lightningActive) dmg *= 3;
-        if (combo + 1 >= COMBO_THRESHOLD) dmg *= 2; // combo burst on 3rd
+        if (combo + 1 >= 3) dmg *= 2;
         bossHP = Math.max(0, bossHP - dmg);
-        combo = combo + 1;
+        combo++;
         wrongStreak = 0;
         bossRage = false;
         damageAmount = dmg;
@@ -276,107 +326,98 @@ export default function CardWarGame() {
           damageAmount = dmg;
         }
         combo = 0;
-        wrongStreak = wrongStreak + 1;
-        bossRage = wrongStreak >= RAGE_THRESHOLD;
+        wrongStreak++;
+        bossRage = wrongStreak >= 2;
       }
 
       const maxCombo = Math.max(prev.maxCombo, combo);
       const totalAnswered = prev.totalAnswered + 1;
       const correctCount = prev.correctCount + (isCorrect ? 1 : 0);
 
-      // Check end conditions
       if (bossHP <= 0 || playerHP <= 0) {
         const victory = bossHP <= 0;
-        const stageId = prev.stage.id;
-        const stars = victory ? calcStars(correctCount, totalAnswered, maxCombo) : 0;
+        const { worldId, id: wave } = prev.stage;
+        const accuracy = totalAnswered > 0 ? (correctCount / totalAnswered) : 0;
+        let stars = 0;
+        if (victory) {
+          stars = accuracy >= 0.9 ? 3 : accuracy >= 0.7 ? 2 : 1;
+        }
+
         const reward = victory ? ITEM_POOL[Math.floor(Math.random() * ITEM_POOL.length)] : null;
 
-        // Update save
         setSaveData(sd => {
-          const newStars = { ...sd.stageStars, [stageId]: Math.max(sd.stageStars[stageId] || 0, stars) };
-          const newUnlocked = victory ? Math.max(sd.unlockedStages, stageId + 1) : sd.unlockedStages;
-          const newInventory = reward && victory
-            ? [...sd.inventory, reward].slice(-3) // max 3 items
-            : sd.inventory;
-          return { ...sd, unlockedStages: newUnlocked, stageStars: newStars, inventory: newInventory, totalWins: sd.totalWins + (victory ? 1 : 0) };
+          const ws = getWorldSave(sd, worldId);
+          const newWave = victory ? Math.max(ws.currentWave, wave + 1) : ws.currentWave;
+          const newBest = victory ? Math.max(ws.bestWave, wave) : ws.bestWave;
+          const newStars = { ...ws.stars };
+          if (victory) {
+            newStars[wave] = Math.max(newStars[wave] ?? 0, stars);
+          }
+          const newInventory = reward && victory ? [...sd.inventory, reward].slice(-4) : sd.inventory;
+          return {
+            ...sd,
+            worlds: { ...sd.worlds, [worldId]: { currentWave: newWave, bestWave: newBest, stars: newStars } },
+            inventory: newInventory,
+            totalWins: sd.totalWins + (victory ? 1 : 0),
+          };
         });
 
-        setResult({ victory, stageId, correctCount, totalAnswered, maxCombo, stars, reward });
+        setResult({ victory, stageId: wave, worldId, correctCount, totalAnswered, maxCombo, stars, reward });
         setScreen('RESULT');
         return null;
       }
 
-      // Next card
-      const nextIndex = prev.deckIndex + 1;
-      const loopedIndex = nextIndex % prev.deck.length;
-      const { choices, choicesFull, correctIndex } = buildQuestion(prev.deck, loopedIndex, allCards);
-
+      const nextIndex = (prev.deckIndex + 1) % prev.deck.length;
+      const { choices, choicesFull, correctIndex } = buildQuestion(prev.deck, nextIndex, allCards);
       return {
         ...prev,
         playerHP, bossHP, combo, maxCombo, wrongStreak, bossRage,
         totalAnswered, correctCount,
-        deckIndex: loopedIndex,
+        deckIndex: nextIndex,
         choices, choicesFull, correctIndex,
-        selectedIndex: null, isCorrect: null,
-        animState: 'IDLE',
-        shieldActive: isCorrect ? prev.shieldActive : false, // shield consumed on wrong
-        lightningActive: isCorrect ? false : prev.lightningActive, // lightning consumed on correct
-        crystalActive: false, eliminatedIndex: null,
-        damageKey: prev.damageKey + 1,
-        damageAmount,
-        damageToBoss: isCorrect,
+        selectedIndex: null, isCorrect: null, animState: 'IDLE',
+        shieldActive: isCorrect ? prev.shieldActive : false,
+        lightningActive: isCorrect ? false : prev.lightningActive,
+        eliminatedIndex: null,
+        damageKey: prev.damageKey + 1, damageAmount, damageToBoss: isCorrect,
       };
     });
   }, [flashcards, buildQuestion]);
 
-  // ── Use item ──
+  // ── Use item ────────────────────────────────────────────────────────────────
   const handleUseItem = useCallback((idx: number) => {
     setBattle(prev => {
       if (!prev || prev.animState !== 'IDLE') return prev;
       const item = prev.inventory[idx];
       if (!item) return prev;
       const newInv = prev.inventory.filter((_, i) => i !== idx);
-
-      // Also update save
       setSaveData(sd => ({ ...sd, inventory: newInv }));
-
-      if (item.type === 'potion') {
-        return { ...prev, playerHP: Math.min(prev.maxPlayerHP, prev.playerHP + 30), inventory: newInv };
-      }
+      if (item.type === 'potion')    return { ...prev, playerHP: Math.min(prev.maxPlayerHP, prev.playerHP + 30), inventory: newInv };
       if (item.type === 'lightning') return { ...prev, lightningActive: true, inventory: newInv };
-      if (item.type === 'shield')   return { ...prev, shieldActive: true, inventory: newInv };
+      if (item.type === 'shield')    return { ...prev, shieldActive: true, inventory: newInv };
       if (item.type === 'crystal') {
-        // Find an index that is NOT the correct answer to eliminate
-        const wrongIndexes = prev.choices
-          .map((_, i) => i)
-          .filter(i => i !== prev.correctIndex && i !== prev.eliminatedIndex);
-        const toEliminate = wrongIndexes[Math.floor(Math.random() * wrongIndexes.length)] ?? null;
-        return { ...prev, crystalActive: true, eliminatedIndex: toEliminate, inventory: newInv };
+        const wrong = prev.choices.map((_, i) => i).filter(i => i !== prev.correctIndex && i !== prev.eliminatedIndex);
+        const elim = wrong[Math.floor(Math.random() * wrong.length)] ?? null;
+        return { ...prev, eliminatedIndex: elim, inventory: newInv };
       }
       return prev;
     });
   }, []);
 
-  // ── Empty-state guard ──
+  // ── Guards ──────────────────────────────────────────────────────────────────
   if (!user) {
     return (
       <div className="flex flex-col items-center justify-center min-h-[80vh] gap-4 text-center px-4">
         <div className="text-6xl">⚔️</div>
         <h1 className="text-2xl font-bold">卡牌战争冒险</h1>
         <p className="text-muted-foreground">请先登录后游玩。</p>
-        <Link href={`/${currentLocale}/auth`} className="inline-flex items-center gap-2 rounded-lg bg-primary text-primary-foreground px-6 py-2.5 font-medium hover:bg-primary/90 transition-colors">
-          登录
-        </Link>
+        <Link href={`/${currentLocale}/auth`} className="inline-flex items-center gap-2 rounded-lg bg-primary text-primary-foreground px-6 py-2.5 font-medium hover:bg-primary/90 transition-colors">登录</Link>
       </div>
     );
   }
 
   if (isLoading) {
-    return (
-      <div className="flex items-center justify-center min-h-[80vh]">
-        <div className="text-5xl animate-spin">⚔️</div>
-      </div>
-    );
+    return <div className="flex items-center justify-center min-h-[80vh]"><div className="text-5xl animate-spin">⚔️</div></div>;
   }
 
   if (flashcards.length < 4) {
@@ -385,9 +426,7 @@ export default function CardWarGame() {
         <div className="text-6xl">😢</div>
         <h1 className="text-2xl font-bold">卡片不足</h1>
         <p className="text-muted-foreground">至少需要 4 张抽认卡才能游玩。当前：{flashcards.length} 张。</p>
-        <Link href={`/${currentLocale}/flashcards/new`} className="inline-flex items-center gap-2 rounded-lg bg-primary text-primary-foreground px-6 py-2.5 font-medium hover:bg-primary/90 transition-colors">
-          去创建卡片
-        </Link>
+        <Link href={`/${currentLocale}/flashcards/new`} className="inline-flex items-center gap-2 rounded-lg bg-primary text-primary-foreground px-6 py-2.5 font-medium hover:bg-primary/90 transition-colors">去创建卡片</Link>
       </div>
     );
   }
@@ -396,9 +435,10 @@ export default function CardWarGame() {
     <div className="fixed inset-0 z-30 overflow-hidden" style={{ top: '64px' }}>
       {screen === 'MAP' && (
         <WorldMap
-          stages={stages}
+          flashcards={flashcards}
+          decks={decks}
           saveData={saveData}
-          onSelectStage={startStage}
+          onStartWave={startStage}
         />
       )}
       {screen === 'BATTLE' && battle && (
@@ -412,9 +452,18 @@ export default function CardWarGame() {
       {screen === 'RESULT' && result && (
         <StageResult
           result={result}
-          stages={stages}
-          onContinue={() => { setResult(null); setBattle(null); setScreen('MAP'); }}
-          onRetry={() => { startStage(result.stageId); setResult(null); }}
+          decks={decks}
+          saveData={saveData}
+          onNextWave={() => {
+            const ws = getWorldSave(saveData, result.worldId);
+            startStage(result.worldId, ws.currentWave);
+            setResult(null);
+          }}
+          onRetry={() => {
+            startStage(result.worldId, result.stageId);
+            setResult(null);
+          }}
+          onBackToMap={() => { setResult(null); setBattle(null); setScreen('MAP'); }}
         />
       )}
     </div>

@@ -66,10 +66,10 @@ export default function Header() {
                       ? "text-primary bg-primary/10"
                       : "text-muted-foreground"
                   )}
-                  title={t(item.labelKey as any)}
+                  title={t(item.labelKey as any, {})}
                 >
                   <item.icon className="h-5 w-5 flex-shrink-0" />
-                  <span className="hidden md:inline-block">{t(item.labelKey as any)}</span>
+                  <span className="hidden md:inline-block">{t(item.labelKey as any, {})}</span>
                   {item.labelKey === 'nav.flashcards' && user && !flashcardsLoading && dueTodayCount > 0 && (
                     <Badge
                       variant="destructive"

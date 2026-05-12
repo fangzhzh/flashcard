@@ -282,9 +282,9 @@ export const PomodoroLocalProvider = ({ children }: { children: ReactNode }) => 
         if (Notification.permission === "default") {
             try {
                 const permissionResult = await Notification.requestPermission();
-                if (Notification.permission === "granted") {
+                if (permissionResult === "granted") {
                     toast({ title: t('notifications.enabled.title'), description: t('notifications.enabled.description') });
-                } else if (permissionResult === "denied" || Notification.permission === "denied") {
+                } else if (permissionResult === "denied") {
                     toast({ title: t('notifications.denied.title'), description: t('notifications.denied.description'), variant: "destructive" });
                 }
             } catch (error) {

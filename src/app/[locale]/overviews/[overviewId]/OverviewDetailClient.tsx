@@ -11,12 +11,12 @@ import { useI18n, useCurrentLocale } from '@/lib/i18n/client';
 import type { Overview, Task, TimeInfo, Flashcard as FlashcardType } from '@/types';
 import { Alert, AlertTitle, AlertDescription as UiAlertDescription } from '@/components/ui/alert';
 import Link from 'next/link';
-import ReactMarkdown from 'react-markdown';
+import ReactMarkdown, { type Components } from 'react-markdown';
 import remarkGfm from 'remark-gfm';
-import type { CodeProps } from 'react-markdown/lib/ast-to-react';
 import MermaidDiagram from '@/components/MermaidDiagram';
 import { cn } from '@/lib/utils';
 import { format, parseISO, differenceInCalendarDays, isToday, isTomorrow, isValid, isSameYear, startOfDay, addDays, startOfWeek, endOfWeek, areIntervalsOverlapping, endOfDay, subWeeks, subMonths, subDays } from 'date-fns';
+import { type Locale } from 'date-fns';
 import { enUS } from 'date-fns/locale/en-US';
 import { zhCN } from 'date-fns/locale/zh-CN';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
@@ -33,16 +33,18 @@ interface FormattedTimeInfo {
 type TranslationKeys = keyof typeof import('@/lib/i18n/locales/en').default;
 type CompletedTaskFilter = 'lastWeek' | 'last2Weeks' | 'lastMonth' | 'last3Months' | 'custom';
 
-const CustomMarkdownComponents = {
-  code({ node, inline, className, children, ...props }: CodeProps) {
+const CustomMarkdownComponents: Components = {
+  code({ className, children, ...props }) {
     const match = /language-(\w+)/.exec(className || '');
-    if (!inline && match && match[1] === 'mermaid') {
+    if (match && match[1] === 'mermaid') {
       return <MermaidDiagram chart={String(children).trim()} />;
     }
-    if (!inline && match) {
+    if (match) {
       return (
-        <pre className={className} {...props}>
-          <code className={`language-${match[1]}`}>{children}</code>
+        <pre className={className}>
+          <code className={className} {...props}>
+            {children}
+          </code>
         </pre>
       );
     }
@@ -52,7 +54,7 @@ const CustomMarkdownComponents = {
       </code>
     );
   },
-  a({ node, ...props }: React.ComponentPropsWithoutRef<'a'>) {
+  a({ node, ...props }) {
     if (props.href && (props.href.startsWith('http://') || props.href.startsWith('https://'))) {
       return <a {...props} target="_blank" rel="noopener noreferrer" />;
     }

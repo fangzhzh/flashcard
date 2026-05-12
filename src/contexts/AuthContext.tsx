@@ -83,7 +83,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
             router.push(`/${locale}/`);
           } catch (error: any) {
             console.error("Error signing in with email link:", error);
-            toast({ title: t('error'), description: t(error.code as any) || t('auth.emailLink.error.generic'), variant: 'destructive' });
+            toast({ title: t('error'), description: t(error.code as any, {}) || t('auth.emailLink.error.generic'), variant: 'destructive' });
           }
         } else {
            toast({ title: t('error'), description: t('auth.emailLink.error.noEmail'), variant: 'destructive' });
@@ -105,7 +105,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       await signInWithPopup(auth, provider);
     } catch (error: any) {
       console.error("Error signing in with Google:", error);
-      toast({ title: t('error'), description: t(error.code as any) || t('auth.error.googleSignInFailed'), variant: "destructive" });
+      toast({ title: t('error'), description: t(error.code as any, {}) || t('auth.error.googleSignInFailed'), variant: "destructive" });
     }
   };
 
@@ -116,7 +116,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       return mapFirebaseUserToAppUser(userCredential.user);
     } catch (error: any) {
       console.error("Error signing up:", error);
-      toast({ title: t('error'), description: t(error.code as any) || t('auth.error.signUpFailed'), variant: "destructive" });
+      toast({ title: t('error'), description: t(error.code as any, {}) || t('auth.error.signUpFailed'), variant: "destructive" });
       setLoading(false);
       return null;
     }
@@ -129,7 +129,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       return mapFirebaseUserToAppUser(userCredential.user);
     } catch (error: any) {
       console.error("Error signing in:", error);
-      toast({ title: t('error'), description: t(error.code as any) || t('auth.error.signInFailed'), variant: "destructive" });
+      toast({ title: t('error'), description: t(error.code as any, {}) || t('auth.error.signInFailed'), variant: "destructive" });
       setLoading(false);
       return null;
     }
@@ -144,7 +144,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     } catch (error: any) {
       console.error("Error sending sign-in link:", error);
       // Default error message key
-      let toastDescriptionKey: keyof typeof import('@/lib/i18n/locales/en').default = (error.code as keyof typeof import('@/lib/i18n/locales/en').default) || 'auth.emailLink.error.sendFailed';
+      let toastDescriptionKey: any = (error.code as any) || 'auth.emailLink.error.sendFailed';
       
       if (error.code === 'auth/unauthorized-continue-uri') {
         // actionCodeSettings.url will resolve correctly in the browser context here
@@ -154,7 +154,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
           `Please go to your Firebase project console -> Authentication -> Settings -> Authorized domains, and add the domain (e.g., '${new URL(unauthorizedUrl).hostname}').`
         );
         // Use a more specific translation key if the generic one for the code doesn't exist or to provide a clearer hint
-        if (!t(error.code as any)) {
+        if (!t(error.code as any, {})) {
              toastDescriptionKey = 'auth.emailLink.error.config';
         } else {
             // If a specific translation for auth/unauthorized-continue-uri exists, use it.
@@ -164,7 +164,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
             // toastDescriptionKey = 'auth.emailLink.error.config';
         }
       }
-      toast({ title: t('error'), description: t(toastDescriptionKey), variant: "destructive" });
+      toast({ title: t('error'), description: t(toastDescriptionKey as any, {}), variant: "destructive" });
     } finally {
       setLoading(false);
     }
@@ -176,7 +176,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       await firebaseSignOut(auth);
     } catch (error: any) {
       console.error("Error signing out:", error);
-      toast({ title: t('error'), description: t(error.code as any) || t('auth.error.signOutFailed'), variant: "destructive" });
+      toast({ title: t('error'), description: t(error.code as any, {}) || t('auth.error.signOutFailed'), variant: "destructive" });
     }
   };
 

@@ -144,12 +144,12 @@ export default function FlashcardForm({
             {onCancel && (
               <Button type="button" variant="outline" onClick={onCancel} disabled={isLoading || isLoadingDecks}>
                 <X className="mr-2 h-4 w-4" />
-                {t(cancelButtonTextKey)}
+                {t(cancelButtonTextKey as any, {})}
               </Button>
             )}
             <Button type="submit" disabled={isLoading || isLoadingDecks} className={cn(onCancel ? "" : "w-full", "text-lg py-3")}>
               <Save className="mr-2 h-5 w-5" />
-              {isLoading ? t('flashcard.form.button.saving') : t(submitButtonTextKey)}
+              {isLoading ? t('flashcard.form.button.saving') : t(submitButtonTextKey as any, {})}
             </Button>
           </CardFooter>
         </form>

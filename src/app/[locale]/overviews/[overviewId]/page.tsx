@@ -13,13 +13,14 @@ function OverviewDetailLoadingFallback() {
   );
 }
 
-export default async function OverviewDetailPage({ params }: { params: { overviewId: string; locale: string } }) {
+export default async function OverviewDetailPage({ params }: { params: Promise<{ overviewId: string; locale: string }> }) {
+  const { overviewId } = await params;
   const t = await getI18n();
   // The specific overview title will be fetched and displayed within OverviewDetailClient
   return (
     <PageContainer className="max-w-4xl">
       <Suspense fallback={<OverviewDetailLoadingFallback />}>
-        <OverviewDetailClient overviewId={params.overviewId} />
+        <OverviewDetailClient overviewId={overviewId} />
       </Suspense>
     </PageContainer>
   );

@@ -8,7 +8,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
-import type { Task, RepeatFrequency, TimeInfo, ArtifactLink, ReminderInfo, Flashcard as FlashcardType, Deck, TaskType, CheckinInfo, TaskStatus, Overview } from '@/types';
+import type { Task, RepeatFrequency, TimeInfo, ArtifactLink, ReminderInfo, Flashcard as FlashcardType, Deck, TaskType, CheckinInfo, TaskStatus, Overview, ReminderType } from '@/types';
 import { Save, CalendarIcon, Link2, RotateCcw, Clock, Bell, Trash2, X, Loader2, FilePlus, ListChecks, Search, Edit3, Repeat, Briefcase, User, Coffee, Eye, FileEdit, ArrowLeft, FilePenLine, CheckSquare, Square, GitFork, EyeOff } from 'lucide-react';
 import { useI18n, useCurrentLocale } from '@/lib/i18n/client';
 import { cn } from '@/lib/utils';
@@ -33,9 +33,8 @@ import {
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogTrigger, DialogFooter } from "@/components/ui/dialog";
 import TaskDateTimeReminderDialog from '@/components/TaskDateTimeReminderDialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import ReactMarkdown from 'react-markdown';
+import ReactMarkdown, { type Components } from 'react-markdown';
 import remarkGfm from 'remark-gfm';
-import type { CodeProps } from 'react-markdown/lib/ast-to-react';
 import MermaidDiagram from '@/components/MermaidDiagram';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
@@ -110,15 +109,15 @@ interface TaskFormProps {
   onDirtyChange?: (isDirty: boolean) => void;
 }
 
-const CustomMarkdownComponents = {
-  code({ node, inline, className, children, ...props }: CodeProps) {
+const CustomMarkdownComponents: Components = {
+  code({ node, className, children, ...props }) {
     const match = /language-(\w+)/.exec(className || '');
-    if (!inline && match && match[1] === 'mermaid') {
+    if (match && match[1] === 'mermaid') {
       return <MermaidDiagram chart={String(children).trim()} />;
     }
-    if (!inline && match) {
+    if (match) {
       return (
-        <pre className={className} {...props}>
+        <pre className={className}>
           <code className={`language-${match[1]}`}>{children}</code>
         </pre>
       );
@@ -129,7 +128,7 @@ const CustomMarkdownComponents = {
       </code>
     );
   },
-  a({ node, ...props }: React.ComponentPropsWithoutRef<'a'>) {
+  a({ node, ...props }) {
     if (props.href && (props.href.startsWith('http://') || props.href.startsWith('https://'))) {
       return <a {...props} target="_blank" rel="noopener noreferrer" />;
     }
@@ -315,7 +314,7 @@ export default function TaskForm({
         return t('task.form.dateTimeReminder.summary.noRepeat');
     }
     const repeatLabel = repeatOptions.find(opt => opt.value === repeat)?.labelKey;
-    return t(repeatLabel as any);
+    return t(repeatLabel as any, {});
   }, [form, t, repeatOptions]);
 
   const formatReminderDisplay = React.useCallback(() => {
@@ -324,7 +323,7 @@ export default function TaskForm({
         return t('task.form.dateTimeReminder.summary.noReminder');
     }
     const reminderLabel = reminderOptions.find(opt => opt.value === reminderInfo.type)?.labelKey;
-    return t(reminderLabel as any);
+    return t(reminderLabel as any, {});
   }, [form, t, reminderOptions]);
 
 
@@ -523,7 +522,7 @@ export default function TaskForm({
                       />
                     </FormControl>
                   </div>
-                  <FormMessage>{form.formState.errors.title && t(form.formState.errors.title.message as any)}</FormMessage>
+                  <FormMessage>{form.formState.errors.title && t(form.formState.errors.title.message as any, {})}</FormMessage>
                 </FormItem>
               )}
             />
@@ -555,7 +554,7 @@ export default function TaskForm({
                             <SelectItem key={option.value} value={option.value}>
                               <div className="flex items-center">
                                 <option.icon className="mr-2 h-4 w-4 text-muted-foreground" />
-                                {t(option.labelKey as any)}
+                                {t(option.labelKey as any, {})}
                               </div>
                             </SelectItem>
                           ))}
@@ -564,7 +563,7 @@ export default function TaskForm({
                     </div>
                   </div>
                   <FormMessage>
-                    {form.formState.errors.type && t(form.formState.errors.type.message as any)}
+                    {form.formState.errors.type && t(form.formState.errors.type.message as any, {})}
                   </FormMessage>
                 </FormItem>
               )}
@@ -611,7 +610,7 @@ export default function TaskForm({
                     </FormMessage>
                   )}
                   <FormMessage>
-                    {form.formState.errors.overviewId && t(form.formState.errors.overviewId.message as any)}
+                    {form.formState.errors.overviewId && t(form.formState.errors.overviewId.message as any, {})}
                   </FormMessage>
                 </FormItem>
               )}
@@ -653,10 +652,10 @@ export default function TaskForm({
                     </div>
                     <Edit3 className="ml-2 h-3 w-3 text-muted-foreground flex-shrink-0 self-center"/>
                 </Button>
-                <FormMessage>{form.formState.errors.timeInfo?.root?.message && t(form.formState.errors.timeInfo.root.message as any)}</FormMessage>
-                <FormMessage>{form.formState.errors.timeInfo?.startDate?.message && t(form.formState.errors.timeInfo.startDate.message as any)}</FormMessage>
-                <FormMessage>{form.formState.errors.timeInfo?.endDate?.message && t(form.formState.errors.timeInfo.endDate.message as any)}</FormMessage>
-                <FormMessage>{form.formState.errors.timeInfo?.time?.message && t(form.formState.errors.timeInfo.time.message as any)}</FormMessage>
+                <FormMessage>{form.formState.errors.timeInfo?.root?.message && t(form.formState.errors.timeInfo.root.message as any, {})}</FormMessage>
+                <FormMessage>{form.formState.errors.timeInfo?.startDate?.message && t(form.formState.errors.timeInfo.startDate.message as any, {})}</FormMessage>
+                <FormMessage>{form.formState.errors.timeInfo?.endDate?.message && t(form.formState.errors.timeInfo.endDate.message as any, {})}</FormMessage>
+                <FormMessage>{form.formState.errors.timeInfo?.time?.message && t(form.formState.errors.timeInfo.time.message as any, {})}</FormMessage>
             </FormItem>
 
             {isFutureDated && (
@@ -717,7 +716,7 @@ export default function TaskForm({
                                       readOnly={isReadOnly}
                                     />
                                   </FormControl>
-                                  <FormMessage className="ml-2 text-xs">{form.formState.errors.checkinInfo?.totalCheckinsRequired?.message && t(form.formState.errors.checkinInfo.totalCheckinsRequired.message as any)}</FormMessage>
+                                  <FormMessage className="ml-2 text-xs">{form.formState.errors.checkinInfo?.totalCheckinsRequired?.message && t(form.formState.errors.checkinInfo.totalCheckinsRequired.message as any, {})}</FormMessage>
                                 </FormItem>
                               )}
                             />
@@ -737,7 +736,7 @@ export default function TaskForm({
                     </div>
                 )}
 
-                <FormMessage>{form.formState.errors.checkinInfo?.root?.message && t(form.formState.errors.checkinInfo.root.message as any)}</FormMessage>
+                <FormMessage>{form.formState.errors.checkinInfo?.root?.message && t(form.formState.errors.checkinInfo.root.message as any, {})}</FormMessage>
             </FormItem>
 
             <FormItem>
@@ -810,7 +809,7 @@ export default function TaskForm({
                         </Button>
                     </div>
                 </div>
-                <FormMessage>{form.formState.errors.artifactLink?.root?.message && t(form.formState.errors.artifactLink.root.message as any)}</FormMessage>
+                <FormMessage>{form.formState.errors.artifactLink?.root?.message && t(form.formState.errors.artifactLink.root.message as any, {})}</FormMessage>
             </FormItem>
 
             <FormField
@@ -859,7 +858,7 @@ export default function TaskForm({
                       />
                     </FormControl>
                   )}
-                  <FormMessage>{form.formState.errors.description && t(form.formState.errors.description.message as any)}</FormMessage>
+                  <FormMessage>{form.formState.errors.description && t(form.formState.errors.description.message as any, {})}</FormMessage>
                 </FormItem>
               )}
             />

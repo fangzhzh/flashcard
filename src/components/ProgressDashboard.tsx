@@ -58,7 +58,7 @@ export default function ProgressDashboard() {
       {statItems.map((item) => (
         <Card key={item.titleKey} className="shadow-lg hover:shadow-xl transition-shadow duration-300">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">{t(item.titleKey as any)}</CardTitle>
+            <CardTitle className="text-sm font-medium">{t(item.titleKey as any, {})}</CardTitle>
             <item.icon className={`h-5 w-5 ${item.color}`} />
           </CardHeader>
           <CardContent>

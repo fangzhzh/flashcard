@@ -7,7 +7,7 @@ import { FlashcardsProvider } from '@/contexts/FlashcardsContext';
 import { PomodoroProvider } from '@/contexts/PomodoroContext';
 import UniversalFab from '@/components/UniversalFab';
 
-export async function generateMetadata({ params: { locale } }: { params: { locale: string } }): Promise<Metadata> {
+export async function generateMetadata({ params }: { params: Promise<{ locale: string }> }): Promise<Metadata> {
   const t = await getI18n(); 
   return {
     title: t('metadata.title'),
@@ -22,13 +22,14 @@ export const viewport: Viewport = {
   ],
 }
 
-export default function LocaleLayout({
+export default async function LocaleLayout({
   children,
-  params: { locale }
+  params
 }: {
   children: React.ReactNode;
-  params: { locale: string };
+  params: Promise<{ locale: string }>;
 }) {
+  const { locale } = await params;
   return (
     <I18nProviderClient locale={locale}>
       <AuthProvider>

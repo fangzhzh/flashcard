@@ -4,6 +4,7 @@ import { useFlashcards } from '@/contexts/FlashcardsContext';
 import { useAuth } from '@/contexts/AuthContext';
 import { useCurrentLocale } from '@/lib/i18n/client';
 import Link from 'next/link';
+import type { Overview } from '@/types';
 import WorldMap from './WorldMap';
 import BattleScene from './BattleScene';
 import StageResult from './StageResult';
@@ -194,7 +195,74 @@ function cardPriority(f: import('@/types').Flashcard): number {
   if (f.status === 'learning' && isDue) return 1;
   if (f.status === 'mastered' && isDue) return 2;
   if (f.status === 'learning') return 3;
-  return 4; // mastered, not yet due
+  return 4;
+}
+
+// ── Overview Helpers ───────────────────────────────────────────────────
+
+/** Decompose an Overview's markdown description into Q&A BattleCards */
+export function parseOverviewToCards(overview: Overview): BattleCard[] {
+  const title = overview.title;
+  const desc  = (overview.description ?? '').trim();
+  if (!desc) return [];
+
+  const cards: BattleCard[] = [];
+  const mkId = (suffix: string | number) => `ov_${overview.id}_${suffix}`;
+
+  // 1. Try markdown headings (## or ###)
+  const hMatches = [...desc.matchAll(/^#{1,4}\s+(.+)$/gm)];
+  if (hMatches.length >= 2) {
+    hMatches.forEach((m, i) => {
+      const content = desc.slice(m.index! + m[0].length, i + 1 < hMatches.length ? hMatches[i+1].index! : desc.length).trim();
+      if (content.length >= 10) cards.push({ id: mkId(`h${i}`), front: `在「${title}」中，${m[1].trim()}是什么？`, back: content, deckName: title });
+    });
+    if (cards.length >= 2) return cards;
+  }
+
+  // 2. Try **bold** section headers
+  const bMatches = [...desc.matchAll(/^\*\*(.+?)\*\*\s*$/gm)];
+  if (bMatches.length >= 2) {
+    bMatches.forEach((m, i) => {
+      const content = desc.slice(m.index! + m[0].length, i + 1 < bMatches.length ? bMatches[i+1].index! : desc.length).trim();
+      if (content.length >= 10) cards.push({ id: mkId(`b${i}`), front: `在「${title}」中，${m[1].trim()}是什么？`, back: content, deckName: title });
+    });
+    if (cards.length >= 2) return cards;
+  }
+
+  // 3. Blank-line-separated paragraphs fallback
+  const paras = desc.split(/\n{2,}/).filter(p => p.trim().length >= 20);
+  paras.forEach((para, i) => {
+    const lines = para.split('\n').filter(l => l.trim());
+    if (lines.length >= 2) {
+      const heading = lines[0].replace(/^#+\s*|\*+/g, '').trim();
+      cards.push({ id: mkId(`p${i}`), front: `在「${title}」中，${heading}是什么？`, back: lines.slice(1).join('\n'), deckName: title });
+    } else {
+      cards.push({ id: mkId(`p${i}`), front: `「${title}」第${i+1}个关键点是什么？`, back: para, deckName: title });
+    }
+  });
+
+  // 4. Last resort: whole description as one card
+  if (cards.length === 0) {
+    cards.push({ id: mkId('full'), front: `「${title}」的核心内容是什么？`, back: desc, deckName: title });
+  }
+  return cards;
+}
+
+/** Generate a StageConfig for an Overview boss fight */
+export function generateOverviewStage(overview: Overview, cardCount: number): StageConfig {
+  const t = overview.title;
+  let emoji = '📖';
+  let bg = ['from-violet-950', 'via-purple-900', 'to-slate-950'];
+  if (/心理|情绪|自我|边界|认知|思维|感受|焦虑|价值/.test(t))  { emoji = '🧠'; bg = ['from-pink-950','via-rose-900','to-purple-950'];   }
+  else if (/系统|设计|架构|分布|扩展|数据库|缓存|服务/.test(t)) { emoji = '🏗️'; bg = ['from-sky-950','via-blue-900','to-indigo-950'];    }
+  else if (/算法|数据结构|编程|代码|复杂度/.test(t))             { emoji = '💻'; bg = ['from-emerald-950','via-teal-900','to-cyan-950'];  }
+  else if (/领导|管理|团队|沟通|职场|工作/.test(t))              { emoji = '🏢'; bg = ['from-amber-950','via-yellow-900','to-orange-950']; }
+  return {
+    id: 1, worldId: `ov_${overview.id}`,
+    name: `概览战: ${t}`,
+    boss: t, bossEmoji: emoji, bossHP: 50 + cardCount * 25, cardCount,
+    bgFrom: bg[0], bgVia: bg[1], bgTo: bg[2],
+  };
 }
 
 function loadSave(): SaveData {
@@ -214,7 +282,7 @@ export function getWorldSave(save: SaveData, worldId: string): WorldSave {
 // ─── Main Component ───────────────────────────────────────────────────────────
 
 export default function CardWarGame() {
-  const { flashcards, decks, isLoading, updateFlashcard } = useFlashcards();
+  const { flashcards, decks, isLoading, updateFlashcard, overviews } = useFlashcards();
   const { user } = useAuth();
   const currentLocale = useCurrentLocale();
 
@@ -258,13 +326,42 @@ export default function CardWarGame() {
   }, []);
 
   const startStage = useCallback((worldId: string, wave: number) => {
-    const allFlashcards = flashcards; // full list for distractor generation
+    // ── Overview Boss Fight ────────────────────────────────────────────────
+    if (worldId.startsWith('ov_')) {
+      const ov = overviews.find(o => o.id === worldId.slice(3));
+      if (!ov) return;
+      const ovCards = parseOverviewToCards(ov);
+      if (ovCards.length < 2) return;
+      const allCards: BattleCard[] = [
+        ...ovCards,
+        ...flashcards.map(f => ({ id: f.id, front: f.front, back: f.back })),
+      ];
+      const stage = generateOverviewStage(ov, ovCards.length);
+      const deck  = shuffle(ovCards);
+      const { choices, choicesFull, correctIndex } = buildQuestion(deck, 0, allCards);
+      setBattle({
+        stage,
+        playerHP: PLAYER_BASE_HP, maxPlayerHP: PLAYER_BASE_HP,
+        bossHP: stage.bossHP, maxBossHP: stage.bossHP,
+        deck, deckIndex: 0, choices, choicesFull, correctIndex,
+        selectedIndex: null, isCorrect: null,
+        combo: 0, maxCombo: 0, wrongStreak: 0, bossRage: false,
+        totalAnswered: 0, correctCount: 0,
+        inventory: saveData.inventory,
+        shieldActive: false, lightningActive: false, eliminatedIndex: null,
+        animState: 'IDLE', damageKey: 0, damageAmount: 0, damageToBoss: true,
+      });
+      setScreen('BATTLE');
+      return;
+    }
+
+    // ── Flashcard Deck World ──────────────────────────────────────────────
+    const allFlashcards = flashcards;
     const allCards: BattleCard[] = allFlashcards.map(f => ({
       id: f.id, front: f.front, back: f.back,
       deckName: decks.find(d => d.id === f.deckId)?.name,
     }));
 
-    // Filter to this world's cards
     const filteredFlashcards = worldId === 'all'
       ? allFlashcards
       : allFlashcards.filter(f => f.deckId === worldId);
@@ -274,9 +371,7 @@ export default function CardWarGame() {
     const deckName = worldId === 'all' ? null : decks.find(d => d.id === worldId)?.name ?? null;
     const stage = generateWaveStage(wave, worldId, deckName, filteredFlashcards.length);
 
-    // ── Priority sort: new > due learning > due mastered > learning > mastered ──
     const sorted = [...filteredFlashcards].sort((a, b) => cardPriority(a) - cardPriority(b));
-    // Take top cardCount, but shuffle within same-priority groups to avoid monotony
     const grouped: typeof sorted[] = [[], [], [], [], []];
     sorted.forEach(c => grouped[cardPriority(c)].push(c));
     grouped.forEach(g => { for (let i = g.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i+1)); [g[i],g[j]]=[g[j],g[i]]; } });
@@ -294,8 +389,7 @@ export default function CardWarGame() {
       stage,
       playerHP: PLAYER_BASE_HP, maxPlayerHP: PLAYER_BASE_HP,
       bossHP: stage.bossHP, maxBossHP: stage.bossHP,
-      deck, deckIndex: 0,
-      choices, choicesFull, correctIndex,
+      deck, deckIndex: 0, choices, choicesFull, correctIndex,
       selectedIndex: null, isCorrect: null,
       combo: 0, maxCombo: 0, wrongStreak: 0, bossRage: false,
       totalAnswered: 0, correctCount: 0,
@@ -304,7 +398,7 @@ export default function CardWarGame() {
       animState: 'IDLE', damageKey: 0, damageAmount: 0, damageToBoss: true,
     });
     setScreen('BATTLE');
-  }, [flashcards, decks, saveData.inventory, buildQuestion]);
+  }, [flashcards, decks, overviews, saveData.inventory, buildQuestion]);
 
 
   const handleAnswer = useCallback((choiceIndex: number) => {
@@ -332,14 +426,17 @@ export default function CardWarGame() {
           : 1;
         const nextDate = new Date(Date.now() + newInterval * 86400000).toISOString().slice(0, 10);
         // Last-write-wins: if card appears again, newest result overwrites
-        pendingUpdates.current.set(srcCard.id, {
-          lastReviewed: todayStr,
-          nextReviewDate: nextDate,
-          interval: newInterval,
-          status: wasCorrect && newInterval >= 21 ? 'mastered' : 'learning',
-        });
-        answeredSinceFlush.current++;
-        if (answeredSinceFlush.current >= 10) flushSRSUpdates();
+        // Skip SRS for overview-derived card IDs
+        if (!card.id.startsWith('ov_')) {
+          pendingUpdates.current.set(srcCard.id, {
+            lastReviewed: todayStr,
+            nextReviewDate: nextDate,
+            interval: newInterval,
+            status: wasCorrect && newInterval >= 21 ? 'mastered' : 'learning',
+          });
+          answeredSinceFlush.current++;
+          if (answeredSinceFlush.current >= 10) flushSRSUpdates();
+        }
       }
     }
 
@@ -378,12 +475,14 @@ export default function CardWarGame() {
         setSaveData(sd => {
           const ws = getWorldSave(sd, worldId);
           const prevStars = ws.stars[wave] ?? 0;
+          const isOverview = worldId.startsWith('ov_');
           return {
             ...sd,
             worlds: {
               ...sd.worlds,
               [worldId]: {
-                currentWave: victory ? wave + 1 : ws.currentWave,
+                // Overview worlds stay at wave 1 (no progression — re-challenge same content)
+                currentWave: isOverview ? 1 : (victory ? wave + 1 : ws.currentWave),
                 bestWave:    victory ? Math.max(ws.bestWave, wave) : ws.bestWave,
                 stars:       { ...ws.stars, [wave]: Math.max(prevStars, stars) },
               },
@@ -456,7 +555,7 @@ export default function CardWarGame() {
   return (
     <div className="fixed inset-0 z-30 overflow-hidden" style={{ top: '64px' }}>
       {screen === 'MAP' && (
-        <WorldMap flashcards={flashcards} decks={decks} saveData={saveData} onStartWave={startStage} />
+        <WorldMap flashcards={flashcards} decks={decks} overviews={overviews} saveData={saveData} onStartWave={startStage} />
       )}
       {screen === 'BATTLE' && battle && (
         <BattleScene battle={battle} onAnswer={handleAnswer} onUseItem={handleUseItem} onAnimationDone={resolveAnswer} />

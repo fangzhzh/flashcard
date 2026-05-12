@@ -1,5 +1,5 @@
 "use client";
-import React, { useState, useCallback, useEffect } from 'react';
+import React, { useState, useCallback, useEffect, useRef } from 'react';
 import { useFlashcards } from '@/contexts/FlashcardsContext';
 import { useAuth } from '@/contexts/AuthContext';
 import { useCurrentLocale } from '@/lib/i18n/client';
@@ -25,7 +25,7 @@ export interface StageConfig {
   bgFrom: string; bgVia: string; bgTo: string;
 }
 
-export interface BattleCard { id: string; front: string; back: string; }
+export interface BattleCard { id: string; front: string; back: string; deckName?: string; }
 
 export interface BattleState {
   stage: StageConfig;
@@ -185,6 +185,18 @@ function calcStars(correctCount: number, total: number, maxCombo: number): numbe
   return 1;
 }
 
+// ── Card Priority (uses existing SRS data — no new localStorage needed) ────────
+// 0 = highest priority (play first), 4 = lowest (well mastered, not due)
+function cardPriority(f: import('@/types').Flashcard): number {
+  const today = new Date().toISOString().slice(0, 10);
+  if (f.status === 'new') return 0;
+  const isDue = !f.nextReviewDate || f.nextReviewDate <= today;
+  if (f.status === 'learning' && isDue) return 1;
+  if (f.status === 'mastered' && isDue) return 2;
+  if (f.status === 'learning') return 3;
+  return 4; // mastered, not yet due
+}
+
 function loadSave(): SaveData {
   try {
     const raw = localStorage.getItem(SAVE_KEY);
@@ -202,7 +214,7 @@ export function getWorldSave(save: SaveData, worldId: string): WorldSave {
 // ─── Main Component ───────────────────────────────────────────────────────────
 
 export default function CardWarGame() {
-  const { flashcards, decks, isLoading } = useFlashcards();
+  const { flashcards, decks, isLoading, updateFlashcard } = useFlashcards();
   const { user } = useAuth();
   const currentLocale = useCurrentLocale();
 
@@ -213,6 +225,10 @@ export default function CardWarGame() {
 
   useEffect(() => { writeSave(saveData); }, [saveData]);
 
+  // Ref mirror of battle — lets resolveAnswer read current card without stale closure
+  const battleRef = useRef<BattleState | null>(null);
+  useEffect(() => { battleRef.current = battle; }, [battle]);
+
   const buildQuestion = useCallback((deck: BattleCard[], index: number, allCards: BattleCard[]) => {
     const card = deck[index % deck.length];
     const distractors = shuffle(allCards.filter(c => c.id !== card.id)).slice(0, 3).map(c => c.back);
@@ -222,16 +238,36 @@ export default function CardWarGame() {
   }, []);
 
   const startStage = useCallback((worldId: string, wave: number) => {
-    const allCards: BattleCard[] = flashcards.map(f => ({ id: f.id, front: f.front, back: f.back }));
-    const filteredCards = worldId === 'all'
-      ? allCards
-      : flashcards.filter(f => f.deckId === worldId).map(f => ({ id: f.id, front: f.front, back: f.back }));
+    const allFlashcards = flashcards; // full list for distractor generation
+    const allCards: BattleCard[] = allFlashcards.map(f => ({
+      id: f.id, front: f.front, back: f.back,
+      deckName: decks.find(d => d.id === f.deckId)?.name,
+    }));
 
-    if (filteredCards.length < 4) return;
+    // Filter to this world's cards
+    const filteredFlashcards = worldId === 'all'
+      ? allFlashcards
+      : allFlashcards.filter(f => f.deckId === worldId);
+
+    if (filteredFlashcards.length < 4) return;
 
     const deckName = worldId === 'all' ? null : decks.find(d => d.id === worldId)?.name ?? null;
-    const stage = generateWaveStage(wave, worldId, deckName, filteredCards.length);
-    const deck = shuffle(filteredCards).slice(0, Math.min(stage.cardCount, filteredCards.length));
+    const stage = generateWaveStage(wave, worldId, deckName, filteredFlashcards.length);
+
+    // ── Priority sort: new > due learning > due mastered > learning > mastered ──
+    const sorted = [...filteredFlashcards].sort((a, b) => cardPriority(a) - cardPriority(b));
+    // Take top cardCount, but shuffle within same-priority groups to avoid monotony
+    const grouped: typeof sorted[] = [[], [], [], [], []];
+    sorted.forEach(c => grouped[cardPriority(c)].push(c));
+    grouped.forEach(g => { for (let i = g.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i+1)); [g[i],g[j]]=[g[j],g[i]]; } });
+    const priorityOrdered = grouped.flat();
+    const count = Math.min(stage.cardCount, priorityOrdered.length);
+    const selectedFlashcards = priorityOrdered.slice(0, count);
+
+    const deck: BattleCard[] = selectedFlashcards.map(f => ({
+      id: f.id, front: f.front, back: f.back,
+      deckName: decks.find(d => d.id === f.deckId)?.name,
+    }));
     const { choices, choicesFull, correctIndex } = buildQuestion(deck, 0, allCards);
 
     setBattle({
@@ -260,6 +296,34 @@ export default function CardWarGame() {
   }, []);
 
   const resolveAnswer = useCallback(() => {
+    // ── Fire-and-forget SRS update (same data as review mode) ──────────────────
+    const cur = battleRef.current;
+    if (cur && cur.isCorrect !== null) {
+      const card = cur.deck[cur.deckIndex];
+      const wasCorrect = cur.isCorrect;
+      const combo = cur.combo;
+      const srcCard = flashcards.find(c => c.id === card?.id);
+      if (srcCard && card) {
+        const todayStr = new Date().toISOString().slice(0, 10);
+        const currentInterval = Math.max(1, srcCard.interval || 1);
+        let newInterval: number;
+        if (wasCorrect) {
+          // combo >= 2 means user already had 2+ correct in a row → treat as 'Mastered'
+          const multiplier = combo >= 2 ? 2.0 : 1.3;
+          newInterval = Math.min(365, Math.round(currentInterval * multiplier));
+        } else {
+          newInterval = 1; // 'Try Again'
+        }
+        const nextDate = new Date(Date.now() + newInterval * 86400000).toISOString().slice(0, 10);
+        updateFlashcard(srcCard.id, {
+          lastReviewed: todayStr,
+          nextReviewDate: nextDate,
+          interval: newInterval,
+          status: wasCorrect && newInterval >= 21 ? 'mastered' : 'learning',
+        }).catch(console.error); // non-blocking
+      }
+    }
+
     setBattle(prev => {
       if (!prev) return prev;
       const isCorrect = prev.isCorrect!;

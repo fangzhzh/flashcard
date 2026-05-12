@@ -256,6 +256,12 @@ export default function BattleScene({ battle, onAnswer, onUseItem, onAnimationDo
         {/* Question */}
         <div className="flex items-start gap-2">
           <div className="flex-1 min-w-0">
+            {/* Deck category badge */}
+            {currentCard?.deckName && (
+              <span className="inline-block text-[9px] font-black uppercase tracking-widest bg-violet-800/60 text-violet-200 px-1.5 py-0.5 rounded mb-1.5 border border-violet-700/40">
+                {currentCard.deckName}
+              </span>
+            )}
             <p className="text-white font-semibold text-sm leading-snug line-clamp-3">
               {questionIsLong
                 ? (currentCard?.front ?? '').slice(0, QUESTION_MAX) + '…'

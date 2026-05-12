@@ -229,6 +229,26 @@ export default function CardWarGame() {
   const battleRef = useRef<BattleState | null>(null);
   useEffect(() => { battleRef.current = battle; }, [battle]);
 
+  // ── Batched SRS writes — flush every 10 answers or on stage end ──────────────
+  type SRSUpdate = { lastReviewed: string; nextReviewDate: string; interval: number; status: 'new' | 'learning' | 'mastered' };
+  const pendingUpdates   = useRef<Map<string, SRSUpdate>>(new Map());
+  const answeredSinceFlush = useRef(0);
+
+  const flushSRSUpdates = useCallback(() => {
+    if (pendingUpdates.current.size === 0) return;
+    const snapshot = new Map(pendingUpdates.current);
+    pendingUpdates.current.clear();
+    answeredSinceFlush.current = 0;
+    snapshot.forEach((data, cardId) => {
+      updateFlashcard(cardId, data).catch(console.error);
+    });
+  }, [updateFlashcard]);
+
+  // Flush when stage ends (screen transitions to RESULT or back to MAP)
+  useEffect(() => {
+    if (screen !== 'BATTLE') flushSRSUpdates();
+  }, [screen]); // eslint-disable-line
+
   const buildQuestion = useCallback((deck: BattleCard[], index: number, allCards: BattleCard[]) => {
     const card = deck[index % deck.length];
     const distractors = shuffle(allCards.filter(c => c.id !== card.id)).slice(0, 3).map(c => c.back);
@@ -296,31 +316,30 @@ export default function CardWarGame() {
   }, []);
 
   const resolveAnswer = useCallback(() => {
-    // ── Fire-and-forget SRS update (same data as review mode) ──────────────────
+    // ── Accumulate SRS update into pending batch ──────────────────────────────
     const cur = battleRef.current;
     if (cur && cur.isCorrect !== null) {
-      const card = cur.deck[cur.deckIndex];
+      const card    = cur.deck[cur.deckIndex];
       const wasCorrect = cur.isCorrect;
-      const combo = cur.combo;
+      const combo   = cur.combo;
       const srcCard = flashcards.find(c => c.id === card?.id);
       if (srcCard && card) {
         const todayStr = new Date().toISOString().slice(0, 10);
         const currentInterval = Math.max(1, srcCard.interval || 1);
-        let newInterval: number;
-        if (wasCorrect) {
-          // combo >= 2 means user already had 2+ correct in a row → treat as 'Mastered'
-          const multiplier = combo >= 2 ? 2.0 : 1.3;
-          newInterval = Math.min(365, Math.round(currentInterval * multiplier));
-        } else {
-          newInterval = 1; // 'Try Again'
-        }
+        const multiplier = wasCorrect ? (combo >= 2 ? 2.0 : 1.3) : 0;
+        const newInterval = wasCorrect
+          ? Math.min(365, Math.round(currentInterval * multiplier))
+          : 1;
         const nextDate = new Date(Date.now() + newInterval * 86400000).toISOString().slice(0, 10);
-        updateFlashcard(srcCard.id, {
+        // Last-write-wins: if card appears again, newest result overwrites
+        pendingUpdates.current.set(srcCard.id, {
           lastReviewed: todayStr,
           nextReviewDate: nextDate,
           interval: newInterval,
           status: wasCorrect && newInterval >= 21 ? 'mastered' : 'learning',
-        }).catch(console.error); // non-blocking
+        });
+        answeredSinceFlush.current++;
+        if (answeredSinceFlush.current >= 10) flushSRSUpdates();
       }
     }
 

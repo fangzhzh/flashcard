@@ -10,11 +10,11 @@ export default {
   'nav.manage': '管理卡片',
   'nav.review': '复习',
   'nav.overviews': '总览', // New
-  'nav.game': '冒险',
+  'nav.game': '挑战',
 
-  // Card War RPG Game
-  'game.title': '卡牌战争冒险',
-  'game.subtitle': '用你的知识击败 Boss',
+  // Card War Game
+  'game.title': '卡牌知识挑战',
+  'game.subtitle': '通过答题闯关击败 Boss',
   'game.worldMap.title': '世界地图',
   'game.worldMap.unlocked': '已解锁',
   'game.worldMap.locked': '未解锁',

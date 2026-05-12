@@ -10,11 +10,11 @@ export default {
   'nav.manage': 'Manage Cards',
   'nav.review': 'Review',
   'nav.overviews': 'Overviews', // New
-  'nav.game': 'Adventure',
+  'nav.game': 'Challenge',
 
-  // Card War RPG Game
-  'game.title': 'Card War Adventure',
-  'game.subtitle': 'Battle bosses using your flashcard knowledge',
+  // Card War Game
+  'game.title': 'Card War Challenge',
+  'game.subtitle': 'Complete stages by answering flashcards',
   'game.worldMap.title': 'World Map',
   'game.worldMap.unlocked': 'Unlocked',
   'game.worldMap.locked': 'Locked',

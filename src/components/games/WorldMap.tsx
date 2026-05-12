@@ -51,7 +51,7 @@ export default function WorldMap({ flashcards, decks, saveData, onStartWave }: P
         <div className="flex items-center gap-3 mb-2 animate-stage-entrance">
           <Swords className="h-7 w-7 text-violet-400" />
           <h1 className="text-2xl font-black text-white tracking-tighter uppercase italic">
-            Card War RPG
+            Card War Challenge
           </h1>
           <Swords className="h-7 w-7 text-violet-400 scale-x-[-1]" />
         </div>

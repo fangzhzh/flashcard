@@ -107,13 +107,13 @@ export default function BattleScene({ game, deck, deckIndex, onAnswer, onSpawnUn
       </div>
 
       {/* ── Flashcard Console (Bottom) ── */}
-      <div className="bg-slate-900 border-t border-white/15 px-6 pt-6 pb-8 flex-shrink-0">
+      <div className="bg-slate-900 border-t border-white/15 px-6 pt-6 pb-8 flex-shrink-0 overflow-y-auto max-h-[50%]">
         <div className="max-w-2xl mx-auto">
           <div className="mb-6 text-center">
             <div className="inline-block px-3 py-1 bg-violet-500/10 border border-violet-500/20 rounded-full text-[10px] text-violet-400 font-black uppercase tracking-widest mb-3">
               回答以获取 MANA
             </div>
-            <div className="text-white font-bold text-lg leading-relaxed line-clamp-2">
+            <div className="text-white font-bold text-base sm:text-lg leading-relaxed text-left sm:text-center">
               <ReactMarkdown remarkPlugins={[remarkGfm]}>{currentCard?.front || ''}</ReactMarkdown>
             </div>
           </div>
@@ -123,12 +123,12 @@ export default function BattleScene({ game, deck, deckIndex, onAnswer, onSpawnUn
               <button
                 key={idx}
                 onClick={() => handleChoice(choice)}
-                className="flex items-center gap-3 px-4 py-3 rounded-xl bg-white/5 border border-white/10 hover:bg-white/10 hover:border-violet-500/50 text-left transition-all active:scale-[0.98]"
+                className="flex items-start gap-3 px-4 py-3 rounded-xl bg-white/5 border border-white/10 hover:bg-white/10 hover:border-violet-500/50 text-left transition-all active:scale-[0.98] min-h-[3.5rem]"
               >
-                <span className="w-6 h-6 rounded bg-black/40 flex items-center justify-center text-[10px] font-black text-white/40">
+                <span className="w-6 h-6 flex-shrink-0 rounded bg-black/40 flex items-center justify-center text-[10px] font-black text-white/40 mt-0.5">
                   {CHOICE_LETTERS[idx]}
                 </span>
-                <span className="text-sm font-medium line-clamp-1">{choice}</span>
+                <span className="text-sm font-medium leading-snug break-words">{choice}</span>
               </button>
             ))}
           </div>

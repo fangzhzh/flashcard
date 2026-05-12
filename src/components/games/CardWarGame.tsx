@@ -26,7 +26,7 @@ export interface StageConfig {
   bgFrom: string; bgVia: string; bgTo: string;
 }
 
-export interface BattleCard { id: string; front: string; back: string; deckName?: string; }
+export interface BattleCard { id: string; front: string; back: string; deckName?: string; parentId?: string; }
 
 export interface BattleState {
   stage: StageConfig;
@@ -265,6 +265,65 @@ export function generateOverviewStage(overview: Overview, cardCount: number): St
   };
 }
 
+// ── Flashcard Decomposition ──────────────────────────────────────────────────
+/**
+ * Split a flashcard with complex structured back content into multiple sub-cards.
+ * Simple cards (short back or no detected structure) are returned as-is.
+ * Sub-cards use parentId to point back to the real flashcard for SRS write-back.
+ */
+function decomposeFrontBack(card: import('@/types').Flashcard, deckName?: string): BattleCard[] {
+  const front = card.front.trim();
+  const back  = card.back.trim();
+  const shortFront = truncate(front, 40);
+  const mkId = (i: number) => `${card.id}_sub_${i}`;
+  const base: BattleCard = { id: card.id, front, back, deckName, parentId: card.id };
+
+  // Too short to be worth splitting
+  if (back.length < 180) return [base];
+
+  // 1. Markdown headings (## / ###) — e.g., system design levels
+  const hMatches = [...back.matchAll(/^#{1,4}\s+(.+)$/gm)];
+  if (hMatches.length >= 2) {
+    const subs: BattleCard[] = [];
+    hMatches.forEach((m, i) => {
+      const content = back.slice(
+        m.index! + m[0].length,
+        i + 1 < hMatches.length ? hMatches[i + 1].index! : back.length
+      ).trim();
+      if (content.length >= 10)
+        subs.push({ id: mkId(i), front: `「${shortFront}」中，${m[1].trim()}是什么？`, back: content, deckName, parentId: card.id });
+    });
+    if (subs.length >= 2) return subs;
+  }
+
+  // 2. Numbered list — e.g., steps to reduce amygdala activation (need ≥ 3 items)
+  const numMatches = [...back.matchAll(/^(\d+)[\.\uff09]\s+(.+)$/gm)];
+  if (numMatches.length >= 3) {
+    return numMatches.map((m, i) => ({
+      id: mkId(i),
+      front: `「${shortFront}」的第${m[1]}个方法/步骤是什么？`,
+      back: m[2].trim(),
+      deckName,
+      parentId: card.id,
+    }));
+  }
+
+  // 3. Bullet list (- or *) — need ≥ 3 items
+  const bulletMatches = [...back.matchAll(/^[-*]\s+(.+)$/gm)];
+  if (bulletMatches.length >= 3) {
+    return bulletMatches.map((m, i) => ({
+      id: mkId(i),
+      front: `「${shortFront}」的要点${i + 1}是什么？`,
+      back: m[1].trim(),
+      deckName,
+      parentId: card.id,
+    }));
+  }
+
+  // No clear structure — keep as-is
+  return [base];
+}
+
 function loadSave(): SaveData {
   try {
     const raw = localStorage.getItem(SAVE_KEY);
@@ -379,10 +438,15 @@ export default function CardWarGame() {
     const count = Math.min(stage.cardCount, priorityOrdered.length);
     const selectedFlashcards = priorityOrdered.slice(0, count);
 
-    const deck: BattleCard[] = selectedFlashcards.map(f => ({
-      id: f.id, front: f.front, back: f.back,
-      deckName: decks.find(d => d.id === f.deckId)?.name,
-    }));
+    // Decompose complex flashcards into sub-questions
+    const deck: BattleCard[] = [];
+    for (const f of selectedFlashcards) {
+      const dn = decks.find(d => d.id === f.deckId)?.name;
+      deck.push(...decomposeFrontBack(f, dn));
+    }
+    // Shuffle decomposed pool, then cap at cardCount
+    shuffle(deck);
+    if (deck.length > stage.cardCount) deck.splice(stage.cardCount);
     const { choices, choicesFull, correctIndex } = buildQuestion(deck, 0, allCards);
 
     setBattle({
@@ -413,10 +477,11 @@ export default function CardWarGame() {
     // ── Accumulate SRS update into pending batch ──────────────────────────────
     const cur = battleRef.current;
     if (cur && cur.isCorrect !== null) {
-      const card    = cur.deck[cur.deckIndex];
+      const card      = cur.deck[cur.deckIndex];
       const wasCorrect = cur.isCorrect;
-      const combo   = cur.combo;
-      const srcCard = flashcards.find(c => c.id === card?.id);
+      const combo      = cur.combo;
+      // parentId points to the real flashcard (for sub-cards); id for regular cards
+      const srcCard = flashcards.find(c => c.id === (card?.parentId ?? card?.id));
       if (srcCard && card) {
         const todayStr = new Date().toISOString().slice(0, 10);
         const currentInterval = Math.max(1, srcCard.interval || 1);

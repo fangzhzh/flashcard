@@ -6,6 +6,7 @@ import { useCurrentLocale } from '@/lib/i18n/client';
 import Link from 'next/link';
 import type { Overview } from '@/types';
 import { aiDecomposeCards } from '@/lib/aiDecomposer';
+import { fetchGitHubReviewCards } from '@/lib/githubReview';
 import WorldMap from './WorldMap';
 import BattleScene from './BattleScene';
 import StageResult from './StageResult';
@@ -387,6 +388,55 @@ export default function CardWarGame() {
   }, []);
 
   const startStage = useCallback(async (worldId: string, wave: number) => {
+    // ── GitHub Review Mode ────────────────────────────────────
+    if (worldId === 'github') {
+      setPreparing(true);
+      let ghCards: import('@/lib/githubReview').GitHubReviewCard[];
+      try {
+        ghCards = await fetchGitHubReviewCards(wave === 99); // wave=99 signals force-refresh
+      } catch (err) {
+        console.error('[github-review]', err);
+        setPreparing(false);
+        return;
+      }
+      setPreparing(false);
+      if (ghCards.length < 4) return;
+
+      const stage: StageConfig = {
+        id: 1, worldId: 'github',
+        name: 'GitHub 刻题复习战',
+        boss: 'LeetCode 大 Boss', bossEmoji: '🐙',
+        bossHP: 50 + ghCards.length * 20,
+        cardCount: ghCards.length,
+        bgFrom: 'from-slate-950', bgVia: 'via-zinc-900', bgTo: 'to-neutral-950',
+      };
+      const deck: BattleCard[] = ghCards.map((c, i) => ({
+        id: `gh_${i}`,
+        front: c.front,
+        back: c.back,
+        deckName: 'GitHub 刻题',
+      }));
+      const allCards: BattleCard[] = [
+        ...deck,
+        ...flashcards.map(f => ({ id: f.id, front: f.front, back: f.back })),
+      ];
+      shuffle(deck);
+      const { choices, choicesFull, correctIndex } = buildQuestion(deck, 0, allCards);
+      setBattle({
+        stage,
+        playerHP: PLAYER_BASE_HP, maxPlayerHP: PLAYER_BASE_HP,
+        bossHP: stage.bossHP, maxBossHP: stage.bossHP,
+        deck, deckIndex: 0, choices, choicesFull, correctIndex,
+        selectedIndex: null, isCorrect: null,
+        combo: 0, maxCombo: 0, wrongStreak: 0, bossRage: false,
+        totalAnswered: 0, correctCount: 0,
+        inventory: saveData.inventory,
+        shieldActive: false, lightningActive: false, eliminatedIndex: null,
+        animState: 'IDLE', damageKey: 0, damageAmount: 0, damageToBoss: true,
+      });
+      setScreen('BATTLE');
+      return;
+    }
     // ── Overview Boss Fight ────────────────────────────────────────────────
     if (worldId.startsWith('ov_')) {
       const ov = overviews.find(o => o.id === worldId.slice(3));

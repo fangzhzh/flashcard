@@ -1,9 +1,10 @@
 "use client";
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import type { SaveData, WorldSave } from './CardWarGame';
 import { generateWaveStage, parseOverviewToCards, generateOverviewStage } from './CardWarGame';
 import type { Deck, Flashcard, Overview } from '@/types';
-import { Swords, Lock, Star, Trophy, BookOpen, Brain } from 'lucide-react';
+import { Swords, Lock, Star, Trophy, BookOpen, Brain, Github, RefreshCw } from 'lucide-react';
+import { getGitHubReviewCacheAge } from '@/lib/githubReview';
 
 interface Props {
   flashcards: Flashcard[];
@@ -16,6 +17,11 @@ interface Props {
 export default function WorldMap({ flashcards, decks, overviews, saveData, onStartWave }: Props) {
   const [tab, setTab] = useState<'map' | 'overview'>('map');
   const [selectedWorldId, setSelectedWorldId] = useState<string>('all');
+  const [cacheAge, setCacheAge] = useState<number | null>(null);
+
+  useEffect(() => {
+    setCacheAge(getGitHubReviewCacheAge());
+  }, []);
 
   // ── Flashcard worlds ─────────────────────────────────────────────────────────
   const availableWorlds = useMemo(() => {
@@ -250,8 +256,46 @@ export default function WorldMap({ flashcards, decks, overviews, saveData, onSta
         </div>
       )}
 
+      {/* ── GitHub Review Banner ── */}
+      <div className="mx-4 mb-4 rounded-2xl border border-white/10 bg-gradient-to-r from-slate-900 via-zinc-900 to-neutral-900 overflow-hidden">
+        <div className="px-4 py-3 flex items-center gap-3">
+          <div className="text-2xl">🐙</div>
+          <div className="flex-1 min-w-0">
+            <div className="text-white font-bold text-sm leading-tight">GitHub 刻题复习战</div>
+            <div className="text-white/40 text-[11px] mt-0.5">
+              {cacheAge === null ? '根据最近 commit 生成复习题' : `缓存于 ${cacheAge}h 前·点刻新重生`}
+            </div>
+          </div>
+          <div className="flex gap-2">
+            {cacheAge !== null && (
+              <button
+                onClick={() => { onStartWave('github', 99); }}
+                className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-white/8 hover:bg-white/15 border border-white/10 text-white/50 hover:text-white/80 text-[11px] transition-all"
+                title="刷新题目"
+              >
+                <RefreshCw className="h-3 w-3" />
+                刷新
+              </button>
+            )}
+            <button
+              onClick={() => { setCacheAge(null); onStartWave('github', 1); }}
+              className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-gradient-to-r from-slate-700 to-zinc-700 hover:from-slate-600 hover:to-zinc-600 border border-white/15 text-white font-bold text-sm transition-all active:scale-95"
+            >
+              <Github className="h-4 w-4" />
+              挑战
+            </button>
+          </div>
+        </div>
+        {/* Topics preview */}
+        <div className="px-4 pb-3 flex gap-1.5 flex-wrap">
+          {['🔀 回溯', '🔍 二分', '🌳 图论', '💚 兊', '🔗 链表', '🧠 DP', '💻 并发'].map(tag => (
+            <span key={tag} className="text-[10px] px-2 py-0.5 rounded-full bg-white/6 text-white/40 border border-white/8">{tag}</span>
+          ))}
+        </div>
+      </div>
+
       {/* ── Footer ── */}
-      <div className="mt-auto py-10 text-center px-6">
+      <div className="mt-auto py-6 text-center px-6">
         <p className="text-white/20 text-[10px] font-bold uppercase tracking-[0.2em] mb-4">
           Defeat bosses to unlock deeper levels of the abyss
         </p>

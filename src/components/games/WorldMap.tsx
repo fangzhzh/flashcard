@@ -97,6 +97,39 @@ export default function WorldMap({ flashcards, decks, overviews, saveData, onSta
         >
           <Brain className="h-4 w-4" /> 概览 Boss 战 {overviewWorlds.length > 0 && <span className="bg-white/20 text-white rounded-full px-1.5 text-[10px]">{overviewWorlds.length}</span>}
         </button>
+        <button
+          onClick={() => onStartWave('github', 1)}
+          className="flex items-center gap-2 px-5 py-2 rounded-lg text-sm font-bold transition-all text-white/40 hover:text-white/70 hover:bg-white/8"
+        >
+          🐙 GitHub 复习
+        </button>
+      </div>
+
+      {/* ── GitHub Review hint strip ── */}
+      <div className="w-full px-4 mb-3">
+        <button
+          onClick={() => onStartWave('github', 1)}
+          className="w-full flex items-center gap-3 px-4 py-3 rounded-2xl bg-gradient-to-r from-slate-800/80 via-zinc-800/80 to-neutral-800/80 border border-white/8 hover:border-white/20 transition-all group"
+        >
+          <span className="text-xl">🐙</span>
+          <div className="flex-1 text-left">
+            <div className="text-white/80 font-bold text-sm group-hover:text-white transition-colors">GitHub 刻题复习战</div>
+            <div className="text-white/30 text-[11px]">
+              {cacheAge === null ? '根据最近 commit AI 生成复习题·首次约10秒' : `已缓存 ${cacheAge}h 前的题目`}
+            </div>
+          </div>
+          <div className="flex gap-1.5">
+            {cacheAge !== null && (
+              <span
+                onClick={e => { e.stopPropagation(); onStartWave('github', 99); }}
+                className="flex items-center gap-1 px-2 py-1 rounded-lg bg-white/8 hover:bg-white/20 text-white/40 hover:text-white text-[11px] transition-all"
+              >
+                <RefreshCw className="h-3 w-3" /> 刷新
+              </span>
+            )}
+            <span className="px-3 py-1.5 rounded-xl bg-gradient-to-r from-slate-600 to-zinc-600 text-white text-sm font-bold">挑战 →</span>
+          </div>
+        </button>
       </div>
 
       {/* ── TAB: Flashcard Adventure Map ── */}
@@ -255,44 +288,6 @@ export default function WorldMap({ flashcards, decks, overviews, saveData, onSta
           ))}
         </div>
       )}
-
-      {/* ── GitHub Review Banner ── */}
-      <div className="mx-4 mb-4 rounded-2xl border border-white/10 bg-gradient-to-r from-slate-900 via-zinc-900 to-neutral-900 overflow-hidden">
-        <div className="px-4 py-3 flex items-center gap-3">
-          <div className="text-2xl">🐙</div>
-          <div className="flex-1 min-w-0">
-            <div className="text-white font-bold text-sm leading-tight">GitHub 刻题复习战</div>
-            <div className="text-white/40 text-[11px] mt-0.5">
-              {cacheAge === null ? '根据最近 commit 生成复习题' : `缓存于 ${cacheAge}h 前·点刻新重生`}
-            </div>
-          </div>
-          <div className="flex gap-2">
-            {cacheAge !== null && (
-              <button
-                onClick={() => { onStartWave('github', 99); }}
-                className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-white/8 hover:bg-white/15 border border-white/10 text-white/50 hover:text-white/80 text-[11px] transition-all"
-                title="刷新题目"
-              >
-                <RefreshCw className="h-3 w-3" />
-                刷新
-              </button>
-            )}
-            <button
-              onClick={() => { setCacheAge(null); onStartWave('github', 1); }}
-              className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-gradient-to-r from-slate-700 to-zinc-700 hover:from-slate-600 hover:to-zinc-600 border border-white/15 text-white font-bold text-sm transition-all active:scale-95"
-            >
-              <Github className="h-4 w-4" />
-              挑战
-            </button>
-          </div>
-        </div>
-        {/* Topics preview */}
-        <div className="px-4 pb-3 flex gap-1.5 flex-wrap">
-          {['🔀 回溯', '🔍 二分', '🌳 图论', '💚 兊', '🔗 链表', '🧠 DP', '💻 并发'].map(tag => (
-            <span key={tag} className="text-[10px] px-2 py-0.5 rounded-full bg-white/6 text-white/40 border border-white/8">{tag}</span>
-          ))}
-        </div>
-      </div>
 
       {/* ── Footer ── */}
       <div className="mt-auto py-6 text-center px-6">

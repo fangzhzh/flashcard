@@ -5,6 +5,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useCurrentLocale } from '@/lib/i18n/client';
 import Link from 'next/link';
 import type { Overview } from '@/types';
+import { aiDecomposeCards } from '@/lib/aiDecomposer';
 import WorldMap from './WorldMap';
 import BattleScene from './BattleScene';
 import StageResult from './StageResult';
@@ -349,6 +350,7 @@ export default function CardWarGame() {
   const [saveData, setSaveData] = useState<SaveData>(() => loadSave());
   const [battle, setBattle]   = useState<BattleState | null>(null);
   const [result, setResult]   = useState<ResultData | null>(null);
+  const [preparing, setPreparing] = useState(false); // AI decomposition in progress
 
   useEffect(() => { writeSave(saveData); }, [saveData]);
 
@@ -384,7 +386,7 @@ export default function CardWarGame() {
     return { choices: fullOptions.map(o => truncate(o, 80)), choicesFull: fullOptions, correctIndex: fullOptions.indexOf(card.back) };
   }, []);
 
-  const startStage = useCallback((worldId: string, wave: number) => {
+  const startStage = useCallback(async (worldId: string, wave: number) => {
     // ── Overview Boss Fight ────────────────────────────────────────────────
     if (worldId.startsWith('ov_')) {
       const ov = overviews.find(o => o.id === worldId.slice(3));
@@ -438,11 +440,27 @@ export default function CardWarGame() {
     const count = Math.min(stage.cardCount, priorityOrdered.length);
     const selectedFlashcards = priorityOrdered.slice(0, count);
 
-    // Decompose complex flashcards into sub-questions
+    // ── AI decompose + regex fallback ────────────────────────────────────
+    setPreparing(true);
+    let aiResults: Map<string, import('@/lib/aiDecomposer').AiSubCard[]>;
+    try {
+      aiResults = await aiDecomposeCards(
+        selectedFlashcards.map(f => ({ id: f.id, front: f.front, back: f.back }))
+      );
+    } catch { aiResults = new Map(); }
+    setPreparing(false);
+
     const deck: BattleCard[] = [];
     for (const f of selectedFlashcards) {
       const dn = decks.find(d => d.id === f.deckId)?.name;
-      deck.push(...decomposeFrontBack(f, dn));
+      const aiSubs = aiResults.get(f.id);
+      if (aiSubs && aiSubs.length >= 2) {
+        // AI gave us sub-questions — use them
+        aiSubs.forEach((s, i) => deck.push({ id: `${f.id}_ai_${i}`, front: s.front, back: s.back, deckName: dn, parentId: f.id }));
+      } else {
+        // Fallback: regex decomposition
+        deck.push(...decomposeFrontBack(f, dn));
+      }
     }
     // Shuffle decomposed pool, then cap at cardCount
     shuffle(deck);
@@ -620,7 +638,16 @@ export default function CardWarGame() {
   return (
     <div className="fixed inset-0 z-30 overflow-hidden" style={{ top: '64px' }}>
       {screen === 'MAP' && (
-        <WorldMap flashcards={flashcards} decks={decks} overviews={overviews} saveData={saveData} onStartWave={startStage} />
+        <>
+          <WorldMap flashcards={flashcards} decks={decks} overviews={overviews} saveData={saveData} onStartWave={startStage} />
+          {preparing && (
+            <div className="absolute inset-0 z-50 flex flex-col items-center justify-center bg-slate-950/80 backdrop-blur-sm">
+              <div className="text-5xl animate-spin mb-4">⚙️</div>
+              <p className="text-white font-bold text-lg">AI 正在分析题目...</p>
+              <p className="text-white/40 text-sm mt-1">智能拆解复杂知识点</p>
+            </div>
+          )}
+        </>
       )}
       {screen === 'BATTLE' && battle && (
         <BattleScene battle={battle} onAnswer={handleAnswer} onUseItem={handleUseItem} onAnimationDone={resolveAnswer} />

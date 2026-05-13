@@ -1,7 +1,7 @@
 "use client";
 import React, { useEffect, useRef, useState } from 'react';
 import type { BattleState } from './CardWarGame';
-import { X, ChevronDown, Maximize2, Zap, Shield } from 'lucide-react';
+import { X, ChevronDown, Maximize2, Zap, Shield, Eye } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 
@@ -154,6 +154,7 @@ export default function BattleScene({ battle, onAnswer, onUseItem, onAnimationDo
 
   const progress = (battle.deckIndex / battle.deck.length) * 100;
   const hpPctBoss = bossHP / maxBossHP;
+  const questionIsLong = (currentCard?.front?.length ?? 0) > QUESTION_MAX;
 
   return (
     <div className={`h-full w-full flex flex-col bg-gradient-to-b ${stage.bgFrom} ${stage.bgVia} ${stage.bgTo} overflow-hidden`}>
@@ -255,7 +256,11 @@ export default function BattleScene({ battle, onAnswer, onUseItem, onAnimationDo
 
         {/* Question */}
         <div className="flex items-start gap-2">
-          <div className="flex-1 min-w-0">
+          <button
+            className="flex-1 min-w-0 text-left"
+            onClick={() => setModal({ type: 'q' })}
+            title="查看完整题目"
+          >
             {/* Deck category badge */}
             {currentCard?.deckName && (
               <span className="inline-block text-[9px] font-black uppercase tracking-widest bg-violet-800/60 text-violet-200 px-1.5 py-0.5 rounded mb-1.5 border border-violet-700/40">
@@ -267,13 +272,11 @@ export default function BattleScene({ battle, onAnswer, onUseItem, onAnimationDo
                 ? (currentCard?.front ?? '').slice(0, QUESTION_MAX) + '…'
                 : (currentCard?.front ?? '')}
             </p>
-          </div>
-          {questionIsLong && (
-            <button onClick={() => setModal({ type: 'q' })}
-              className="flex-shrink-0 p-1.5 rounded-lg bg-white/10 hover:bg-white/20 text-white/40 hover:text-white transition-colors" title="展开完整题目">
-              <Maximize2 className="h-3.5 w-3.5" />
-            </button>
-          )}
+          </button>
+          <button onClick={() => setModal({ type: 'q' })}
+            className="flex-shrink-0 p-2 rounded-xl bg-white/10 hover:bg-white/20 text-white/50 hover:text-white transition-colors" title="查看完整题目">
+            <Eye className="h-5 w-5" />
+          </button>
         </div>
 
         {/* Choices */}
@@ -293,12 +296,12 @@ export default function BattleScene({ battle, onAnswer, onUseItem, onAnimationDo
                   {CHOICE_LETTERS[idx]}
                 </span>
                 <span className="flex-1 text-sm leading-snug text-white/90 line-clamp-3">{choice}</span>
-                {/* Expand button — bigger touch target */}
+                {/* Expand button — Eye icon, bigger touch target */}
                 <button
-                  className="flex-shrink-0 p-1.5 rounded-lg hover:bg-white/15 text-white/30 hover:text-white/70 transition-colors"
+                  className="flex-shrink-0 p-2 rounded-xl hover:bg-white/15 text-white/40 hover:text-white/90 transition-colors"
                   onClick={e => { e.stopPropagation(); setModal({ type: 'a', idx }); }}
                   title="查看完整答案">
-                  <ChevronDown className="h-4 w-4" />
+                  <Eye className="h-5 w-5" />
                 </button>
               </button>
             </div>

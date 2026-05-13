@@ -154,7 +154,6 @@ export default function BattleScene({ battle, onAnswer, onUseItem, onAnimationDo
 
   const progress = (battle.deckIndex / battle.deck.length) * 100;
   const hpPctBoss = bossHP / maxBossHP;
-  const questionIsLong = (currentCard?.front?.length ?? 0) > QUESTION_MAX;
 
   return (
     <div className={`h-full w-full flex flex-col bg-gradient-to-b ${stage.bgFrom} ${stage.bgVia} ${stage.bgTo} overflow-hidden`}>

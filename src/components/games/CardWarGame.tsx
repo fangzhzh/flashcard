@@ -390,9 +390,35 @@ export default function CardWarGame() {
     // ── Overview Boss Fight ────────────────────────────────────────────────
     if (worldId.startsWith('ov_')) {
       const ov = overviews.find(o => o.id === worldId.slice(3));
-      if (!ov) return;
-      const ovCards = parseOverviewToCards(ov);
+      if (!ov || !(ov.description ?? '').trim()) return;
+
+      // ── AI decompose overview → Q&A sub-cards ──────────────────────────
+      setPreparing(true);
+      let aiResults: Map<string, import('@/lib/aiDecomposer').AiSubCard[]>;
+      try {
+        aiResults = await aiDecomposeCards([{
+          id: ov.id,
+          front: ov.title,
+          back: ov.description ?? '',
+        }]);
+      } catch { aiResults = new Map(); }
+      setPreparing(false);
+
+      const aiSubs = aiResults.get(ov.id);
+      let ovCards: BattleCard[];
+      if (aiSubs && aiSubs.length >= 2) {
+        ovCards = aiSubs.map((s, i) => ({
+          id: `ov_${ov.id}_ai_${i}`,
+          front: s.front,
+          back: s.back,
+          deckName: ov.title,
+        }));
+      } else {
+        // Fallback: regex section parsing
+        ovCards = parseOverviewToCards(ov);
+      }
       if (ovCards.length < 2) return;
+
       const allCards: BattleCard[] = [
         ...ovCards,
         ...flashcards.map(f => ({ id: f.id, front: f.front, back: f.back })),

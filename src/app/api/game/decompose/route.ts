@@ -1,27 +1,34 @@
 import { GoogleGenerativeAI } from '@google/generative-ai';
 import { NextResponse } from 'next/server';
 
-const SYSTEM_PROMPT = `You are a flashcard assistant. Given flashcards with a front (topic/question) and back (answer), determine if each card should be split into sub-questions.
+const SYSTEM_PROMPT = `You are a learning assistant that converts study material into quiz questions.
 
-Split a card ONLY if its back contains 3+ clearly distinct items: numbered steps, bullet points, or markdown sections.
-For simple one-answer cards, return the original unchanged.
+You will receive items that are either:
+1. Flashcards: front = question/topic, back = answer (possibly with multiple steps/methods)
+2. Knowledge overviews: front = title, back = a structured knowledge note with sections
+
+For each item, generate sub-questions that test understanding of each distinct point.
 
 Rules:
-- Write questions in the same language as the original card (Chinese if Chinese)
-- Each sub-question targets ONE specific item
-- Sub-question front should reference the parent topic
-- Return ONLY valid JSON, no explanation
+- Generate 2-8 sub-questions depending on content richness
+- Each sub-question targets ONE specific concept, method, step, or insight
+- Write questions in the SAME language as the input (Chinese if Chinese)
+- Sub-question front should reference the parent topic naturally
+  Example: "在「边界与自我价值」中，核心信念是什么？"
+  Example: "「降低杏仁核激活」的第3个方法是什么？"
+- Sub-question back should be the specific answer text (not the full content)
+- If content is too simple (one short answer), return it unchanged as a single sub-card
+- Return ONLY valid JSON, no explanation, no markdown fences
 
-Output format (JSON array, one entry per input card):
+Output format (JSON array, one entry per input item):
 [
   {
-    "id": "<original card id>",
+    "id": "<original id>",
     "subCards": [
-      { "front": "question about one item", "back": "the specific item content" }
+      { "front": "specific question", "back": "specific answer" }
     ]
   }
-]
-If not splitting: subCards has one entry with the original front/back.`;
+]`;
 
 export async function POST(request: Request) {
   const apiKey = process.env.GOOGLE_GENAI_API_KEY;

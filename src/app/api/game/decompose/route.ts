@@ -13,11 +13,16 @@ Rules:
 - Generate 2-8 sub-questions depending on content richness
 - Each sub-question targets ONE specific concept, method, step, or insight
 - Write questions in the SAME language as the input (Chinese if Chinese)
-- Sub-question front should reference the parent topic naturally
+- Sub-question front should be a COMPLETE QUESTION referencing the parent topic
   Example: "在「边界与自我价值」中，核心信念是什么？"
-  Example: "「降低杏仁核激活」的第3个方法是什么？"
-- Sub-question back should be the specific answer text (not the full content)
-- If content is too simple (one short answer), return it unchanged as a single sub-card
+  Example: "「Real-time Price Updates」系统的权衡(Trade-offs)有哪些？"
+
+CRITICAL: Sub-question back MUST contain the actual answer content, NOT just a section header.
+  BAD  (wrong): { "front": "权衡是什么？", "back": "权衡 (Trade-offs):" }
+  GOOD (right):  { "front": "权衡是什么？", "back": "延迟 vs 一致性：异步更新降低延迟但价格短暂不一致；规模 vs 成本：水平扩展带来更高运维成本" }
+  If the content under a header is missing or truncated in the input, skip that sub-card entirely.
+
+- If the whole card is too simple (one short answer), return it unchanged as a single sub-card
 - Return ONLY valid JSON, no explanation, no markdown fences
 
 Output format (JSON array, one entry per input item):
@@ -25,10 +30,11 @@ Output format (JSON array, one entry per input item):
   {
     "id": "<original id>",
     "subCards": [
-      { "front": "specific question", "back": "specific answer" }
+      { "front": "specific question", "back": "actual answer content (never just a label or header)" }
     ]
   }
 ]`;
+
 
 export async function POST(request: Request) {
   const apiKey = process.env.GOOGLE_GENAI_API_KEY;

@@ -141,7 +141,7 @@ export default function BattleScene({ battle, onAnswer, onUseItem, onAnimationDo
   }, [battle.animState, battle.selectedIndex]); // eslint-disable-line
 
   const choiceClass = (idx: number) => {
-    const base = 'w-full text-left rounded-xl border-2 px-3.5 py-3 text-sm font-medium transition-all duration-150 flex items-start gap-2.5 group';
+    const base = 'w-full text-left rounded-xl border-2 px-4 py-4 font-medium transition-all duration-150 flex items-start gap-3 group min-h-[60px]';
     if (idx === battle.eliminatedIndex) return `${base} border-slate-800 bg-slate-900/30 opacity-25 cursor-not-allowed`;
     if (battle.selectedIndex === null) return `${base} border-white/20 bg-white/5 hover:bg-white/12 hover:border-white/40 cursor-pointer active:scale-[0.98]`;
     if (idx === battle.correctIndex)   return `${base} border-green-500 bg-green-900/40 cursor-default`;
@@ -277,7 +277,7 @@ export default function BattleScene({ battle, onAnswer, onUseItem, onAnimationDo
         </div>
 
         {/* Choices */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-1.5">
+        <div className="grid grid-cols-1 gap-2">
           {battle.choices.map((choice, idx) => (
             <div key={idx} className="relative">
               <button
@@ -286,19 +286,19 @@ export default function BattleScene({ battle, onAnswer, onUseItem, onAnimationDo
                 disabled={idx === battle.eliminatedIndex || battle.selectedIndex !== null}
               >
                 {/* Letter badge */}
-                <span className={`flex-shrink-0 w-5 h-5 rounded flex items-center justify-center text-[10px] font-black transition-colors
+                <span className={`flex-shrink-0 w-6 h-6 rounded flex items-center justify-center text-xs font-black transition-colors mt-0.5
                   ${idx === battle.correctIndex && battle.selectedIndex !== null ? 'bg-green-500 text-white' :
                     idx === battle.selectedIndex && !battle.isCorrect ? 'bg-red-500 text-white' :
                     'bg-white/12 text-white/60'}`}>
                   {CHOICE_LETTERS[idx]}
                 </span>
-                <span className="flex-1 text-xs leading-snug text-white/90">{choice}</span>
-                {/* Expand button */}
+                <span className="flex-1 text-sm leading-snug text-white/90 line-clamp-3">{choice}</span>
+                {/* Expand button — bigger touch target */}
                 <button
-                  className="flex-shrink-0 p-0.5 rounded hover:bg-white/15 text-white/20 hover:text-white/60 transition-colors"
+                  className="flex-shrink-0 p-1.5 rounded-lg hover:bg-white/15 text-white/30 hover:text-white/70 transition-colors"
                   onClick={e => { e.stopPropagation(); setModal({ type: 'a', idx }); }}
                   title="查看完整答案">
-                  <ChevronDown className="h-3 w-3" />
+                  <ChevronDown className="h-4 w-4" />
                 </button>
               </button>
             </div>

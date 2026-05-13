@@ -103,7 +103,7 @@ export async function POST() {
     }).join('\n\n');
 
     const ai = new GoogleGenerativeAI(apiKey);
-    const model = ai.getGenerativeModel({ model: 'gemini-2.0-flash' });
+    const model = ai.getGenerativeModel({ model: 'gemini-1.5-flash-latest' });
 
     const result = await model.generateContent([PROMPT, `Recent commits:\n\n${commitText}`]);
     const text = result.response.text().trim()

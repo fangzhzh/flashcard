@@ -43,7 +43,7 @@ export async function POST(request: Request) {
     if (!cards?.length) return NextResponse.json({ results: [] });
 
     const ai = new GoogleGenerativeAI(apiKey);
-    const model = ai.getGenerativeModel({ model: 'gemini-2.0-flash' });
+    const model = ai.getGenerativeModel({ model: 'gemini-1.5-flash-latest' });
 
     const cardList = cards
       .map(c => `ID: ${c.id}\nFront: ${c.front}\nBack: ${c.back}`)

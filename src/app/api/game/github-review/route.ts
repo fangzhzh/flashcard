@@ -62,9 +62,12 @@ async function fetchCommitSummaries(): Promise<CommitSummary[]> {
   return [...detailed, ...rest];
 }
 
-const PROMPT = `You are a coding interview coach analyzing a developer's recent study activity.
-Based on the GitHub commits below, generate exactly 15 quiz questions to help them review and strengthen their understanding.
+const PROMPT = (variation: number) => `You are a coding interview coach analyzing a developer's recent study activity.
+Based on the GitHub commits below, generate exactly 30 quiz questions to help them review and strengthen their understanding.
 
+${variation > 1 ? `IMPORTANT: This is ROUND ${variation}. Generate DIFFERENT questions from previous rounds.
+Focus on different aspects, edge cases, alternative approaches, or deeper follow-up questions.
+` : ''}
 Cover a mix of these areas based on what appears in the commits:
 - Algorithm patterns: backtracking, binary search, two pointers, sliding window, heap, graph DFS/BFS
 - Data structures: linked list, stack, queue, priority queue, tree
@@ -85,14 +88,20 @@ Rules:
 - Write in English (this is a technical interview prep context)
 - Each answer (back) should be 1-4 sentences, specific and correct
 - Focus on concepts from the actual commits, not generic questions
-- Vary difficulty across the 15 questions
+- Vary difficulty across the 30 questions
 
 Return ONLY a JSON array (no markdown fences):
 [{"front": "question", "back": "answer"}, ...]`;
 
-export async function POST() {
+export async function POST(request: Request) {
   const apiKey = process.env.GOOGLE_GENAI_API_KEY;
   if (!apiKey) return NextResponse.json({ error: 'GOOGLE_GENAI_API_KEY not set' }, { status: 500 });
+
+  let variation = 1;
+  try {
+    const body = await request.json().catch(() => ({}));
+    if (body?.variation && typeof body.variation === 'number') variation = body.variation;
+  } catch { /* ignore */ }
 
   try {
     const commits = await fetchCommitSummaries();
@@ -105,7 +114,7 @@ export async function POST() {
     const ai = new GoogleGenerativeAI(apiKey);
     const model = ai.getGenerativeModel({ model: 'gemini-2.5-flash' });
 
-    const result = await model.generateContent([PROMPT, `Recent commits:\n\n${commitText}`]);
+    const result = await model.generateContent([PROMPT(variation), `Recent commits:\n\n${commitText}`]);
     const text = result.response.text().trim()
       .replace(/^```(?:json)?\n?/, '').replace(/\n?```$/, '').trim();
 

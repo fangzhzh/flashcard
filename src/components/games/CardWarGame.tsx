@@ -352,6 +352,7 @@ export default function CardWarGame() {
   const [battle, setBattle]   = useState<BattleState | null>(null);
   const [result, setResult]   = useState<ResultData | null>(null);
   const [preparing, setPreparing] = useState(false); // AI decomposition in progress
+  const githubRoundRef = useRef(0); // tracks infinite wave round for GitHub mode
 
   useEffect(() => { writeSave(saveData); }, [saveData]);
 
@@ -390,10 +391,15 @@ export default function CardWarGame() {
   const startStage = useCallback(async (worldId: string, wave: number) => {
     // ── GitHub Review Mode ────────────────────────────────────
     if (worldId === 'github') {
+      const isForceRefresh = wave === 99;
+      if (isForceRefresh) githubRoundRef.current = 0; // reset round on force-refresh
+      githubRoundRef.current += 1;
+      const round = githubRoundRef.current;
+
       setPreparing(true);
       let ghCards: import('@/lib/githubReview').GitHubReviewCard[];
       try {
-        ghCards = await fetchGitHubReviewCards(wave === 99); // wave=99 signals force-refresh
+        ghCards = await fetchGitHubReviewCards(isForceRefresh, round);
       } catch (err) {
         console.error('[github-review]', err);
         setPreparing(false);
@@ -403,9 +409,10 @@ export default function CardWarGame() {
       if (ghCards.length < 4) return;
 
       const stage: StageConfig = {
-        id: 1, worldId: 'github',
-        name: 'GitHub 刻题复习战',
-        boss: 'LeetCode 大 Boss', bossEmoji: '🐙',
+        id: round, worldId: 'github',
+        name: `GitHub 复习 波次 ${round}`,
+        boss: round === 1 ? 'LeetCode 大 Boss' : `LeetCode Boss · Round ${round}`,
+        bossEmoji: '🐙',
         bossHP: 50 + ghCards.length * 20,
         cardCount: ghCards.length,
         bgFrom: 'from-slate-950', bgVia: 'via-zinc-900', bgTo: 'to-neutral-950',
@@ -733,7 +740,17 @@ export default function CardWarGame() {
           result={result}
           decks={decks}
           saveData={saveData}
-          onNextWave={() => { const ws = getWorldSave(saveData, result.worldId); startStage(result.worldId, ws.currentWave); setResult(null); }}
+          onNextWave={() => {
+            if (result.worldId === 'github') {
+              // Infinite mode: fetch fresh batch with next variation
+              setResult(null);
+              startStage('github', 1);
+            } else {
+              const ws = getWorldSave(saveData, result.worldId);
+              startStage(result.worldId, ws.currentWave);
+              setResult(null);
+            }
+          }}
           onRetry={() => { startStage(result.worldId, result.stageId); setResult(null); }}
           onBackToMap={() => { setResult(null); setBattle(null); setScreen('MAP'); }}
         />

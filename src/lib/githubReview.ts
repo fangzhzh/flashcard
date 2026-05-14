@@ -1,5 +1,7 @@
 /**
- * Client-side GitHub review card fetcher with 24h localStorage cache.
+ * Client-side GitHub review card fetcher.
+ * Round 1: 24h localStorage cache (avoids unnecessary API calls).
+ * Round 2+: always fetch fresh from API with variation number (different questions).
  */
 
 export interface GitHubReviewCard { front: string; back: string; }
@@ -13,9 +15,12 @@ interface Cache {
   ts: number;
 }
 
-export async function fetchGitHubReviewCards(forceRefresh = false): Promise<GitHubReviewCard[]> {
-  // Check cache unless forced refresh
-  if (!forceRefresh) {
+export async function fetchGitHubReviewCards(
+  forceRefresh = false,
+  variation = 1,
+): Promise<GitHubReviewCard[]> {
+  // Only use cache for round 1 (subsequent rounds always get fresh questions)
+  if (!forceRefresh && variation === 1) {
     try {
       const raw = localStorage.getItem(CACHE_KEY);
       if (raw) {
@@ -27,19 +32,25 @@ export async function fetchGitHubReviewCards(forceRefresh = false): Promise<GitH
     } catch { /* ignore parse errors */ }
   }
 
-  // Fetch from API
-  const res = await fetch('/api/game/github-review', { method: 'POST' });
+  // Fetch from API (pass variation so Gemini generates different questions)
+  const res = await fetch('/api/game/github-review', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ variation }),
+  });
   if (!res.ok) {
     const { error } = await res.json().catch(() => ({ error: `HTTP ${res.status}` }));
     throw new Error(error ?? `HTTP ${res.status}`);
   }
   const { questions } = await res.json() as { questions: GitHubReviewCard[] };
 
-  // Cache result
-  try {
-    const cache: Cache = { questions, generatedAt: new Date().toISOString(), ts: Date.now() };
-    localStorage.setItem(CACHE_KEY, JSON.stringify(cache));
-  } catch { /* ignore storage full */ }
+  // Only cache round 1 result (24h)
+  if (variation === 1) {
+    try {
+      const cache: Cache = { questions, generatedAt: new Date().toISOString(), ts: Date.now() };
+      localStorage.setItem(CACHE_KEY, JSON.stringify(cache));
+    } catch { /* ignore storage full */ }
+  }
 
   return questions;
 }

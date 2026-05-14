@@ -12,10 +12,11 @@ interface Props {
   overviews: Overview[];
   saveData: SaveData;
   onStartWave: (worldId: string, wave: number) => void;
+  initialTab?: 'map' | 'overview';
 }
 
-export default function WorldMap({ flashcards, decks, overviews, saveData, onStartWave }: Props) {
-  const [tab, setTab] = useState<'map' | 'overview'>('map');
+export default function WorldMap({ flashcards, decks, overviews, saveData, onStartWave, initialTab = 'map' }: Props) {
+  const [tab, setTab] = useState<'map' | 'overview'>(initialTab);
   const [selectedWorldId, setSelectedWorldId] = useState<string>('all');
   const [cacheAge, setCacheAge] = useState<number | null>(null);
 

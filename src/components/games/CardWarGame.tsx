@@ -353,6 +353,7 @@ export default function CardWarGame() {
   const [result, setResult]   = useState<ResultData | null>(null);
   const [preparing, setPreparing] = useState(false); // AI decomposition in progress
   const githubRoundRef = useRef(0); // tracks infinite wave round for GitHub mode
+  const lastWorldIdRef = useRef<string>(''); // remembers last world for tab restore
 
   useEffect(() => { writeSave(saveData); }, [saveData]);
 
@@ -395,6 +396,7 @@ export default function CardWarGame() {
       if (isForceRefresh) githubRoundRef.current = 0; // reset round on force-refresh
       githubRoundRef.current += 1;
       const round = githubRoundRef.current;
+      lastWorldIdRef.current = 'github';
 
       setPreparing(true);
       let ghCards: import('@/lib/githubReview').GitHubReviewCard[];
@@ -446,6 +448,7 @@ export default function CardWarGame() {
     }
     // ── Overview Boss Fight ────────────────────────────────────────────────
     if (worldId.startsWith('ov_')) {
+      lastWorldIdRef.current = worldId;
       const ov = overviews.find(o => o.id === worldId.slice(3));
       if (!ov || !(ov.description ?? '').trim()) return;
 
@@ -722,7 +725,11 @@ export default function CardWarGame() {
     <div className="fixed inset-0 z-30 overflow-hidden" style={{ top: '64px' }}>
       {screen === 'MAP' && (
         <>
-          <WorldMap flashcards={flashcards} decks={decks} overviews={overviews} saveData={saveData} onStartWave={startStage} />
+          <WorldMap
+            flashcards={flashcards} decks={decks} overviews={overviews}
+            saveData={saveData} onStartWave={startStage}
+            initialTab={lastWorldIdRef.current.startsWith('ov_') ? 'overview' : 'map'}
+          />
           {preparing && (
             <div className="absolute inset-0 z-50 flex flex-col items-center justify-center bg-slate-950/80 backdrop-blur-sm">
               <div className="text-5xl animate-spin mb-4">⚙️</div>

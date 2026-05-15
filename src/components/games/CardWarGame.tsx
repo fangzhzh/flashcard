@@ -740,7 +740,8 @@ export default function CardWarGame() {
         </>
       )}
       {screen === 'BATTLE' && battle && (
-        <BattleScene battle={battle} onAnswer={handleAnswer} onUseItem={handleUseItem} onAnimationDone={resolveAnswer} />
+        <BattleScene battle={battle} onAnswer={handleAnswer} onUseItem={handleUseItem} onAnimationDone={resolveAnswer}
+          onBackToMap={() => { flushSRSUpdates(); setBattle(null); setScreen('MAP'); }} />
       )}
       {screen === 'RESULT' && result && (
         <StageResult
@@ -751,14 +752,24 @@ export default function CardWarGame() {
             if (result.worldId === 'github') {
               // Infinite mode: fetch fresh batch with next variation
               setResult(null);
+              setScreen('MAP');
               startStage('github', 1);
             } else {
               const ws = getWorldSave(saveData, result.worldId);
-              startStage(result.worldId, ws.currentWave);
+              const nextWave = ws.currentWave;
+              const nextWorldId = result.worldId;
               setResult(null);
+              setScreen('MAP');
+              startStage(nextWorldId, nextWave);
             }
           }}
-          onRetry={() => { startStage(result.worldId, result.stageId); setResult(null); }}
+          onRetry={() => {
+            const wId = result.worldId;
+            const sId = result.stageId;
+            setResult(null);
+            setScreen('MAP');
+            startStage(wId, sId);
+          }}
           onBackToMap={() => { setResult(null); setBattle(null); setScreen('MAP'); }}
         />
       )}

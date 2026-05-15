@@ -1,7 +1,7 @@
 "use client";
 import React, { useEffect, useRef, useState } from 'react';
 import type { BattleState } from './CardWarGame';
-import { X, ChevronDown, Maximize2, Zap, Shield, Eye } from 'lucide-react';
+import { X, ChevronDown, Maximize2, Zap, Shield, Eye, Map } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 
@@ -15,6 +15,7 @@ interface Props {
   onAnswer: (idx: number) => void;
   onUseItem: (idx: number) => void;
   onAnimationDone: () => void;
+  onBackToMap: () => void;
 }
 
 // ── Dark Markdown ──────────────────────────────────────────────────────────────
@@ -111,7 +112,7 @@ function Damage({ amount, isBoss, id }: { amount: number; isBoss: boolean; id: n
 }
 
 // ── Main ──────────────────────────────────────────────────────────────────────
-export default function BattleScene({ battle, onAnswer, onUseItem, onAnimationDone }: Props) {
+export default function BattleScene({ battle, onAnswer, onUseItem, onAnimationDone, onBackToMap }: Props) {
   const { stage, playerHP, maxPlayerHP, bossHP, maxBossHP } = battle;
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [modal, setModal] = useState<{ type: 'q' } | { type: 'a'; idx: number } | null>(null);
@@ -173,7 +174,17 @@ export default function BattleScene({ battle, onAnswer, onUseItem, onAnimationDo
 
         {/* Top info bar */}
         <div className="flex justify-between items-center px-4 pt-2.5 pb-0 flex-shrink-0 z-10">
-          <span className="text-xs font-bold text-white/50 bg-black/30 px-2.5 py-1 rounded-full">{stage.name}</span>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={onBackToMap}
+              className="flex items-center gap-1 text-xs font-bold text-white/40 hover:text-white/80 bg-black/30 hover:bg-black/50 px-2.5 py-1 rounded-full transition-all active:scale-95"
+              title="返回世界地图"
+            >
+              <Map className="h-3 w-3" />
+              地图
+            </button>
+            <span className="text-xs font-bold text-white/50 bg-black/30 px-2.5 py-1 rounded-full">{stage.name}</span>
+          </div>
           <span className="text-xs font-bold text-white/50 bg-black/30 px-2.5 py-1 rounded-full">
             {battle.deckIndex + 1} / {battle.deck.length} 题
           </span>

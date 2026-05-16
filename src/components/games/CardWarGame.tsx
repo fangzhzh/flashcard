@@ -351,7 +351,8 @@ export default function CardWarGame() {
   const [saveData, setSaveData] = useState<SaveData>(() => loadSave());
   const [battle, setBattle]   = useState<BattleState | null>(null);
   const [result, setResult]   = useState<ResultData | null>(null);
-  const [preparing, setPreparing] = useState(false); // AI decomposition in progress
+  const [preparing, setPreparing] = useState(false); // AI decomposition in progress (MAP overlay)
+  const [loadingNextWave, setLoadingNextWave] = useState(false); // loading overlay on RESULT screen
   const githubRoundRef = useRef(0); // tracks infinite wave round for GitHub mode
   const lastWorldIdRef = useRef<string>(''); // remembers last world for tab restore
 
@@ -389,26 +390,36 @@ export default function CardWarGame() {
     return { choices: fullOptions.map(o => truncate(o, 80)), choicesFull: fullOptions, correctIndex: fullOptions.indexOf(card.back) };
   }, []);
 
-  const startStage = useCallback(async (worldId: string, wave: number) => {
+  /**
+   * Build a BattleState for the given world/wave, performing any async AI work.
+   * Returns the new BattleState, or null if the stage cannot be started.
+   * Callers are responsible for setting screen / battle state.
+   * `onPreparing` is called with true/false to show/hide a loading indicator.
+   */
+  const buildBattleState = useCallback(async (
+    worldId: string,
+    wave: number,
+    onPreparing: (v: boolean) => void,
+  ): Promise<BattleState | null> => {
     // ── GitHub Review Mode ────────────────────────────────────
     if (worldId === 'github') {
       const isForceRefresh = wave === 99;
-      if (isForceRefresh) githubRoundRef.current = 0; // reset round on force-refresh
+      if (isForceRefresh) githubRoundRef.current = 0;
       githubRoundRef.current += 1;
       const round = githubRoundRef.current;
       lastWorldIdRef.current = 'github';
 
-      setPreparing(true);
+      onPreparing(true);
       let ghCards: import('@/lib/githubReview').GitHubReviewCard[];
       try {
         ghCards = await fetchGitHubReviewCards(isForceRefresh, round);
       } catch (err) {
         console.error('[github-review]', err);
-        setPreparing(false);
-        return;
+        onPreparing(false);
+        return null;
       }
-      setPreparing(false);
-      if (ghCards.length < 4) return;
+      onPreparing(false);
+      if (ghCards.length < 4) return null;
 
       const stage: StageConfig = {
         id: round, worldId: 'github',
@@ -420,10 +431,7 @@ export default function CardWarGame() {
         bgFrom: 'from-slate-950', bgVia: 'via-zinc-900', bgTo: 'to-neutral-950',
       };
       const deck: BattleCard[] = ghCards.map((c, i) => ({
-        id: `gh_${i}`,
-        front: c.front,
-        back: c.back,
-        deckName: 'GitHub 刻题',
+        id: `gh_${i}`, front: c.front, back: c.back, deckName: 'GitHub 刻题',
       }));
       const allCards: BattleCard[] = [
         ...deck,
@@ -431,7 +439,7 @@ export default function CardWarGame() {
       ];
       shuffle(deck);
       const { choices, choicesFull, correctIndex } = buildQuestion(deck, 0, allCards);
-      setBattle({
+      return {
         stage,
         playerHP: PLAYER_BASE_HP, maxPlayerHP: PLAYER_BASE_HP,
         bossHP: stage.bossHP, maxBossHP: stage.bossHP,
@@ -442,42 +450,32 @@ export default function CardWarGame() {
         inventory: saveData.inventory,
         shieldActive: false, lightningActive: false, eliminatedIndex: null,
         animState: 'IDLE', damageKey: 0, damageAmount: 0, damageToBoss: true,
-      });
-      setScreen('BATTLE');
-      return;
+      };
     }
+
     // ── Overview Boss Fight ────────────────────────────────────────────────
     if (worldId.startsWith('ov_')) {
       lastWorldIdRef.current = worldId;
       const ov = overviews.find(o => o.id === worldId.slice(3));
-      if (!ov || !(ov.description ?? '').trim()) return;
+      if (!ov || !(ov.description ?? '').trim()) return null;
 
-      // ── AI decompose overview → Q&A sub-cards ──────────────────────────
-      setPreparing(true);
+      onPreparing(true);
       let aiResults: Map<string, import('@/lib/aiDecomposer').AiSubCard[]>;
       try {
-        aiResults = await aiDecomposeCards([{
-          id: ov.id,
-          front: ov.title,
-          back: ov.description ?? '',
-        }]);
+        aiResults = await aiDecomposeCards([{ id: ov.id, front: ov.title, back: ov.description ?? '' }]);
       } catch { aiResults = new Map(); }
-      setPreparing(false);
+      onPreparing(false);
 
       const aiSubs = aiResults.get(ov.id);
       let ovCards: BattleCard[];
       if (aiSubs && aiSubs.length >= 2) {
         ovCards = aiSubs.map((s, i) => ({
-          id: `ov_${ov.id}_ai_${i}`,
-          front: s.front,
-          back: s.back,
-          deckName: ov.title,
+          id: `ov_${ov.id}_ai_${i}`, front: s.front, back: s.back, deckName: ov.title,
         }));
       } else {
-        // Fallback: regex section parsing
         ovCards = parseOverviewToCards(ov);
       }
-      if (ovCards.length < 2) return;
+      if (ovCards.length < 2) return null;
 
       const allCards: BattleCard[] = [
         ...ovCards,
@@ -486,7 +484,7 @@ export default function CardWarGame() {
       const stage = generateOverviewStage(ov, ovCards.length);
       const deck  = shuffle(ovCards);
       const { choices, choicesFull, correctIndex } = buildQuestion(deck, 0, allCards);
-      setBattle({
+      return {
         stage,
         playerHP: PLAYER_BASE_HP, maxPlayerHP: PLAYER_BASE_HP,
         bossHP: stage.bossHP, maxBossHP: stage.bossHP,
@@ -497,9 +495,7 @@ export default function CardWarGame() {
         inventory: saveData.inventory,
         shieldActive: false, lightningActive: false, eliminatedIndex: null,
         animState: 'IDLE', damageKey: 0, damageAmount: 0, damageToBoss: true,
-      });
-      setScreen('BATTLE');
-      return;
+      };
     }
 
     // ── Flashcard Deck World ──────────────────────────────────────────────
@@ -513,7 +509,7 @@ export default function CardWarGame() {
       ? allFlashcards
       : allFlashcards.filter(f => f.deckId === worldId);
 
-    if (filteredFlashcards.length < 4) return;
+    if (filteredFlashcards.length < 4) return null;
 
     const deckName = worldId === 'all' ? null : decks.find(d => d.id === worldId)?.name ?? null;
     const stage = generateWaveStage(wave, worldId, deckName, filteredFlashcards.length);
@@ -526,34 +522,30 @@ export default function CardWarGame() {
     const count = Math.min(stage.cardCount, priorityOrdered.length);
     const selectedFlashcards = priorityOrdered.slice(0, count);
 
-    // ── AI decompose + regex fallback ────────────────────────────────────
-    setPreparing(true);
+    onPreparing(true);
     let aiResults: Map<string, import('@/lib/aiDecomposer').AiSubCard[]>;
     try {
       aiResults = await aiDecomposeCards(
         selectedFlashcards.map(f => ({ id: f.id, front: f.front, back: f.back }))
       );
     } catch { aiResults = new Map(); }
-    setPreparing(false);
+    onPreparing(false);
 
     const deck: BattleCard[] = [];
     for (const f of selectedFlashcards) {
       const dn = decks.find(d => d.id === f.deckId)?.name;
       const aiSubs = aiResults.get(f.id);
       if (aiSubs && aiSubs.length >= 2) {
-        // AI gave us sub-questions — use them
         aiSubs.forEach((s, i) => deck.push({ id: `${f.id}_ai_${i}`, front: s.front, back: s.back, deckName: dn, parentId: f.id }));
       } else {
-        // Fallback: regex decomposition
         deck.push(...decomposeFrontBack(f, dn));
       }
     }
-    // Shuffle decomposed pool, then cap at cardCount
     shuffle(deck);
     if (deck.length > stage.cardCount) deck.splice(stage.cardCount);
     const { choices, choicesFull, correctIndex } = buildQuestion(deck, 0, allCards);
 
-    setBattle({
+    return {
       stage,
       playerHP: PLAYER_BASE_HP, maxPlayerHP: PLAYER_BASE_HP,
       bossHP: stage.bossHP, maxBossHP: stage.bossHP,
@@ -564,9 +556,16 @@ export default function CardWarGame() {
       inventory: saveData.inventory,
       shieldActive: false, lightningActive: false, eliminatedIndex: null,
       animState: 'IDLE', damageKey: 0, damageAmount: 0, damageToBoss: true,
-    });
-    setScreen('BATTLE');
+    };
   }, [flashcards, decks, overviews, saveData.inventory, buildQuestion]);
+
+  /** Start a stage from the MAP screen (shows MAP-level loading overlay). */
+  const startStage = useCallback(async (worldId: string, wave: number) => {
+    const state = await buildBattleState(worldId, wave, setPreparing);
+    if (!state) return;
+    setBattle(state);
+    setScreen('BATTLE');
+  }, [buildBattleState]);
 
 
   const handleAnswer = useCallback((choiceIndex: number) => {
@@ -744,34 +743,45 @@ export default function CardWarGame() {
           onBackToMap={() => { flushSRSUpdates(); setBattle(null); setScreen('MAP'); }} />
       )}
       {screen === 'RESULT' && result && (
-        <StageResult
-          result={result}
-          decks={decks}
-          saveData={saveData}
-          onNextWave={() => {
-            if (result.worldId === 'github') {
-              // Infinite mode: fetch fresh batch with next variation
+        <>
+          <StageResult
+            result={result}
+            decks={decks}
+            saveData={saveData}
+            onNextWave={async () => {
+              const worldId = result.worldId === 'github' ? 'github' : result.worldId;
+              const wave    = result.worldId === 'github'
+                ? 1
+                : getWorldSave(saveData, result.worldId).currentWave;
+              setLoadingNextWave(true);
+              const state = await buildBattleState(worldId, wave, () => {});
+              setLoadingNextWave(false);
+              if (!state) return;
               setResult(null);
-              setScreen('MAP');
-              startStage('github', 1);
-            } else {
-              const ws = getWorldSave(saveData, result.worldId);
-              const nextWave = ws.currentWave;
-              const nextWorldId = result.worldId;
+              setBattle(state);
+              setScreen('BATTLE');
+            }}
+            onRetry={async () => {
+              const wId = result.worldId;
+              const sId = result.stageId;
+              setLoadingNextWave(true);
+              const state = await buildBattleState(wId, sId, () => {});
+              setLoadingNextWave(false);
+              if (!state) return;
               setResult(null);
-              setScreen('MAP');
-              startStage(nextWorldId, nextWave);
-            }
-          }}
-          onRetry={() => {
-            const wId = result.worldId;
-            const sId = result.stageId;
-            setResult(null);
-            setScreen('MAP');
-            startStage(wId, sId);
-          }}
-          onBackToMap={() => { setResult(null); setBattle(null); setScreen('MAP'); }}
-        />
+              setBattle(state);
+              setScreen('BATTLE');
+            }}
+            onBackToMap={() => { setResult(null); setBattle(null); setScreen('MAP'); }}
+          />
+          {loadingNextWave && (
+            <div className="absolute inset-0 z-50 flex flex-col items-center justify-center bg-slate-950/85 backdrop-blur-sm">
+              <div className="text-5xl animate-spin mb-4">⚙️</div>
+              <p className="text-white font-bold text-lg">AI 正在准备下一关...</p>
+              <p className="text-white/40 text-sm mt-1">智能生成题目中，请稍候</p>
+            </div>
+          )}
+        </>
       )}
     </div>
   );

@@ -8,8 +8,8 @@ interface Props {
   result: ResultData;
   decks: Deck[];
   saveData: SaveData;
-  onNextWave: () => void;
-  onRetry: () => void;
+  onNextWave: () => void | Promise<void>;
+  onRetry: () => void | Promise<void>;
   onBackToMap: () => void;
 }
 

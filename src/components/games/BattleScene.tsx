@@ -155,22 +155,28 @@ export default function BattleScene({ battle, onAnswer, onUseItem, onAnimationDo
 
   const progress = (battle.deckIndex / battle.deck.length) * 100;
   const hpPctBoss = bossHP / maxBossHP;
+  const isBonus = battle.bonusPhase;
 
   return (
-    <div className={`h-full w-full flex flex-col bg-gradient-to-b ${stage.bgFrom} ${stage.bgVia} ${stage.bgTo} overflow-hidden`}>
+    <div className={`h-full w-full flex flex-col overflow-hidden transition-all duration-700
+      ${isBonus
+        ? 'bg-gradient-to-b from-yellow-950 via-amber-900/80 to-slate-950'
+        : `bg-gradient-to-b ${stage.bgFrom} ${stage.bgVia} ${stage.bgTo}`}`}>
 
       {/* ── Progress bar (top) ── */}
       <div className="h-1 bg-black/50 flex-shrink-0">
-        <div className="h-full bg-violet-400 transition-all duration-500 shadow-[0_0_8px_rgba(167,139,250,0.6)]"
+        <div className={`h-full ${isBonus ? 'bg-yellow-400' : 'bg-violet-400'} transition-all duration-500 shadow-[0_0_8px_rgba(167,139,250,0.6)]`}
           style={{ width: `${progress}%` }} />
       </div>
 
       {/* ── Battle Arena (top ~55%) ── */}
       <div className="flex-1 flex flex-col relative overflow-hidden min-h-0">
 
-        {/* Background glow based on hp */}
+        {/* Background glow based on hp / bonus phase */}
         <div className="absolute inset-0 pointer-events-none"
-          style={{ background: `radial-gradient(ellipse at 75% 40%, rgba(239,68,68,${0.08 + (1 - hpPctBoss) * 0.15}) 0%, transparent 65%)` }} />
+          style={{ background: isBonus
+            ? 'radial-gradient(ellipse at 50% 40%, rgba(250,204,21,0.15) 0%, transparent 65%)'
+            : `radial-gradient(ellipse at 75% 40%, rgba(239,68,68,${0.08 + (1 - hpPctBoss) * 0.15}) 0%, transparent 65%)` }} />
 
         {/* Top info bar */}
         <div className="flex justify-between items-center px-4 pt-2.5 pb-0 flex-shrink-0 z-10">
@@ -210,8 +216,15 @@ export default function BattleScene({ battle, onAnswer, onUseItem, onAnimationDo
 
           {/* ── CENTER (VS + effects) ── */}
           <div className="flex flex-col items-center gap-2 flex-1 relative">
-            {/* VS */}
-            <div className="text-white/20 font-black text-2xl tracking-widest">VS</div>
+            {/* VS / BONUS */}
+            {isBonus ? (
+              <div className="flex flex-col items-center gap-1 animate-combo-pop">
+                <span className="text-yellow-300 font-black text-2xl tracking-widest drop-shadow-[0_0_12px_rgba(250,204,21,0.9)]">🎁 BONUS</span>
+                <span className="text-[10px] font-bold text-yellow-300/60 uppercase tracking-widest">答对得道具!</span>
+              </div>
+            ) : (
+              <div className="text-white/20 font-black text-2xl tracking-widest">VS</div>
+            )}
 
             {/* Combo */}
             {battle.combo >= COMBO_THRESHOLD && (
@@ -222,7 +235,7 @@ export default function BattleScene({ battle, onAnswer, onUseItem, onAnimationDo
             )}
 
             {/* Rage */}
-            {battle.bossRage && (
+            {battle.bossRage && !isBonus && (
               <div className="animate-rage-glow text-red-400 text-xs font-black bg-red-950/60 px-2 py-0.5 rounded-full border border-red-800">
                 😡 RAGE
               </div>
@@ -232,9 +245,18 @@ export default function BattleScene({ battle, onAnswer, onUseItem, onAnimationDo
             {battle.selectedIndex !== null && (
               <div className={`text-sm font-black tracking-wider px-3 py-1 rounded-full border
                 ${battle.isCorrect
-                  ? 'text-green-300 bg-green-950/60 border-green-700'
+                  ? isBonus
+                    ? 'text-yellow-300 bg-yellow-950/60 border-yellow-700'
+                    : 'text-green-300 bg-green-950/60 border-green-700'
                   : 'text-red-300 bg-red-950/60 border-red-700'}`}>
-                {battle.isCorrect ? '✅ 答对！' : '❌ 答错！'}
+                {battle.isCorrect ? (isBonus ? '🎁 +道具!' : '✅ 答对！') : '❌ 答错！'}
+              </div>
+            )}
+
+            {/* Bonus reward popup */}
+            {isBonus && battle.bonusRewards.length > 0 && battle.selectedIndex !== null && battle.isCorrect && (
+              <div key={battle.bonusRewards.length} className="animate-combo-pop text-2xl">
+                {battle.bonusRewards[battle.bonusRewards.length - 1].emoji}
               </div>
             )}
 
@@ -244,18 +266,23 @@ export default function BattleScene({ battle, onAnswer, onUseItem, onAnimationDo
 
           {/* ── BOSS (right) ── */}
           <div className="flex flex-col items-center gap-2 w-28 sm:w-36">
-            {/* Rage badge */}
+            {/* Rage badge / Defeated badge */}
             <div className="h-5 flex items-center">
-              {battle.bossRage
-                ? <span className="text-[10px] font-black text-red-400 bg-red-950/80 px-1.5 py-0.5 rounded-full border border-red-800 animate-pulse">ENRAGED</span>
-                : <span className="text-[10px] text-white/30 font-medium">{stage.boss}</span>}
+              {isBonus
+                ? <span className="text-[10px] font-black text-yellow-400 bg-yellow-950/80 px-1.5 py-0.5 rounded-full border border-yellow-700 animate-pulse">DEFEATED</span>
+                : battle.bossRage
+                  ? <span className="text-[10px] font-black text-red-400 bg-red-950/80 px-1.5 py-0.5 rounded-full border border-red-800 animate-pulse">ENRAGED</span>
+                  : <span className="text-[10px] text-white/30 font-medium">{stage.boss}</span>}
             </div>
             {/* Boss sprite — BIG */}
-            <div className={`text-7xl sm:text-8xl select-none leading-none ${bossAnim}`}
-              style={{ display: 'inline-block', filter: `drop-shadow(0 4px 20px rgba(0,0,0,0.6)) ${battle.bossRage ? 'drop-shadow(0 0 16px rgba(239,68,68,0.7))' : ''}` }}>
-              {stage.bossEmoji}
+            <div className={`text-7xl sm:text-8xl select-none leading-none ${isBonus ? 'opacity-30 grayscale' : bossAnim}`}
+              style={{ display: 'inline-block', filter: `drop-shadow(0 4px 20px rgba(0,0,0,0.6)) ${!isBonus && battle.bossRage ? 'drop-shadow(0 0 16px rgba(239,68,68,0.7))' : ''}` }}>
+              {isBonus ? '💀' : stage.bossEmoji}
             </div>
-            <HPBar current={bossHP} max={maxBossHP} color="red" label="Boss" />
+            {!isBonus && <HPBar current={bossHP} max={maxBossHP} color="red" label="Boss" />}
+            {isBonus && (
+              <div className="text-[10px] font-black text-yellow-400/60 uppercase tracking-widest">已击败</div>
+            )}
           </div>
         </div>
       </div>

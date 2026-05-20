@@ -50,6 +50,7 @@ export interface BattleState {
   eliminatedIndex: number | null;
   animState: AnimState;
   damageKey: number; damageAmount: number; damageToBoss: boolean;
+  bonusPhase: boolean; bonusRewards: Item[];
 }
 
 export interface WorldSave {
@@ -73,6 +74,7 @@ export interface ResultData {
   maxCombo: number;
   stars: number;
   reward: Item | null;
+  bonusRewards: Item[];
 }
 
 // ─── Constants ────────────────────────────────────────────────────────────────
@@ -458,6 +460,7 @@ export default function CardWarGame({ initialDeckId }: CardWarGameProps = {}) {
         inventory: saveData.inventory,
         shieldActive: false, lightningActive: false, eliminatedIndex: null,
         animState: 'IDLE', damageKey: 0, damageAmount: 0, damageToBoss: true,
+        bonusPhase: false, bonusRewards: [],
       };
     }
 
@@ -503,6 +506,7 @@ export default function CardWarGame({ initialDeckId }: CardWarGameProps = {}) {
         inventory: saveData.inventory,
         shieldActive: false, lightningActive: false, eliminatedIndex: null,
         animState: 'IDLE', damageKey: 0, damageAmount: 0, damageToBoss: true,
+        bonusPhase: false, bonusRewards: [],
       };
     }
 
@@ -564,6 +568,7 @@ export default function CardWarGame({ initialDeckId }: CardWarGameProps = {}) {
       inventory: saveData.inventory,
       shieldActive: false, lightningActive: false, eliminatedIndex: null,
       animState: 'IDLE', damageKey: 0, damageAmount: 0, damageToBoss: true,
+      bonusPhase: false, bonusRewards: [],
     };
   }, [flashcards, decks, overviews, saveData.inventory, buildQuestion]);
 
@@ -631,37 +636,58 @@ export default function CardWarGame({ initialDeckId }: CardWarGameProps = {}) {
       const allCards: BattleCard[] = flashcards.map(f => ({ id: f.id, front: f.front, back: f.back }));
       let { playerHP, bossHP, combo, wrongStreak, bossRage } = prev;
       let damageAmount = 0;
+      let bonusPhase = prev.bonusPhase;
+      const bonusRewards = [...prev.bonusRewards];
 
-      if (isCorrect) {
-        let dmg = PLAYER_ATTACK;
-        if (prev.lightningActive) dmg *= 3;
-        if (combo + 1 >= 3) dmg *= 2;
-        bossHP = Math.max(0, bossHP - dmg);
-        combo++; wrongStreak = 0; bossRage = false; damageAmount = dmg;
-      } else {
-        if (!prev.shieldActive) {
-          const dmg = bossRage ? Math.round(BOSS_ATTACK * 1.5) : BOSS_ATTACK;
-          playerHP = Math.max(0, playerHP - dmg);
-          damageAmount = dmg;
+      if (bonusPhase) {
+        // ── Bonus round: no HP changes, correct answers earn items ─────────
+        if (isCorrect) {
+          combo++; wrongStreak = 0;
+          const bonusItem = ITEM_POOL[Math.floor(Math.random() * ITEM_POOL.length)];
+          bonusRewards.push(bonusItem);
+        } else {
+          combo = 0; wrongStreak++;
         }
-        combo = 0; wrongStreak++; bossRage = wrongStreak >= 2;
+        damageAmount = 0;
+      } else {
+        // ── Normal battle ──────────────────────────────────────────────────
+        if (isCorrect) {
+          let dmg = PLAYER_ATTACK;
+          if (prev.lightningActive) dmg *= 3;
+          if (combo + 1 >= 3) dmg *= 2;
+          bossHP = Math.max(0, bossHP - dmg);
+          combo++; wrongStreak = 0; bossRage = false; damageAmount = dmg;
+        } else {
+          if (!prev.shieldActive) {
+            const dmg = bossRage ? Math.round(BOSS_ATTACK * 1.5) : BOSS_ATTACK;
+            playerHP = Math.max(0, playerHP - dmg);
+            damageAmount = dmg;
+          }
+          combo = 0; wrongStreak++; bossRage = wrongStreak >= 2;
+        }
       }
 
       const maxCombo = Math.max(prev.maxCombo, combo);
       const totalAnswered = prev.totalAnswered + 1;
       const correctCount  = prev.correctCount + (isCorrect ? 1 : 0);
 
-      // Don't let boss die until all cards have been answered at least once
       const allCardsAnswered = totalAnswered >= prev.deck.length;
-      if (bossHP <= 0 && !allCardsAnswered) {
-        bossHP = 1; // Boss clings to life — keep going until all cards are done
+
+      // Boss defeated but cards remain → enter bonus phase
+      if (bossHP <= 0 && !allCardsAnswered && !bonusPhase) {
+        bonusPhase = true;
+        bossHP = 0;
       }
 
-      if ((bossHP <= 0 && allCardsAnswered) || playerHP <= 0) {
-        const victory = bossHP <= 0;
+      // Player death (only in normal phase) or all cards answered → end battle
+      if ((playerHP <= 0 && !bonusPhase) || allCardsAnswered) {
+        const victory = bossHP <= 0 || bonusPhase; // bonusPhase means boss was already defeated
         const { worldId, id: wave } = prev.stage;
         const stars  = victory ? calcStars(correctCount, totalAnswered, maxCombo) : 0;
         const reward = victory ? ITEM_POOL[Math.floor(Math.random() * ITEM_POOL.length)] : null;
+
+        // Save bonus rewards to inventory
+        const allRewards = [...(reward ? [reward] : []), ...bonusRewards];
 
         setSaveData(sd => {
           const ws = getWorldSave(sd, worldId);
@@ -678,12 +704,12 @@ export default function CardWarGame({ initialDeckId }: CardWarGameProps = {}) {
                 stars:       { ...ws.stars, [wave]: Math.max(prevStars, stars) },
               },
             },
-            inventory: reward && victory ? [...sd.inventory, reward].slice(-3) : sd.inventory,
+            inventory: victory ? [...sd.inventory, ...allRewards].slice(-6) : sd.inventory,
             totalWins: sd.totalWins + (victory ? 1 : 0),
           };
         });
 
-        setResult({ victory, stageId: wave, worldId, correctCount, totalAnswered, maxCombo, stars, reward });
+        setResult({ victory, stageId: wave, worldId, correctCount, totalAnswered, maxCombo, stars, reward, bonusRewards });
         setScreen('RESULT');
         return null;
       }
@@ -700,6 +726,7 @@ export default function CardWarGame({ initialDeckId }: CardWarGameProps = {}) {
         lightningActive: isCorrect ? false : prev.lightningActive,
         eliminatedIndex: null,
         damageKey: prev.damageKey + 1, damageAmount, damageToBoss: isCorrect,
+        bonusPhase, bonusRewards,
       };
     });
   }, [flashcards, buildQuestion]);

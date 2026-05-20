@@ -25,7 +25,7 @@ function StatRow({ icon, label, value, highlight }: { icon: React.ReactNode; lab
 }
 
 export default function StageResult({ result, decks, onNextWave, onRetry, onBackToMap }: Props) {
-  const { victory, stageId, worldId, correctCount, totalAnswered, maxCombo, stars, reward } = result;
+  const { victory, stageId, worldId, correctCount, totalAnswered, maxCombo, stars, reward, bonusRewards } = result;
   const accuracy = totalAnswered > 0 ? Math.round((correctCount / totalAnswered) * 100) : 0;
   const worldName = worldId === 'all' ? '全部卡片' : (decks.find(d => d.id === worldId)?.name ?? 'Unknown');
 
@@ -80,7 +80,7 @@ export default function StageResult({ result, decks, onNextWave, onRetry, onBack
           highlight={maxCombo >= 3 ? 'text-orange-400' : undefined}
         />
 
-        {/* Reward */}
+        {/* Main Reward */}
         {victory && reward && (
           <div className="mt-3 pt-3 border-t border-white/10">
             <div className="text-[10px] font-black text-white/30 uppercase tracking-widest mb-2 text-center">🎁 获得奖励</div>
@@ -90,6 +90,26 @@ export default function StageResult({ result, decks, onNextWave, onRetry, onBack
                 <div className="text-white font-bold text-sm">{reward.name}</div>
                 <div className="text-white/50 text-xs">{reward.desc}</div>
               </div>
+            </div>
+          </div>
+        )}
+
+        {/* Bonus Rewards */}
+        {victory && bonusRewards.length > 0 && (
+          <div className="mt-3 pt-3 border-t border-yellow-700/30">
+            <div className="text-[10px] font-black text-yellow-400/60 uppercase tracking-widest mb-2 text-center">
+              🎁 Bonus 奖励 ×{bonusRewards.length}
+            </div>
+            <div className="flex flex-wrap gap-2 justify-center">
+              {bonusRewards.map((item, i) => (
+                <div key={i}
+                  className="flex items-center gap-2 bg-yellow-950/40 rounded-lg px-3 py-2 border border-yellow-700/30"
+                  title={`${item.name}: ${item.desc}`}
+                >
+                  <span className="text-xl">{item.emoji}</span>
+                  <span className="text-white/70 text-xs font-medium">{item.name}</span>
+                </div>
+              ))}
             </div>
           </div>
         )}

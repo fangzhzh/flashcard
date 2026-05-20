@@ -27,7 +27,7 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
-import { PlusCircle, Edit3, Trash2, Loader2, Info, ShieldAlert, Library, PlayCircle } from 'lucide-react';
+import { PlusCircle, Edit3, Trash2, Loader2, Info, ShieldAlert, Library, PlayCircle, Swords } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { useI18n, useCurrentLocale } from '@/lib/i18n/client';
 import type { Deck } from '@/types';
@@ -179,6 +179,11 @@ export default function DecksClient() {
                 <Link href={`/${currentLocale}/review?deckId=${deck.id}`} passHref className="w-full">
                   <Button variant="default" size="sm" className="w-full">
                     <PlayCircle className="mr-2 h-4 w-4" /> {t('deck.item.review.short')}
+                  </Button>
+                </Link>
+                <Link href={`/${currentLocale}/game?deckId=${deck.id}`} passHref className="w-full">
+                  <Button variant="outline" size="sm" className="w-full border-violet-500/50 text-violet-400 hover:bg-violet-500/10 hover:text-violet-300">
+                    <Swords className="mr-2 h-4 w-4" /> {t('deck.item.game.short')}
                   </Button>
                 </Link>
               <div className="flex gap-2 w-full">

@@ -4,6 +4,7 @@ import { useFlashcards } from '@/contexts/FlashcardsContext';
 import { useAuth } from '@/contexts/AuthContext';
 import { useCurrentLocale } from '@/lib/i18n/client';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import type { Overview } from '@/types';
 import { aiDecomposeCards } from '@/lib/aiDecomposer';
 import { fetchGitHubReviewCards } from '@/lib/githubReview';
@@ -342,9 +343,15 @@ export function getWorldSave(save: SaveData, worldId: string): WorldSave {
 
 // ─── Main Component ───────────────────────────────────────────────────────────
 
-export default function CardWarGame() {
+interface CardWarGameProps {
+  /** When provided, skip the world map and auto-start a battle for this deck */
+  initialDeckId?: string;
+}
+
+export default function CardWarGame({ initialDeckId }: CardWarGameProps = {}) {
   const { flashcards, decks, isLoading, updateFlashcard, overviews } = useFlashcards();
   const { user } = useAuth();
+  const router = useRouter();
   const currentLocale = useCurrentLocale();
 
   const [screen, setScreen]   = useState<'MAP' | 'BATTLE' | 'RESULT'>('MAP');
@@ -355,6 +362,7 @@ export default function CardWarGame() {
   const [loadingNextWave, setLoadingNextWave] = useState(false); // loading overlay on RESULT screen
   const githubRoundRef = useRef(0); // tracks infinite wave round for GitHub mode
   const lastWorldIdRef = useRef<string>(''); // remembers last world for tab restore
+  const autoStartedRef = useRef(false); // prevent double auto-start for initialDeckId
 
   useEffect(() => { writeSave(saveData); }, [saveData]);
 
@@ -567,6 +575,15 @@ export default function CardWarGame() {
     setScreen('BATTLE');
   }, [buildBattleState]);
 
+  // ── Auto-start for initialDeckId (from Deck management page) ─────────────
+  useEffect(() => {
+    if (!initialDeckId || autoStartedRef.current || isLoading || !user) return;
+    // Wait until flashcards/decks are loaded
+    if (flashcards.length === 0) return;
+    autoStartedRef.current = true;
+    startStage(initialDeckId, getWorldSave(saveData, initialDeckId).currentWave);
+  }, [initialDeckId, isLoading, user, flashcards.length, startStage, saveData]);
+
 
   const handleAnswer = useCallback((choiceIndex: number) => {
     setBattle(prev => {
@@ -634,7 +651,13 @@ export default function CardWarGame() {
       const totalAnswered = prev.totalAnswered + 1;
       const correctCount  = prev.correctCount + (isCorrect ? 1 : 0);
 
-      if (bossHP <= 0 || playerHP <= 0) {
+      // Don't let boss die until all cards have been answered at least once
+      const allCardsAnswered = totalAnswered >= prev.deck.length;
+      if (bossHP <= 0 && !allCardsAnswered) {
+        bossHP = 1; // Boss clings to life — keep going until all cards are done
+      }
+
+      if ((bossHP <= 0 && allCardsAnswered) || playerHP <= 0) {
         const victory = bossHP <= 0;
         const { worldId, id: wave } = prev.stage;
         const stars  = victory ? calcStars(correctCount, totalAnswered, maxCombo) : 0;
@@ -740,7 +763,10 @@ export default function CardWarGame() {
       )}
       {screen === 'BATTLE' && battle && (
         <BattleScene battle={battle} onAnswer={handleAnswer} onUseItem={handleUseItem} onAnimationDone={resolveAnswer}
-          onBackToMap={() => { flushSRSUpdates(); setBattle(null); setScreen('MAP'); }} />
+          onBackToMap={() => {
+            flushSRSUpdates(); setBattle(null);
+            if (initialDeckId) { router.back(); } else { setScreen('MAP'); }
+          }} />
       )}
       {screen === 'RESULT' && result && (
         <>
@@ -772,7 +798,10 @@ export default function CardWarGame() {
               setBattle(state);
               setScreen('BATTLE');
             }}
-            onBackToMap={() => { setResult(null); setBattle(null); setScreen('MAP'); }}
+            onBackToMap={() => {
+              setResult(null); setBattle(null);
+              if (initialDeckId) { router.back(); } else { setScreen('MAP'); }
+            }}
           />
           {loadingNextWave && (
             <div className="absolute inset-0 z-50 flex flex-col items-center justify-center bg-slate-950/85 backdrop-blur-sm">

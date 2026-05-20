@@ -147,6 +147,7 @@ export default {
   'deck.item.cardsCount': '{count} cards',
   'deck.item.editNameHint': 'Edit deck name',
   'deck.item.review.short': 'Review',
+  'deck.item.game.short': 'Challenge',
   'deck.item.delete.short': 'Delete',
   'deck.item.delete.confirm.title': 'Are you sure you want to delete this deck?',
   'deck.item.delete.confirm.description': 'This action cannot be undone. This will permanently delete the deck and all flashcards within it.',

@@ -148,6 +148,7 @@ export default {
   'deck.item.cardsCount': '{count} 张卡片',
   'deck.item.editNameHint': '编辑卡组名称',
   'deck.item.review.short': '复习',
+  'deck.item.game.short': '开始游戏',
   'deck.item.delete.short': '删除',
   'deck.item.delete.confirm.title': '您确定要删除这个卡组吗？',
   'deck.item.delete.confirm.description': '此操作无法撤销。这将永久删除该卡组及其中的所有抽认卡。',

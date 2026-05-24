@@ -85,9 +85,10 @@ export const FlashcardsProvider = ({ children }: { children: ReactNode }) => {
 
   const mapFirestoreDocToTask = (docSnapshot: any): Task => {
     const data = docSnapshot.data();
+    const { id: _dataId, ...dataWithoutId } = data;
     return {
       id: docSnapshot.id,
-      ...data,
+      ...dataWithoutId,
       type: data.type || 'innie',
       isSilent: data.isSilent || false, // Add isSilent mapping
       createdAt: data.createdAt instanceof Timestamp ? formatISO(data.createdAt.toDate()) : (typeof data.createdAt === 'string' ? data.createdAt : null),

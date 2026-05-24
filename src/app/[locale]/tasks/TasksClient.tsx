@@ -505,15 +505,15 @@ function TasksClientContent() {
       if (newStatus === 'completed' && task.repeat && task.repeat !== 'none') {
         const nextTimeInfo = calculateNextOccurrence(task);
         if (nextTimeInfo) {
+          const { id: _id, userId: _uid, createdAt: _ca, updatedAt: _ua, ...taskFields } = task;
           const newTaskData: Omit<Task, 'id' | 'createdAt' | 'updatedAt' | 'userId'> = {
-            ...task,
+            ...taskFields,
             timeInfo: nextTimeInfo,
             status: 'pending',
             isSilent: true, 
             checkinInfo: task.checkinInfo ? { ...task.checkinInfo, currentCheckins: 0, history: [] } : null,
           };
-          const dataForNewTask = newTaskData;
-          await addTaskInContext(dataForNewTask);
+          await addTaskInContext(newTaskData);
           toast({ title: t('toast.task.rescheduled.title'), description: t('toast.task.rescheduled.description', { title: task.title }) });
         }
       } else if (newStatus === 'pending' && isCurrentlyCompleted && task.repeat !== 'none') {
@@ -525,15 +525,15 @@ function TasksClientContent() {
             t => t.isSilent && t.title === task.title && t.timeInfo.startDate === nextTimeInfo.startDate
           );
           if (!successorExists) {
+            const { id: _id, userId: _uid, createdAt: _ca, updatedAt: _ua, ...taskFields } = task;
             const newTaskData: Omit<Task, 'id' | 'createdAt' | 'updatedAt' | 'userId'> = {
-              ...task,
+              ...taskFields,
               timeInfo: nextTimeInfo,
               status: 'pending',
               isSilent: true,
               checkinInfo: task.checkinInfo ? { ...task.checkinInfo, currentCheckins: 0, history: [] } : null,
             };
-            const dataForNewTask = newTaskData;
-            await addTaskInContext(dataForNewTask);
+            await addTaskInContext(newTaskData);
             toast({ title: t('toast.task.rescheduled.title'), description: t('toast.task.rescheduled.description', { title: task.title }) });
           }
         }
@@ -686,15 +686,15 @@ function TasksClientContent() {
         if (task.repeat && task.repeat !== 'none') {
             const nextTimeInfo = calculateNextOccurrence(task);
             if (nextTimeInfo) {
+              const { id: _id, userId: _uid, createdAt: _ca, updatedAt: _ua, ...taskFields } = task;
               const newTaskData: Omit<Task, 'id' | 'createdAt' | 'updatedAt' | 'userId'> = {
-                ...task,
+                ...taskFields,
                 timeInfo: nextTimeInfo,
                 status: 'pending',
                 isSilent: true,
                 checkinInfo: task.checkinInfo ? { ...task.checkinInfo, currentCheckins: 0, history: [] } : null,
               };
-              const dataForNewTask = newTaskData;
-              await addTaskInContext(dataForNewTask);
+              await addTaskInContext(newTaskData);
               toast({ title: t('toast.task.rescheduled.title'), description: t('toast.task.rescheduled.description', { title: task.title }) });
             }        }
       }

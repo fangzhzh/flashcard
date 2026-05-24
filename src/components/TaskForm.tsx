@@ -890,14 +890,16 @@ export default function TaskForm({
                             <AlertDialogHeader>
                                 <AlertDialogTitle>{t('task.form.delete.confirm.title')}</AlertDialogTitle>
                                 <AlertDialogDescription>
-                                    {t('task.form.delete.confirm.description')}
+                                    {watchedRepeat && watchedRepeat !== 'none'
+                                      ? t('task.form.delete.confirm.description.repeating')
+                                      : t('task.form.delete.confirm.description')}
                                 </AlertDialogDescription>
                             </AlertDialogHeader>
                             <AlertDialogFooter>
                                 <AlertDialogCancel disabled={isDeleting}>{t('deck.item.delete.confirm.cancel')}</AlertDialogCancel>
                                 <AlertDialogAction onClick={handleDeleteConfirmed} disabled={isDeleting}>
                                     {isDeleting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
-                                    {t('deck.item.delete.confirm.delete')}
+                                    {t('task.form.button.delete')}
                                 </AlertDialogAction>
                             </AlertDialogFooter>
                         </AlertDialogContent>

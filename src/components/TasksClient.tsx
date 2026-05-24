@@ -586,6 +586,13 @@ function TasksClientContent() {
   const handleDeleteTask = async () => {
     if (!selectedTask || !selectedTask.id) return;
     try {
+        // If it's a repeating task, also delete all pending silent successor instances
+        if (selectedTask.repeat && selectedTask.repeat !== 'none') {
+          const siblingTasks = tasks.filter(
+            t => t.id !== selectedTask.id && t.title === selectedTask.title && t.isSilent && t.status === 'pending'
+          );
+          await Promise.all(siblingTasks.map(t => deleteTaskInContext(t.id)));
+        }
         await deleteTaskInContext(selectedTask.id);
         toast({ title: t('success'), description: t('toast.task.deleted') });
         setSelectedTaskId(null); 

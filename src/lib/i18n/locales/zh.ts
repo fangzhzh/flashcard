@@ -443,6 +443,7 @@ export default {
   'task.form.button.deleting': '删除中...',
   'task.form.delete.confirm.title': '删除任务？',
   'task.form.delete.confirm.description': '您确定要删除此任务吗？此操作无法撤销。',
+  'task.form.delete.confirm.description.repeating': '确定删除吗？这将删除此任务及其所有未来的待处理实例。此操作无法撤销。',
   'toast.task.created': '任务创建成功。',
   'toast.task.updated': '任务更新成功。',
   'toast.task.deleted': '任务删除成功。',

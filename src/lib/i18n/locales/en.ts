@@ -442,6 +442,7 @@ export default {
   'task.form.button.deleting': 'Deleting...',
   'task.form.delete.confirm.title': 'Delete Task?',
   'task.form.delete.confirm.description': 'Are you sure you want to delete this task? This action cannot be undone.',
+  'task.form.delete.confirm.description.repeating': 'Are you sure? This will delete this task and all its future pending instances. This action cannot be undone.',
   'toast.task.created': 'Task created successfully.',
   'toast.task.updated': 'Task updated successfully.',
   'toast.task.deleted': 'Task deleted successfully.',

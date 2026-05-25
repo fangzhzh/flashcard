@@ -17,14 +17,14 @@ const BGM_ICONS: Record<BgmMode, string> = {
 
 const BGM_LABELS: Record<BgmMode, string> = {
   mute: '静音',
-  chiptune: '像素',
+  chiptune: '重装机兵',
   lofi: 'Lofi',
   rain: '雨声',
 };
 
 const BGM_URLS: Record<BgmMode, string> = {
   mute: '',
-  chiptune: 'https://ozzed.net/files/Albums/Nackskott/03%20Sanity%20Not%20Included.mp3',
+  chiptune: 'https://raw.githubusercontent.com/aaixy/zzgl/master/audio/bgm/008boss.m4a',
   lofi: 'https://raw.githubusercontent.com/YoyoZhang24/RelaX50/main/RelaX50/audios/lofi.mp3',
   rain: 'https://raw.githubusercontent.com/YoyoZhang24/RelaX50/main/RelaX50/audios/rain2.mp3',
 };

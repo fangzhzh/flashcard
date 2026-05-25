@@ -8,7 +8,7 @@ import remarkGfm from 'remark-gfm';
 const COMBO_THRESHOLD = 3;
 const ANIM_DURATION   = 800;
 const CHOICE_LETTERS  = ['A', 'B', 'C', 'D'];
-const QUESTION_MAX    = 140;
+const QUESTION_MAX    = 280;
 
 interface Props {
   battle: BattleState;
@@ -142,7 +142,7 @@ export default function BattleScene({ battle, onAnswer, onUseItem, onAnimationDo
   }, [battle.animState, battle.selectedIndex]); // eslint-disable-line
 
   const choiceClass = (idx: number) => {
-    const base = 'w-full text-left rounded-xl border-2 px-3 sm:px-4 py-3 sm:py-4 font-medium transition-all duration-150 flex items-start gap-2 sm:gap-3 group min-h-[48px] sm:min-h-[60px]';
+    const base = 'w-full text-left rounded-xl border-2 px-3 sm:px-4 py-2 sm:py-4 font-medium transition-all duration-150 flex items-start gap-2 sm:gap-3 group min-h-[42px] sm:min-h-[60px]';
     if (idx === battle.eliminatedIndex) return `${base} border-slate-800 bg-slate-900/30 opacity-25 cursor-not-allowed`;
     if (battle.selectedIndex === null) return `${base} border-white/20 bg-white/5 hover:bg-white/12 hover:border-white/40 cursor-pointer active:scale-[0.98]`;
     if (idx === battle.correctIndex)   return `${base} border-green-500 bg-green-900/40 cursor-default`;
@@ -288,8 +288,7 @@ export default function BattleScene({ battle, onAnswer, onUseItem, onAnimationDo
       </div>
 
       {/* ── Question + Choices panel (bottom ~45%) ── */}
-      <div className="flex-shrink-0 bg-black/65 backdrop-blur-xl rounded-t-3xl border-t border-white/10 px-3 sm:px-4 pt-3 sm:pt-4 pb-3 space-y-2 sm:space-y-3 overflow-y-auto"
-        style={{ maxHeight: '55%' }}>
+      <div className="flex-shrink-0 bg-black/65 backdrop-blur-xl rounded-t-3xl border-t border-white/10 px-3 sm:px-4 pt-3 sm:pt-4 pb-3 space-y-2 sm:space-y-3 overflow-y-auto max-h-[68%] sm:max-h-[55%]">
 
         {/* Question */}
         <div className="flex items-start gap-2">
@@ -304,7 +303,7 @@ export default function BattleScene({ battle, onAnswer, onUseItem, onAnimationDo
                 {currentCard.deckName}
               </span>
             )}
-            <p className="text-white font-semibold text-sm leading-snug line-clamp-3">
+            <p className="text-white font-semibold text-sm leading-snug line-clamp-4 sm:line-clamp-6">
               {questionIsLong
                 ? (currentCard?.front ?? '').slice(0, QUESTION_MAX) + '…'
                 : (currentCard?.front ?? '')}
@@ -332,7 +331,7 @@ export default function BattleScene({ battle, onAnswer, onUseItem, onAnimationDo
                     'bg-white/12 text-white/60'}`}>
                   {CHOICE_LETTERS[idx]}
                 </span>
-                <span className="flex-1 text-sm leading-snug text-white/90 line-clamp-3">{choice}</span>
+                <span className="flex-1 text-sm leading-snug text-white/90 line-clamp-4 sm:line-clamp-6">{choice}</span>
                 {/* Expand button — Eye icon, bigger touch target */}
                 <button
                   className="flex-shrink-0 p-2 rounded-xl hover:bg-white/15 text-white/40 hover:text-white/90 transition-colors"

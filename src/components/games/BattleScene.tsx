@@ -6,25 +6,28 @@ import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { playChiptuneSFX } from '@/lib/sfx';
 
-type BgmMode = 'mute' | 'chiptune' | 'lofi' | 'rain';
+type BgmMode = 'mute' | 'metalmax' | 'chiptune' | 'lofi' | 'rain';
 
 const BGM_ICONS: Record<BgmMode, string> = {
   mute: '🔇',
-  chiptune: '⚔️',
+  metalmax: '⚔️',
+  chiptune: '👾',
   lofi: '☕',
   rain: '🌧️',
 };
 
 const BGM_LABELS: Record<BgmMode, string> = {
   mute: '静音',
-  chiptune: '重装机兵',
+  metalmax: '重装机兵',
+  chiptune: '像素音乐',
   lofi: 'Lofi',
   rain: '雨声',
 };
 
 const BGM_URLS: Record<BgmMode, string> = {
   mute: '',
-  chiptune: 'https://raw.githubusercontent.com/aaixy/zzgl/master/audio/bgm/008boss.m4a',
+  metalmax: 'https://raw.githubusercontent.com/aaixy/zzgl/master/audio/bgm/008boss.m4a',
+  chiptune: 'https://ozzed.net/files/Albums/Nackskott/03%20Sanity%20Not%20Included.mp3',
   lofi: 'https://raw.githubusercontent.com/YoyoZhang24/RelaX50/main/RelaX50/audios/lofi.mp3',
   rain: 'https://raw.githubusercontent.com/YoyoZhang24/RelaX50/main/RelaX50/audios/rain2.mp3',
 };
@@ -145,8 +148,9 @@ export default function BattleScene({ battle, onAnswer, onUseItem, onAnimationDo
   const [bgmMode, setBgmMode] = useState<BgmMode>(() => {
     if (typeof window !== 'undefined') {
       const saved = localStorage.getItem('game_bgm_mode');
-      if (saved === 'mute' || saved === 'chiptune' || saved === 'lofi' || saved === 'rain') {
-        return saved;
+      const validModes: BgmMode[] = ['mute', 'metalmax', 'chiptune', 'lofi', 'rain'];
+      if (saved && validModes.includes(saved as BgmMode)) {
+        return saved as BgmMode;
       }
     }
     return 'mute';
@@ -193,7 +197,7 @@ export default function BattleScene({ battle, onAnswer, onUseItem, onAnimationDo
 
   // Cycle BGM mode helper
   const cycleBgm = () => {
-    const modes: BgmMode[] = ['mute', 'chiptune', 'lofi', 'rain'];
+    const modes: BgmMode[] = ['mute', 'metalmax', 'chiptune', 'lofi', 'rain'];
     const nextIdx = (modes.indexOf(bgmMode) + 1) % modes.length;
     setBgmMode(modes[nextIdx]);
   };

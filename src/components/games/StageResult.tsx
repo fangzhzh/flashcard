@@ -1,8 +1,9 @@
 "use client";
-import React from 'react';
+import React, { useEffect } from 'react';
 import type { ResultData, SaveData } from './CardWarGame';
 import type { Deck } from '@/types';
 import { Star, RotateCcw, Map, ChevronRight, Target, Flame, Trophy } from 'lucide-react';
+import { playChiptuneSFX } from '@/lib/sfx';
 
 interface Props {
   result: ResultData;
@@ -28,6 +29,14 @@ export default function StageResult({ result, decks, onNextWave, onRetry, onBack
   const { victory, stageId, worldId, correctCount, totalAnswered, maxCombo, stars, reward, bonusRewards } = result;
   const accuracy = totalAnswered > 0 ? Math.round((correctCount / totalAnswered) * 100) : 0;
   const worldName = worldId === 'all' ? '全部卡片' : (decks.find(d => d.id === worldId)?.name ?? 'Unknown');
+
+  useEffect(() => {
+    if (victory) {
+      playChiptuneSFX('victory');
+    } else {
+      playChiptuneSFX('defeat');
+    }
+  }, [victory]);
 
   return (
     <div className={`h-full w-full flex flex-col items-center justify-center px-5 animate-stage-entrance overflow-y-auto py-8

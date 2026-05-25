@@ -4,6 +4,30 @@ import type { BattleState } from './CardWarGame';
 import { X, ChevronDown, Maximize2, Zap, Shield, Eye, Map } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
+import { playChiptuneSFX } from '@/lib/sfx';
+
+type BgmMode = 'mute' | 'chiptune' | 'lofi' | 'rain';
+
+const BGM_ICONS: Record<BgmMode, string> = {
+  mute: '🔇',
+  chiptune: '⚔️',
+  lofi: '☕',
+  rain: '🌧️',
+};
+
+const BGM_LABELS: Record<BgmMode, string> = {
+  mute: '静音',
+  chiptune: '像素',
+  lofi: 'Lofi',
+  rain: '雨声',
+};
+
+const BGM_URLS: Record<BgmMode, string> = {
+  mute: '',
+  chiptune: 'https://ozzed.net/files/Albums/Nackskott/03%20Sanity%20Not%20Included.mp3',
+  lofi: 'https://raw.githubusercontent.com/YoyoZhang24/RelaX50/main/RelaX50/audios/lofi.mp3',
+  rain: 'https://raw.githubusercontent.com/YoyoZhang24/RelaX50/main/RelaX50/audios/rain2.mp3',
+};
 
 const COMBO_THRESHOLD = 3;
 const ANIM_DURATION   = 800;
@@ -118,6 +142,73 @@ export default function BattleScene({ battle, onAnswer, onUseItem, onAnimationDo
   const [modal, setModal] = useState<{ type: 'q' } | { type: 'a'; idx: number } | null>(null);
   const [prevDmg, setPrevDmg] = useState<{ amount: number; isBoss: boolean; id: number } | null>(null);
 
+  const [bgmMode, setBgmMode] = useState<BgmMode>(() => {
+    if (typeof window !== 'undefined') {
+      const saved = localStorage.getItem('game_bgm_mode');
+      if (saved === 'mute' || saved === 'chiptune' || saved === 'lofi' || saved === 'rain') {
+        return saved;
+      }
+    }
+    return 'mute';
+  });
+
+  const audioRef = useRef<HTMLAudioElement | null>(null);
+
+  // Sync BGM setting to localStorage
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('game_bgm_mode', bgmMode);
+    }
+  }, [bgmMode]);
+
+  // Audio BGM Player loop
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    
+    if (!audioRef.current) {
+      audioRef.current = new Audio();
+      audioRef.current.loop = true;
+    }
+
+    const audio = audioRef.current;
+    if (!audio) return;
+
+    if (bgmMode === 'mute') {
+      audio.pause();
+    } else {
+      const url = BGM_URLS[bgmMode];
+      if (audio.src !== url) {
+        audio.src = url;
+        audio.load();
+      }
+      audio.play().catch(err => {
+        console.warn("Autoplay blocked by browser. Music will start on user interaction:", err);
+      });
+    }
+
+    return () => {
+      audio.pause();
+    };
+  }, [bgmMode]);
+
+  // Cycle BGM mode helper
+  const cycleBgm = () => {
+    const modes: BgmMode[] = ['mute', 'chiptune', 'lofi', 'rain'];
+    const nextIdx = (modes.indexOf(bgmMode) + 1) % modes.length;
+    setBgmMode(modes[nextIdx]);
+  };
+
+  // Play sound effects when an answer is chosen
+  useEffect(() => {
+    if (battle.selectedIndex !== null && battle.isCorrect !== null) {
+      if (battle.isCorrect) {
+        playChiptuneSFX('correct');
+      } else {
+        playChiptuneSFX('wrong');
+      }
+    }
+  }, [battle.selectedIndex, battle.isCorrect]);
+
   const currentCard = battle.deck[battle.deckIndex];
   const questionIsLong = (currentCard?.front ?? '').length > QUESTION_MAX;
 
@@ -191,9 +282,19 @@ export default function BattleScene({ battle, onAnswer, onUseItem, onAnimationDo
             </button>
             <span className="text-xs font-bold text-white/50 bg-black/30 px-2.5 py-1 rounded-full">{stage.name}</span>
           </div>
-          <span className="text-xs font-bold text-white/50 bg-black/30 px-2.5 py-1 rounded-full">
-            {battle.deckIndex + 1} / {battle.deck.length} 题
-          </span>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={cycleBgm}
+              className="flex items-center gap-1 text-xs font-bold text-violet-300 hover:text-white bg-violet-950/40 hover:bg-violet-900/60 border border-violet-700/30 px-2.5 py-1 rounded-full transition-all active:scale-95 shadow-md"
+              title="切换背景音乐"
+            >
+              <span>{BGM_ICONS[bgmMode]}</span>
+              <span>{BGM_LABELS[bgmMode]}</span>
+            </button>
+            <span className="text-xs font-bold text-white/50 bg-black/30 px-2.5 py-1 rounded-full">
+              {battle.deckIndex + 1} / {battle.deck.length} 题
+            </span>
+          </div>
         </div>
 
         {/* Characters */}

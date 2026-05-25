@@ -142,7 +142,7 @@ export default function BattleScene({ battle, onAnswer, onUseItem, onAnimationDo
   }, [battle.animState, battle.selectedIndex]); // eslint-disable-line
 
   const choiceClass = (idx: number) => {
-    const base = 'w-full text-left rounded-xl border-2 px-4 py-4 font-medium transition-all duration-150 flex items-start gap-3 group min-h-[60px]';
+    const base = 'w-full text-left rounded-xl border-2 px-3 sm:px-4 py-3 sm:py-4 font-medium transition-all duration-150 flex items-start gap-2 sm:gap-3 group min-h-[48px] sm:min-h-[60px]';
     if (idx === battle.eliminatedIndex) return `${base} border-slate-800 bg-slate-900/30 opacity-25 cursor-not-allowed`;
     if (battle.selectedIndex === null) return `${base} border-white/20 bg-white/5 hover:bg-white/12 hover:border-white/40 cursor-pointer active:scale-[0.98]`;
     if (idx === battle.correctIndex)   return `${base} border-green-500 bg-green-900/40 cursor-default`;
@@ -197,17 +197,17 @@ export default function BattleScene({ battle, onAnswer, onUseItem, onAnimationDo
         </div>
 
         {/* Characters */}
-        <div className="flex-1 flex items-center justify-between px-4 sm:px-8 relative">
+        <div className="flex-1 flex items-center justify-between px-2 sm:px-8 relative">
 
           {/* ── PLAYER (left) ── */}
-          <div className="flex flex-col items-center gap-2 w-28 sm:w-36">
+          <div className="flex flex-col items-center gap-1 sm:gap-2 w-24 sm:w-36 flex-shrink-0">
             {/* Active effects */}
             <div className="flex gap-1 h-5">
               {battle.lightningActive && <span className="text-yellow-300 text-sm animate-pulse" title="闪电符文">⚡</span>}
               {battle.shieldActive    && <span className="text-blue-300 text-sm animate-pulse"   title="铁壁盾牌">🛡️</span>}
             </div>
             {/* Sprite */}
-            <div className={`text-7xl sm:text-8xl select-none leading-none ${playerAnim}`}
+            <div className={`text-6xl sm:text-8xl select-none leading-none ${playerAnim}`}
               style={{ display: 'inline-block', filter: 'drop-shadow(0 4px 12px rgba(0,0,0,0.5))' }}>
               🧙
             </div>
@@ -265,7 +265,7 @@ export default function BattleScene({ battle, onAnswer, onUseItem, onAnimationDo
           </div>
 
           {/* ── BOSS (right) ── */}
-          <div className="flex flex-col items-center gap-2 w-28 sm:w-36">
+          <div className="flex flex-col items-center gap-1 sm:gap-2 w-24 sm:w-36 flex-shrink-0">
             {/* Rage badge / Defeated badge */}
             <div className="h-5 flex items-center">
               {isBonus
@@ -275,7 +275,7 @@ export default function BattleScene({ battle, onAnswer, onUseItem, onAnimationDo
                   : <span className="text-[10px] text-white/30 font-medium">{stage.boss}</span>}
             </div>
             {/* Boss sprite — BIG */}
-            <div className={`text-7xl sm:text-8xl select-none leading-none ${isBonus ? 'opacity-30 grayscale' : bossAnim}`}
+            <div className={`text-6xl sm:text-8xl select-none leading-none ${isBonus ? 'opacity-30 grayscale' : bossAnim}`}
               style={{ display: 'inline-block', filter: `drop-shadow(0 4px 20px rgba(0,0,0,0.6)) ${!isBonus && battle.bossRage ? 'drop-shadow(0 0 16px rgba(239,68,68,0.7))' : ''}` }}>
               {isBonus ? '💀' : stage.bossEmoji}
             </div>
@@ -288,8 +288,8 @@ export default function BattleScene({ battle, onAnswer, onUseItem, onAnimationDo
       </div>
 
       {/* ── Question + Choices panel (bottom ~45%) ── */}
-      <div className="flex-shrink-0 bg-black/65 backdrop-blur-xl rounded-t-3xl border-t border-white/10 px-4 pt-4 pb-3 space-y-3"
-        style={{ maxHeight: '52%', overflowY: 'auto' }}>
+      <div className="flex-shrink-0 bg-black/65 backdrop-blur-xl rounded-t-3xl border-t border-white/10 px-3 sm:px-4 pt-3 sm:pt-4 pb-3 space-y-2 sm:space-y-3 overflow-y-auto"
+        style={{ maxHeight: '55%' }}>
 
         {/* Question */}
         <div className="flex items-start gap-2">

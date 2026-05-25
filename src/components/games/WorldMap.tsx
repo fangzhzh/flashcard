@@ -63,15 +63,15 @@ export default function WorldMap({ flashcards, decks, overviews, saveData, onSta
   [overviews, saveData.worlds]);
 
   return (
-    <div className="h-full w-full overflow-y-auto bg-slate-950 flex flex-col items-center">
+    <div className="h-full w-full overflow-y-auto overflow-x-hidden bg-slate-950 flex flex-col items-center">
       {/* ── Header ── */}
       <div className="w-full bg-gradient-to-b from-indigo-900/40 to-transparent pt-8 pb-4 px-4 flex flex-col items-center flex-shrink-0">
-        <div className="flex items-center gap-3 mb-2 animate-stage-entrance">
-          <Swords className="h-7 w-7 text-violet-400" />
-          <h1 className="text-2xl font-black text-white tracking-tighter uppercase italic">
+        <div className="flex items-center gap-2 sm:gap-3 mb-2 animate-stage-entrance">
+          <Swords className="h-5 w-5 sm:h-7 sm:w-7 text-violet-400 flex-shrink-0" />
+          <h1 className="text-lg sm:text-2xl font-black text-white tracking-tighter uppercase italic">
             Card War Challenge
           </h1>
-          <Swords className="h-7 w-7 text-violet-400 scale-x-[-1]" />
+          <Swords className="h-5 w-5 sm:h-7 sm:w-7 text-violet-400 scale-x-[-1] flex-shrink-0" />
         </div>
         <div className="flex items-center gap-4 text-[10px] text-white/40 font-bold uppercase tracking-widest bg-black/40 px-4 py-1.5 rounded-full border border-white/5">
           <span className="flex items-center gap-1.5 text-violet-300">
@@ -85,22 +85,22 @@ export default function WorldMap({ flashcards, decks, overviews, saveData, onSta
       </div>
 
       {/* ── Tab Switcher ── */}
-      <div className="flex gap-2 mb-6 bg-black/30 p-1 rounded-xl border border-white/10">
+      <div className="flex gap-1.5 sm:gap-2 mb-6 bg-black/30 p-1 rounded-xl border border-white/10 mx-4 overflow-x-auto no-scrollbar">
         <button
           onClick={() => setTab('map')}
-          className={`flex items-center gap-2 px-5 py-2 rounded-lg text-sm font-bold transition-all ${tab === 'map' ? 'bg-violet-600 text-white shadow-lg' : 'text-white/40 hover:text-white/70'}`}
+          className={`flex items-center gap-1.5 px-3 sm:px-5 py-2 rounded-lg text-xs sm:text-sm font-bold transition-all whitespace-nowrap ${tab === 'map' ? 'bg-violet-600 text-white shadow-lg' : 'text-white/40 hover:text-white/70'}`}
         >
-          <Swords className="h-4 w-4" /> 关卡地图
+          <Swords className="h-3.5 w-3.5 sm:h-4 sm:w-4" /> 关卡地图
         </button>
         <button
           onClick={() => setTab('overview')}
-          className={`flex items-center gap-2 px-5 py-2 rounded-lg text-sm font-bold transition-all ${tab === 'overview' ? 'bg-pink-700 text-white shadow-lg' : 'text-white/40 hover:text-white/70'}`}
+          className={`flex items-center gap-1.5 px-3 sm:px-5 py-2 rounded-lg text-xs sm:text-sm font-bold transition-all whitespace-nowrap ${tab === 'overview' ? 'bg-pink-700 text-white shadow-lg' : 'text-white/40 hover:text-white/70'}`}
         >
-          <Brain className="h-4 w-4" /> 概览 Boss 战 {overviewWorlds.length > 0 && <span className="bg-white/20 text-white rounded-full px-1.5 text-[10px]">{overviewWorlds.length}</span>}
+          <Brain className="h-3.5 w-3.5 sm:h-4 sm:w-4" /> 概览 Boss 战 {overviewWorlds.length > 0 && <span className="bg-white/20 text-white rounded-full px-1.5 text-[10px]">{overviewWorlds.length}</span>}
         </button>
         <button
           onClick={() => onStartWave('github', 1)}
-          className="flex items-center gap-2 px-5 py-2 rounded-lg text-sm font-bold transition-all text-white/40 hover:text-white/70 hover:bg-white/8"
+          className="flex items-center gap-1.5 px-3 sm:px-5 py-2 rounded-lg text-xs sm:text-sm font-bold transition-all whitespace-nowrap text-white/40 hover:text-white/70 hover:bg-white/8"
         >
           🐙 GitHub 复习
         </button>

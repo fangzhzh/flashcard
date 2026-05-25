@@ -47,9 +47,9 @@ export default function Header() {
 
   return (
     <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
-      <div className="container flex h-16 items-center justify-between">
+      <div className="container flex h-16 items-center justify-between overflow-hidden">
         {/* Left Section: Title and Main Navigation */}
-        <div className="flex items-center gap-3 md:gap-6">
+        <div className="flex items-center gap-3 md:gap-6 min-w-0">
           <Link href="/" className="flex items-center gap-2">
             <BookOpenText className="h-7 w-7 text-primary" />
             <span className="text-2xl font-bold tracking-tight">{t('header.title')}</span>

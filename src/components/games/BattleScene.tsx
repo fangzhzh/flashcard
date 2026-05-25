@@ -16,21 +16,97 @@ const BGM_ICONS: Record<BgmMode, string> = {
   rain: '🌧️',
 };
 
-const BGM_LABELS: Record<BgmMode, string> = {
-  mute: '静音',
-  metalmax: '重装机兵',
-  chiptune: '像素音乐',
-  lofi: 'Lofi',
-  rain: '雨声',
-};
+function getBgmUrl(bgmMode: BgmMode, stageId: number): string {
+  if (bgmMode === 'mute') return '';
+  
+  if (bgmMode === 'metalmax') {
+    if (stageId % 5 === 0) {
+      const bossTracks = [
+        'https://raw.githubusercontent.com/aaixy/zzgl/master/audio/bgm/008boss.m4a',
+        'https://raw.githubusercontent.com/aaixy/zzgl/master/audio/bgm/008boss2.m4a',
+        'https://raw.githubusercontent.com/aaixy/zzgl/master/audio/bgm/008boss3.m4a',
+        'https://raw.githubusercontent.com/aaixy/zzgl/master/audio/bgm/008boss4.m4a',
+        'https://raw.githubusercontent.com/aaixy/zzgl/master/audio/bgm/035bossbattle.m4a'
+      ];
+      return bossTracks[Math.floor((stageId / 5 - 1)) % bossTracks.length];
+    } else {
+      const normalTracks = [
+        'https://raw.githubusercontent.com/aaixy/zzgl/master/audio/bgm/006battle.m4a',
+        'https://raw.githubusercontent.com/aaixy/zzgl/master/audio/bgm/006battle2.m4a',
+        'https://raw.githubusercontent.com/aaixy/zzgl/master/audio/bgm/015zhandoujinxingqu.m4a',
+        'https://raw.githubusercontent.com/aaixy/zzgl/master/audio/bgm/bigmaptank.m4a',
+        'https://raw.githubusercontent.com/aaixy/zzgl/master/audio/bgm/021wolf.m4a'
+      ];
+      const cycleIndex = (stageId - 1 - Math.floor(stageId / 5));
+      return normalTracks[cycleIndex % normalTracks.length];
+    }
+  }
 
-const BGM_URLS: Record<BgmMode, string> = {
-  mute: '',
-  metalmax: 'https://raw.githubusercontent.com/aaixy/zzgl/master/audio/bgm/008boss.m4a',
-  chiptune: 'https://ozzed.net/files/Albums/Nackskott/03%20Sanity%20Not%20Included.mp3',
-  lofi: 'https://raw.githubusercontent.com/YoyoZhang24/RelaX50/main/RelaX50/audios/lofi.mp3',
-  rain: 'https://raw.githubusercontent.com/YoyoZhang24/RelaX50/main/RelaX50/audios/rain2.mp3',
-};
+  if (bgmMode === 'chiptune') {
+    const chiptuneTracks = [
+      'https://ozzed.net/files/Albums/Nackskott/03%20Sanity%20Not%20Included.mp3',
+      'https://ozzed.net/files/Albums/Nackskott/01%20Gellert%20Hill.mp3',
+      'https://ozzed.net/files/Albums/Nackskott/02%20Raining%20Blocks.mp3',
+      'https://ozzed.net/files/Albums/Nackskott/04%20Fail%20Safe.mp3',
+      'https://ozzed.net/files/Albums/Nackskott/05%20A%20Day%20at%20the%20Track.mp3',
+      'https://ozzed.net/files/Albums/Nackskott/07%20A%20Night%20in%20the%20City.mp3'
+    ];
+    return chiptuneTracks[(stageId - 1) % chiptuneTracks.length];
+  }
+
+  if (bgmMode === 'lofi') {
+    const lofiTracks = [
+      'https://raw.githubusercontent.com/YoyoZhang24/RelaX50/main/RelaX50/audios/lofi.mp3',
+      'https://raw.githubusercontent.com/YoyoZhang24/RelaX50/main/RelaX50/audios/lofi2.mp3',
+      'https://raw.githubusercontent.com/YoyoZhang24/RelaX50/main/RelaX50/audios/cosmo.mp3',
+      'https://raw.githubusercontent.com/YoyoZhang24/RelaX50/main/RelaX50/audios/ambient.mp3'
+    ];
+    return lofiTracks[(stageId - 1) % lofiTracks.length];
+  }
+
+  if (bgmMode === 'rain') {
+    const rainTracks = [
+      'https://raw.githubusercontent.com/YoyoZhang24/RelaX50/main/RelaX50/audios/rain.mp3',
+      'https://raw.githubusercontent.com/YoyoZhang24/RelaX50/main/RelaX50/audios/rain2.mp3',
+      'https://raw.githubusercontent.com/YoyoZhang24/RelaX50/main/RelaX50/audios/sea.mp3'
+    ];
+    return rainTracks[(stageId - 1) % rainTracks.length];
+  }
+
+  return '';
+}
+
+function getBgmLabel(bgmMode: BgmMode, stageId: number): string {
+  if (bgmMode === 'mute') return '静音';
+  if (bgmMode === 'metalmax') {
+    if (stageId % 5 === 0) {
+      const bossNames = ['Wanted!', '战车Boss', '危机Boss', '强敌Boss', '诺亚决战'];
+      const name = bossNames[Math.floor((stageId / 5 - 1)) % bossNames.length];
+      return `重装机兵: ${name}`;
+    } else {
+      const normalNames = ['普通战斗', '战车战斗', '战斗进行曲', '大地图战车', '红狼之歌'];
+      const cycleIndex = (stageId - 1 - Math.floor(stageId / 5));
+      const name = normalNames[cycleIndex % normalNames.length];
+      return `重装机兵: ${name}`;
+    }
+  }
+  if (bgmMode === 'chiptune') {
+    const chiptuneNames = ['Sanity', 'Gellert Hill', 'Raining Blocks', 'Fail Safe', 'At the Track', 'Night City'];
+    const name = chiptuneNames[(stageId - 1) % chiptuneNames.length];
+    return `像素: ${name}`;
+  }
+  if (bgmMode === 'lofi') {
+    const lofiNames = ['Lofi Focus', 'Lofi Chill', 'Cosmo Space', 'Ambient Study'];
+    const name = lofiNames[(stageId - 1) % lofiNames.length];
+    return `Lofi: ${name}`;
+  }
+  if (bgmMode === 'rain') {
+    const rainNames = ['雷雨声', '淅沥小雨', '海浪声'];
+    const name = rainNames[(stageId - 1) % rainNames.length];
+    return `雨声: ${name}`;
+  }
+  return '静音';
+}
 
 const COMBO_THRESHOLD = 3;
 const ANIM_DURATION   = 800;
@@ -180,7 +256,7 @@ export default function BattleScene({ battle, onAnswer, onUseItem, onAnimationDo
     if (bgmMode === 'mute') {
       audio.pause();
     } else {
-      const url = BGM_URLS[bgmMode];
+      const url = getBgmUrl(bgmMode, stage.id);
       if (audio.src !== url) {
         audio.src = url;
         audio.load();
@@ -193,7 +269,7 @@ export default function BattleScene({ battle, onAnswer, onUseItem, onAnimationDo
     return () => {
       audio.pause();
     };
-  }, [bgmMode]);
+  }, [bgmMode, stage.id]);
 
   // Cycle BGM mode helper
   const cycleBgm = () => {
@@ -293,7 +369,7 @@ export default function BattleScene({ battle, onAnswer, onUseItem, onAnimationDo
               title="切换背景音乐"
             >
               <span>{BGM_ICONS[bgmMode]}</span>
-              <span>{BGM_LABELS[bgmMode]}</span>
+              <span>{getBgmLabel(bgmMode, stage.id)}</span>
             </button>
             <span className="text-xs font-bold text-white/50 bg-black/30 px-2.5 py-1 rounded-full">
               {battle.deckIndex + 1} / {battle.deck.length} 题

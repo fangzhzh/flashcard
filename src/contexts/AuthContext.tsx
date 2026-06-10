@@ -33,6 +33,7 @@ interface AuthContextType {
   signInWithEmailPassword: (email: string, pass: string) => Promise<AppUser | null>;
   sendSignInLinkToEmail: (email: string) => Promise<void>;
   signOut: () => Promise<void>;
+  getIdToken: () => Promise<string | null>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -180,6 +181,11 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     }
   };
 
+  const getIdToken = useCallback(async (): Promise<string | null> => {
+    if (!auth.currentUser) return null;
+    return auth.currentUser.getIdToken();
+  }, []);
+
   if (loading && isProcessingLink) { 
     return (
       <div className="flex justify-center items-center min-h-screen">
@@ -197,7 +203,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       signUpWithEmailPassword,
       signInWithEmailPassword,
       sendSignInLinkToEmail,
-      signOut 
+      signOut,
+      getIdToken
     }}>
       {children}
     </AuthContext.Provider>

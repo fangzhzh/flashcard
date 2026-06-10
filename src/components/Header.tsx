@@ -1,7 +1,7 @@
 
 "use client";
 import Link from 'next/link';
-import { BookOpenText, LayoutDashboard, Timer, Languages, LogIn, LogOut, UserCircle, KeyRound, ListChecks, GitFork, Swords } from 'lucide-react';
+import { BookOpenText, LayoutDashboard, Timer, Languages, LogIn, LogOut, UserCircle, KeyRound, ListChecks, GitFork, Swords, Brain } from 'lucide-react';
 import { ThemeToggle } from '@/components/ThemeToggle';
 import { usePathname } from 'next/navigation';
 import { cn } from '@/lib/utils';
@@ -35,6 +35,7 @@ export default function Header() {
     { href: '/timer', labelKey: 'nav.pomodoro', icon: Timer },
     { href: '/flashcards-hub', labelKey: 'nav.flashcards', icon: LayoutDashboard },
     { href: '/game', labelKey: 'nav.game', icon: Swords },
+    { href: '/concurrency', labelKey: 'nav.concurrency', icon: Brain },
   ];
 
 

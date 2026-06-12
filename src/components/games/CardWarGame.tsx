@@ -286,6 +286,27 @@ function decomposeFrontBack(card: import('@/types').Flashcard, deckName?: string
   // Too short to be worth splitting
   if (back.length < 180) return [base];
 
+  // Helper to extract key term from bullet/number list item
+  const extractKeyTerm = (text: string): string | null => {
+    const t = text.trim();
+    const boldMatch = t.match(/^\*\*([\s\S]+?)\*\*/);
+    if (boldMatch) {
+      let term = boldMatch[1].trim();
+      term = term.replace(/`/g, '').trim(); // Remove backticks for cleaner display
+      if (term.length > 0 && term.length < 50) return term;
+    }
+    const codeMatch = t.match(/^`([^`]+)`/);
+    if (codeMatch) {
+      let term = codeMatch[1].trim();
+      if (term.length > 0 && term.length < 50) return term;
+    }
+    // If very short and single line, return it
+    if (t.length > 0 && t.length < 25 && !t.includes('\n')) {
+      return t.replace(/^[-*+]\s+/, '').replace(/^[\d+]\.\s+/, '').trim();
+    }
+    return null;
+  };
+
   // 1. Markdown headings (## / ###) — e.g., system design levels
   const hMatches = [...back.matchAll(/^#{1,4}\s+(.+)$/gm)];
   if (hMatches.length >= 2) {
@@ -304,25 +325,39 @@ function decomposeFrontBack(card: import('@/types').Flashcard, deckName?: string
   // 2. Numbered list — e.g., steps to reduce amygdala activation (need ≥ 3 items)
   const numMatches = [...back.matchAll(/^(\d+)[\.\uff09]\s+(.+)$/gm)];
   if (numMatches.length >= 3) {
-    return numMatches.map((m, i) => ({
-      id: mkId(i),
-      front: `「${shortFront}」的第${m[1]}个方法/步骤是什么？`,
-      back: m[2].trim(),
-      deckName,
-      parentId: card.id,
-    }));
+    return numMatches.map((m, i) => {
+      const itemText = m[2].trim();
+      const term = extractKeyTerm(itemText);
+      const question = term
+        ? `「${shortFront}」中，关于「${term}」的步骤是什么？`
+        : `「${shortFront}」的第${m[1]}个步骤是什么？`;
+      return {
+        id: mkId(i),
+        front: question,
+        back: itemText,
+        deckName,
+        parentId: card.id,
+      };
+    });
   }
 
   // 3. Bullet list (- or *) — need ≥ 3 items
   const bulletMatches = [...back.matchAll(/^[-*]\s+(.+)$/gm)];
   if (bulletMatches.length >= 3) {
-    return bulletMatches.map((m, i) => ({
-      id: mkId(i),
-      front: `「${shortFront}」的要点${i + 1}是什么？`,
-      back: m[1].trim(),
-      deckName,
-      parentId: card.id,
-    }));
+    return bulletMatches.map((m, i) => {
+      const itemText = m[1].trim();
+      const term = extractKeyTerm(itemText);
+      const question = term
+        ? `「${shortFront}」中，关于「${term}」的要点是什么？`
+        : `「${shortFront}」中关于“${truncate(itemText, 15)}”的要点是什么？`;
+      return {
+        id: mkId(i),
+        front: question,
+        back: itemText,
+        deckName,
+        parentId: card.id,
+      };
+    });
   }
 
   // No clear structure — keep as-is

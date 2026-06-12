@@ -1,7 +1,7 @@
 "use client";
 import React, { useEffect, useRef, useState } from 'react';
 import type { BattleState } from './CardWarGame';
-import { X, ChevronDown, Maximize2, Zap, Shield, Eye, Map } from 'lucide-react';
+import { X, ChevronDown, Maximize2, Zap, Shield, Eye, Map, BookOpen } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { playChiptuneSFX } from '@/lib/sfx';
@@ -218,7 +218,7 @@ function Damage({ amount, isBoss, id }: { amount: number; isBoss: boolean; id: n
 export default function BattleScene({ battle, onAnswer, onUseItem, onAnimationDone, onBackToMap }: Props) {
   const { stage, playerHP, maxPlayerHP, bossHP, maxBossHP } = battle;
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const [modal, setModal] = useState<{ type: 'q' } | { type: 'a'; idx: number } | null>(null);
+  const [modal, setModal] = useState<{ type: 'q' } | { type: 'a'; idx: number } | { type: 'card' } | null>(null);
   const [prevDmg, setPrevDmg] = useState<{ amount: number; isBoss: boolean; id: number } | null>(null);
 
   const [bgmMode, setBgmMode] = useState<BgmMode>(() => {
@@ -494,6 +494,10 @@ export default function BattleScene({ battle, onAnswer, onUseItem, onAnimationDo
             className="flex-shrink-0 p-2 rounded-xl bg-white/10 hover:bg-white/20 text-white/50 hover:text-white transition-colors" title="查看完整题目">
             <Eye className="h-5 w-5" />
           </button>
+          <button onClick={() => setModal({ type: 'card' })}
+            className="flex-shrink-0 p-2 rounded-xl bg-white/10 hover:bg-white/20 text-white/50 hover:text-white transition-colors" title="查看完整卡片内容">
+            <BookOpen className="h-5 w-5" />
+          </button>
         </div>
 
         {/* Choices */}
@@ -549,6 +553,14 @@ export default function BattleScene({ battle, onAnswer, onUseItem, onAnimationDo
       {/* ── Modals ── */}
       {modal?.type === 'q' && (
         <ContentModal title="完整题目" content={currentCard?.front ?? ''} badge="Q" onClose={() => setModal(null)} />
+      )}
+      {modal?.type === 'card' && (
+        <ContentModal
+          title="完整卡片内容"
+          content={`### 💡 题目 (Front)\n\n${currentCard?.front ?? ''}\n\n---\n\n### 📝 答案 (Back)\n\n${currentCard?.back ?? ''}`}
+          badge="Card"
+          onClose={() => setModal(null)}
+        />
       )}
       {modal?.type === 'a' && (
         <ContentModal

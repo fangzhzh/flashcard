@@ -9,9 +9,11 @@ export default {
   'nav.decks': 'Decks',
   'nav.manage': 'Manage Cards',
   'nav.review': 'Review',
-  'nav.overviews': 'Overviews', // New
+  'nav.leetcode': 'LeetCode',
+  'nav.overviews': 'Overviews',
   'nav.game': 'Challenge',
   'nav.concurrency': 'Concurrency Arena',
+  'nav.settings.gameEnabled': 'Enable Game Mode',
 
   // Concurrency Arena Page
   'concurrency.title': 'Java Concurrency Arena',

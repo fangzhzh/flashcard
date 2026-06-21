@@ -1,7 +1,8 @@
 
 "use client";
+import { useState } from 'react';
 import Link from 'next/link';
-import { BookOpenText, LayoutDashboard, Timer, Languages, LogIn, LogOut, UserCircle, KeyRound, ListChecks, GitFork, Swords, Brain } from 'lucide-react';
+import { BookOpenText, LayoutDashboard, Timer, Languages, LogIn, LogOut, UserCircle, KeyRound, ListChecks, GitFork, Swords, Brain, Code2, Settings2 } from 'lucide-react';
 import { ThemeToggle } from '@/components/ThemeToggle';
 import { usePathname } from 'next/navigation';
 import { cn } from '@/lib/utils';
@@ -29,13 +30,25 @@ export default function Header() {
   const { user, signOut, loading: authLoading } = useAuth();
   const { getStatistics, isLoading: flashcardsLoading } = useFlashcards();
 
+  const [gameEnabled, setGameEnabled] = useState(() => {
+    if (typeof window === 'undefined') return false;
+    return localStorage.getItem('gameEnabled') === 'true';
+  });
+
+  const toggleGame = () => {
+    const next = !gameEnabled;
+    setGameEnabled(next);
+    localStorage.setItem('gameEnabled', String(next));
+  };
+
   const navItems = [
+    { href: '/leetcode', labelKey: 'nav.leetcode', icon: Code2 },
     { href: '/overviews', labelKey: 'nav.overviews', icon: GitFork },
+    { href: '/concurrency', labelKey: 'nav.concurrency', icon: Brain },
+    { href: '/flashcards-hub', labelKey: 'nav.flashcards', icon: LayoutDashboard },
     { href: '/tasks', labelKey: 'nav.tasks', icon: ListChecks },
     { href: '/timer', labelKey: 'nav.pomodoro', icon: Timer },
-    { href: '/flashcards-hub', labelKey: 'nav.flashcards', icon: LayoutDashboard },
-    { href: '/game', labelKey: 'nav.game', icon: Swords },
-    { href: '/concurrency', labelKey: 'nav.concurrency', icon: Brain },
+    ...(gameEnabled ? [{ href: '/game', labelKey: 'nav.game', icon: Swords }] : []),
   ];
 
 
@@ -179,6 +192,11 @@ export default function Header() {
                 <DropdownMenuItem onClick={signOut}>
                   <LogOut className="mr-2 h-4 w-4" />
                   {t('auth.signOut')}
+                </DropdownMenuItem>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem onClick={toggleGame} className="text-xs">
+                  <Swords className="mr-2 h-3.5 w-3.5" />
+                  {gameEnabled ? '✓ ' : ''}{t('nav.settings.gameEnabled' as any, {})}
                 </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>

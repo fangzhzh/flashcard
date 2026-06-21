@@ -7,7 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import type { Flashcard, PerformanceRating, Deck } from '@/types';
 import { useToast } from '@/hooks/use-toast';
-import { RefreshCw, CheckCircle2, SkipForward, RotateCcw, PlayCircle, ThumbsUp, PlusCircle, Layers, LayoutDashboard, Loader2, ShieldAlert, Volume2, Library, ListChecks, Brain, FileText, ArrowLeft } from 'lucide-react';
+import { RefreshCw, CheckCircle2, SkipForward, RotateCcw, PlayCircle, ThumbsUp, PlusCircle, Layers, LayoutDashboard, Loader2, ShieldAlert, Volume2, Library, ListChecks, Brain, FileText, ArrowLeft, EyeOff } from 'lucide-react';
 import { formatISO, addDays } from 'date-fns';
 import Link from 'next/link';
 import ReactMarkdown, { type Components } from 'react-markdown';
@@ -612,20 +612,33 @@ export default function ReviewModeClient() {
           {isFlipped && (
             <>
               <div className="flex justify-between items-center mt-2 mb-4">
-                <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => {
-                        setMindmapDataForFullscreen(currentCard.back);
-                        setIsMindmapFullscreen(true);
-                    }}
-                    title={t('review.button.openMindmap')}
-                    disabled={isSubmittingProgress}
-                    className="text-sm"
-                >
-                    <Brain className="mr-2 h-4 w-4" />
-                    {t('review.button.openMindmap')}
-                </Button>
+                <div className="flex gap-2">
+                  <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => {
+                          setMindmapDataForFullscreen(currentCard.back);
+                          setIsMindmapFullscreen(true);
+                      }}
+                      title={t('review.button.openMindmap')}
+                      disabled={isSubmittingProgress}
+                      className="text-sm"
+                  >
+                      <Brain className="mr-2 h-4 w-4" />
+                      {t('review.button.openMindmap')}
+                  </Button>
+                  <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={handleFlip}
+                      title={t('flashcard.item.hideAnswer')}
+                      disabled={isSubmittingProgress}
+                      className="text-sm"
+                  >
+                      <EyeOff className="mr-2 h-4 w-4" />
+                      {t('flashcard.item.hideAnswer')}
+                  </Button>
+                </div>
                 <Button
                   variant="ghost"
                   size="icon"

@@ -153,16 +153,29 @@ export default function FlashcardItem({ flashcard, onDelete }: FlashcardItemProp
           {showBack && (
             <>
               <div className="flex-shrink-0 flex justify-between items-center border-b mb-2 pb-2">
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className="text-muted-foreground hover:text-foreground px-2"
-                  onClick={() => setIsMindmapFullscreen(true)}
-                  title={t('review.button.openMindmap')}
-                >
-                  <Brain className="mr-0 sm:mr-2 h-4 w-4" />
-                  <span className="hidden sm:inline">{t('review.button.openMindmap')}</span>
-                </Button>
+                <div className="flex gap-2">
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="text-muted-foreground hover:text-foreground px-2"
+                    onClick={() => setIsMindmapFullscreen(true)}
+                    title={t('review.button.openMindmap')}
+                  >
+                    <Brain className="mr-1.5 h-4 w-4" />
+                    <span>{t('review.button.openMindmap')}</span>
+                  </Button>
+
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="text-muted-foreground hover:text-foreground px-2"
+                    onClick={() => setShowBack(false)}
+                    title={t('flashcard.item.hideAnswer')}
+                  >
+                    <EyeOff className="mr-1.5 h-4 w-4" />
+                    <span>{t('flashcard.item.hideAnswer')}</span>
+                  </Button>
+                </div>
 
                 <Button
                   variant="ghost"

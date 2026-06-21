@@ -10,6 +10,7 @@ export default {
   'nav.manage': 'Manage Cards',
   'nav.review': 'Review',
   'nav.leetcode': 'LeetCode',
+  'nav.systemDesign': 'System Design',
   'nav.overviews': 'Overviews',
   'nav.game': 'Challenge',
   'nav.concurrency': 'Concurrency Arena',

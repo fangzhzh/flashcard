@@ -7,6 +7,8 @@ import {
   type LeetCodeCategory, type LeetCodeProblem, type Familiarity
 } from '@/lib/leetcode-data';
 import { useLeetCodeProgress } from '@/hooks/useLeetCodeProgress';
+import { useLeetCodeFavorites } from '@/hooks/useLeetCodeFavorites';
+import { useLeetCodeDaily } from '@/hooks/useLeetCodeDaily';
 import { cn } from '@/lib/utils';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -14,9 +16,18 @@ import { Textarea } from '@/components/ui/textarea';
 import {
   ExternalLink, ChevronRight, X, Loader2, CheckCircle2,
   AlertTriangle, TrendingUp, Code2, Zap, Filter, Search,
-  Plus, Trash2, RotateCcw, Star, Trophy, Brain, BarChart3
+  Plus, Trash2, RotateCcw, Star, Trophy, Brain, BarChart3,
+  Calendar, Shuffle, Target
 } from 'lucide-react';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+} from '@/components/ui/dialog';
 import ReactMarkdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
 
 // ─── Difficulty Badge ────────────────────────────────────────
 function DifficultyBadge({ difficulty }: { difficulty: string }) {
@@ -181,9 +192,8 @@ function AIReviewPanel({ problem, onClose }: { problem: LeetCodeProblem; onClose
               </div>
             </div>
 
-            {/* Summary */}
-            <div className="prose prose-sm dark:prose-invert max-w-none">
-              <ReactMarkdown>{result.summary}</ReactMarkdown>
+            <div className="markdown-content max-w-none">
+              <ReactMarkdown remarkPlugins={[remarkGfm]}>{result.summary}</ReactMarkdown>
             </div>
 
             {/* Issues */}
@@ -293,15 +303,17 @@ function ProblemRow({ problem, familiarity, onFamiliarityChange, onOpenJudge, on
 export default function LeetCodeClient() {
   const { user } = useAuth();
   const { loadAll, getFamiliarity, updateFamiliarity, getCategoryStats, loaded, loading } = useLeetCodeProgress();
+  const { favorites, addFavorite, removeFavorite } = useLeetCodeFavorites();
 
   const [selectedCategoryId, setSelectedCategoryId] = useState('faang');
   const [judgeTarget, setJudgeTarget] = useState<LeetCodeProblem | null>(null);
   const [search, setSearch] = useState('');
   const [filterDiff, setFilterDiff] = useState<string>('All');
   const [filterFamiliarity, setFilterFamiliarity] = useState<string>('All');
-  const [customProblems, setCustomProblems] = useState<LeetCodeProblem[]>([]);
   const [addingProblem, setAddingProblem] = useState(false);
   const [newProblemUrl, setNewProblemUrl] = useState('');
+  const [designatingDaily, setDesignatingDaily] = useState(false);
+  const [dailySearchQuery, setDailySearchQuery] = useState('');
 
   useEffect(() => {
     if (user && !loaded) loadAll();
@@ -313,10 +325,31 @@ export default function LeetCodeClient() {
   );
 
   const allProblems = useMemo(() => {
-    const base = selectedCategory?.problems ?? [];
-    const custom = selectedCategoryId === 'faang' ? customProblems : [];
-    return [...base, ...custom];
-  }, [selectedCategory, customProblems, selectedCategoryId]);
+    if (selectedCategoryId === 'favorite') {
+      return favorites;
+    }
+    return selectedCategory?.problems ?? [];
+  }, [selectedCategory, selectedCategoryId, favorites]);
+
+  // Pool for Daily Problem selection (combining all pre-seeded problems + user favorites)
+  const allPoolProblems = useMemo(() => {
+    const map = new Map<string, LeetCodeProblem>();
+    LEETCODE_CATEGORIES.forEach(cat => {
+      cat.problems.forEach(p => {
+        map.set(p.id, p);
+      });
+    });
+    favorites.forEach(p => {
+      map.set(p.id, p);
+    });
+    return Array.from(map.values());
+  }, [favorites]);
+
+  const {
+    dailyProblem,
+    randomizeDailyProblem,
+    manuallySetDailyProblem,
+  } = useLeetCodeDaily(allPoolProblems);
 
   const filteredProblems = useMemo(() => {
     return allProblems.filter(p => {
@@ -338,26 +371,32 @@ export default function LeetCodeClient() {
   }, [filteredProblems, getFamiliarity]);
 
   const addCustomProblem = useCallback(() => {
-    const urlMatch = newProblemUrl.match(/problems\/([^/]+)/);
-    if (!urlMatch) return;
-    const slug = urlMatch[1];
+    let slug = '';
+    if (newProblemUrl.includes('leetcode.com/problems/')) {
+      const match = newProblemUrl.match(/problems\/([^/]+)/);
+      slug = match ? match[1] : '';
+    } else {
+      slug = newProblemUrl.trim().toLowerCase().replace(/\s+/g, '-');
+    }
+    if (!slug) return;
+
     const numMatch = newProblemUrl.match(/(\d+)/);
-    const num = numMatch ? parseInt(numMatch[1]) : Date.now();
+    const num = numMatch ? parseInt(numMatch[1]) : Math.floor(Math.random() * 10000);
     const title = slug.split('-').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
     const p: LeetCodeProblem = {
       id: `custom-${slug}`,
-      num, title, difficulty: 'Medium', category: 'faang',
-      tags: [], url: newProblemUrl.startsWith('http') ? newProblemUrl : `https://leetcode.com/problems/${slug}/`,
+      num,
+      title,
+      difficulty: 'Medium',
+      category: 'favorite',
+      tags: [],
+      url: newProblemUrl.startsWith('http') ? newProblemUrl : `https://leetcode.com/problems/${slug}/`,
       isCustom: true,
     };
-    setCustomProblems(prev => [...prev, p]);
+    addFavorite(p);
     setNewProblemUrl('');
     setAddingProblem(false);
-  }, [newProblemUrl]);
-
-  const removeCustom = useCallback((id: string) => {
-    setCustomProblems(prev => prev.filter(p => p.id !== id));
-  }, []);
+  }, [newProblemUrl, addFavorite]);
 
   const categoryStats = useMemo(() => {
     return getCategoryStats(allProblems.map(p => p.id));
@@ -382,7 +421,8 @@ export default function LeetCodeClient() {
         </div>
         <nav className="p-2 space-y-0.5">
           {LEETCODE_CATEGORIES.map(cat => {
-            const stats = getCategoryStats(cat.problems.map(p => p.id));
+            const problemsList = cat.id === 'favorite' ? favorites : cat.problems;
+            const stats = getCategoryStats(problemsList.map(p => p.id));
             const doneCount = stats.familiar + stats.mastered;
             const isActive = selectedCategoryId === cat.id;
             return (
@@ -451,8 +491,8 @@ export default function LeetCodeClient() {
             ))}
           </div>
 
-          {/* Add problem button (FAANG category only) */}
-          {selectedCategoryId === 'faang' && (
+          {/* Add problem button (favorite category only) */}
+          {selectedCategoryId === 'favorite' && (
             <Button size="sm" variant="outline" onClick={() => setAddingProblem(true)} className="h-7 text-xs">
               <Plus className="h-3 w-3 mr-1" />添加题目
             </Button>
@@ -511,6 +551,54 @@ export default function LeetCodeClient() {
 
         {/* Problem list */}
         <div className="flex-1 overflow-y-auto">
+          {/* ── Daily Problem Card ── */}
+          {dailyProblem && (
+            <div className="p-5 border-b bg-gradient-to-br from-violet-500/10 via-indigo-500/5 to-transparent dark:from-violet-500/20 dark:via-indigo-500/10 dark:to-transparent">
+              <div className="flex items-start justify-between gap-4 flex-wrap">
+                {/* Left Side: Badge & Title */}
+                <div className="space-y-2">
+                  <div className="flex items-center gap-2 text-xs font-semibold text-violet-600 dark:text-violet-400 uppercase tracking-wider">
+                    <Calendar className="h-4 w-4" />
+                    <span>每日一题 / Daily Challenge</span>
+                  </div>
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <h3 className="font-bold text-base flex items-center gap-1.5">
+                      <span className="text-muted-foreground">#{dailyProblem.num}</span>
+                      <a href={dailyProblem.url} target="_blank" rel="noopener noreferrer" className="hover:text-primary hover:underline flex items-center gap-1">
+                        {dailyProblem.title}
+                        <ExternalLink className="h-3.5 w-3.5 opacity-60" />
+                      </a>
+                    </h3>
+                    <DifficultyBadge difficulty={dailyProblem.difficulty} />
+                    {dailyProblem.companies?.map(c => (
+                      <span key={c} className="text-[10px] px-1.5 py-0.5 rounded bg-violet-100 dark:bg-violet-950 text-violet-700 dark:text-violet-300 font-medium">
+                        {c}
+                      </span>
+                    ))}
+                  </div>
+                  <div className="flex gap-1.5 flex-wrap">
+                    {dailyProblem.tags.map(t => (
+                      <span key={t} className="text-[10px] bg-muted px-2 py-0.5 rounded text-muted-foreground">{t}</span>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Right Side: Actions */}
+                <div className="flex items-center gap-2 flex-wrap sm:ml-auto">
+                  <Button size="sm" onClick={() => setJudgeTarget(dailyProblem)} className="h-8 px-3 text-xs bg-violet-600 hover:bg-violet-700 text-white dark:bg-violet-700 dark:hover:bg-violet-600">
+                    <Brain className="h-3.5 w-3.5 mr-1" />AI 评判
+                  </Button>
+                  <Button size="sm" variant="outline" onClick={() => randomizeDailyProblem(allPoolProblems)} className="h-8 px-3 text-xs border-violet-200 dark:border-violet-800 text-violet-700 dark:text-violet-300 hover:bg-violet-50 dark:hover:bg-violet-950/40">
+                    <Shuffle className="h-3.5 w-3.5 mr-1" />随机换题
+                  </Button>
+                  <Button size="sm" variant="outline" onClick={() => { setDesignatingDaily(true); setDailySearchQuery(''); }} className="h-8 px-3 text-xs">
+                    <Target className="h-3.5 w-3.5 mr-1" />手动指定
+                  </Button>
+                </div>
+              </div>
+            </div>
+          )}
+
           {loading && !loaded ? (
             <div className="flex items-center justify-center h-40">
               <Loader2 className="h-6 w-6 animate-spin text-primary" />
@@ -532,8 +620,8 @@ export default function LeetCodeClient() {
                   familiarity={getFamiliarity(problem.id)}
                   onFamiliarityChange={f => updateFamiliarity(problem.id, f)}
                   onOpenJudge={() => setJudgeTarget(problem)}
-                  canRemove={problem.isCustom}
-                  onRemove={() => removeCustom(problem.id)}
+                  canRemove={selectedCategoryId === 'favorite'}
+                  onRemove={() => removeFavorite(problem.id)}
                 />
               ))}
             </div>
@@ -547,6 +635,75 @@ export default function LeetCodeClient() {
           <AIReviewPanel problem={judgeTarget} onClose={() => setJudgeTarget(null)} />
         </div>
       )}
+
+      {/* ── Manual Designation Dialog ── */}
+      <Dialog open={designatingDaily} onOpenChange={setDesignatingDaily}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>手动指定每日一题</DialogTitle>
+            <DialogDescription>
+              从所有题库分类中搜索并选择一题作为今日的每日一题。
+            </DialogDescription>
+          </DialogHeader>
+
+          {/* Search box */}
+          <div className="relative my-2">
+            <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+            <input
+              value={dailySearchQuery}
+              onChange={e => setDailySearchQuery(e.target.value)}
+              placeholder="输入题号、名称或标签搜索..."
+              className="w-full pl-9 pr-3 py-2 text-sm border rounded-lg bg-background focus:outline-none focus:ring-2 focus:ring-primary"
+              autoFocus
+            />
+          </div>
+
+          {/* Results list */}
+          <div className="max-h-60 overflow-y-auto space-y-1 pr-1">
+            {allPoolProblems
+              .filter(p => {
+                if (!dailySearchQuery) return true;
+                const query = dailySearchQuery.toLowerCase();
+                return p.title.toLowerCase().includes(query) ||
+                  String(p.num).includes(query) ||
+                  p.tags.some(t => t.includes(query));
+              })
+              .slice(0, 15) // Limit to top 15 results for performance
+              .map(p => (
+                <button
+                  key={p.id}
+                  onClick={() => {
+                    manuallySetDailyProblem(p.id, allPoolProblems);
+                    setDesignatingDaily(false);
+                  }}
+                  className="w-full flex items-center justify-between p-2 hover:bg-muted rounded-lg text-left transition-colors"
+                >
+                  <div className="min-w-0 flex-1 pr-2">
+                    <div className="flex items-center gap-1.5">
+                      <span className="text-xs font-mono text-muted-foreground">#{p.num}</span>
+                      <span className="text-sm font-semibold truncate">{p.title}</span>
+                    </div>
+                    <div className="flex gap-1 mt-0.5 flex-wrap">
+                      {p.tags.slice(0, 3).map(t => (
+                        <span key={t} className="text-[10px] text-muted-foreground">{t}</span>
+                      ))}
+                    </div>
+                  </div>
+                  <DifficultyBadge difficulty={p.difficulty} />
+                </button>
+              ))}
+            {allPoolProblems.filter(p => {
+              if (!dailySearchQuery) return true;
+              const query = dailySearchQuery.toLowerCase();
+              return p.title.toLowerCase().includes(query) || String(p.num).includes(query) || p.tags.some(t => t.includes(query));
+            }).length === 0 && (
+              <div className="text-center py-6 text-sm text-muted-foreground">
+                未找到匹配的题目
+              </div>
+            )}
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

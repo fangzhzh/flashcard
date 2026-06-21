@@ -2,7 +2,7 @@
 "use client";
 import { useState } from 'react';
 import Link from 'next/link';
-import { BookOpenText, LayoutDashboard, Timer, Languages, LogIn, LogOut, UserCircle, KeyRound, ListChecks, GitFork, Swords, Brain, Code2, Settings2 } from 'lucide-react';
+import { BookOpenText, LayoutDashboard, Timer, Languages, LogIn, LogOut, UserCircle, KeyRound, ListChecks, GitFork, Swords, Brain, Code2, Settings2, Server } from 'lucide-react';
 import { ThemeToggle } from '@/components/ThemeToggle';
 import { usePathname } from 'next/navigation';
 import { cn } from '@/lib/utils';
@@ -30,24 +30,35 @@ export default function Header() {
   const { user, signOut, loading: authLoading } = useAuth();
   const { getStatistics, isLoading: flashcardsLoading } = useFlashcards();
 
-  const [gameEnabled, setGameEnabled] = useState(() => {
-    if (typeof window === 'undefined') return false;
-    return localStorage.getItem('gameEnabled') === 'true';
-  });
-
-  const toggleGame = () => {
-    const next = !gameEnabled;
-    setGameEnabled(next);
-    localStorage.setItem('gameEnabled', String(next));
+  const useToggle = (key: string) => {
+    const [enabled, setEnabled] = useState(() => {
+      if (typeof window === 'undefined') return false;
+      return localStorage.getItem(key) === 'true';
+    });
+    const toggle = () => {
+      const next = !enabled;
+      setEnabled(next);
+      localStorage.setItem(key, String(next));
+      if (typeof window !== 'undefined') {
+        window.dispatchEvent(new Event('feature-toggles-changed'));
+      }
+    };
+    return [enabled, toggle] as const;
   };
+
+  const [gameEnabled, toggleGame] = useToggle('feat.game');
+  const [overviewEnabled, toggleOverview] = useToggle('feat.overview');
+  const [flashcardEnabled, toggleFlashcard] = useToggle('feat.flashcard');
+  const [taskEnabled, toggleTask] = useToggle('feat.task');
 
   const navItems = [
     { href: '/leetcode', labelKey: 'nav.leetcode', icon: Code2 },
-    { href: '/overviews', labelKey: 'nav.overviews', icon: GitFork },
     { href: '/concurrency', labelKey: 'nav.concurrency', icon: Brain },
-    { href: '/flashcards-hub', labelKey: 'nav.flashcards', icon: LayoutDashboard },
-    { href: '/tasks', labelKey: 'nav.tasks', icon: ListChecks },
+    { href: '/system-design', labelKey: 'nav.systemDesign', icon: Server },
     { href: '/timer', labelKey: 'nav.pomodoro', icon: Timer },
+    ...(taskEnabled ? [{ href: '/tasks', labelKey: 'nav.tasks', icon: ListChecks }] : []),
+    ...(overviewEnabled ? [{ href: '/overviews', labelKey: 'nav.overviews', icon: GitFork }] : []),
+    ...(flashcardEnabled ? [{ href: '/flashcards-hub', labelKey: 'nav.flashcards', icon: LayoutDashboard }] : []),
     ...(gameEnabled ? [{ href: '/game', labelKey: 'nav.game', icon: Swords }] : []),
   ];
 
@@ -194,9 +205,22 @@ export default function Header() {
                   {t('auth.signOut')}
                 </DropdownMenuItem>
                 <DropdownMenuSeparator />
-                <DropdownMenuItem onClick={toggleGame} className="text-xs">
+                <div className="px-2 py-1 text-[10px] font-black text-muted-foreground uppercase tracking-widest">功能开关</div>
+                <DropdownMenuItem onClick={toggleOverview} className="text-xs pl-4">
+                  <GitFork className="mr-2 h-3.5 w-3.5" />
+                  {overviewEnabled ? '✓ ' : ''}Overview 总览
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={toggleFlashcard} className="text-xs pl-4">
+                  <LayoutDashboard className="mr-2 h-3.5 w-3.5" />
+                  {flashcardEnabled ? '✓ ' : ''}Flashcard 卡片
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={toggleTask} className="text-xs pl-4">
+                  <ListChecks className="mr-2 h-3.5 w-3.5" />
+                  {taskEnabled ? '✓ ' : ''}Task 任务
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={toggleGame} className="text-xs pl-4">
                   <Swords className="mr-2 h-3.5 w-3.5" />
-                  {gameEnabled ? '✓ ' : ''}{t('nav.settings.gameEnabled' as any, {})}
+                  {gameEnabled ? '✓ ' : ''}Game 挑战
                 </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>

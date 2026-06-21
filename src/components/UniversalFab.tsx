@@ -29,6 +29,18 @@ export default function UniversalFab() {
 
   const [isTaskDialogOpen, setIsTaskDialogOpen] = useState(false);
   const [isSubmittingTask, setIsSubmittingTask] = useState(false);
+  const [taskEnabled, setTaskEnabled] = useState(false);
+
+  useEffect(() => {
+    const handleToggleChange = () => {
+      setTaskEnabled(localStorage.getItem('feat.task') === 'true');
+    };
+    handleToggleChange();
+    window.addEventListener('feature-toggles-changed', handleToggleChange);
+    return () => {
+      window.removeEventListener('feature-toggles-changed', handleToggleChange);
+    };
+  }, []);
 
   // Drag state — null means "not yet loaded" (SSR-safe)
   const [pos, setPos] = useState<{ x: number; y: number } | null>(null);
@@ -179,39 +191,41 @@ export default function UniversalFab() {
       {contextualAction}
       <FloatingPomodoroTimer />
 
-      <Dialog open={isTaskDialogOpen} onOpenChange={setIsTaskDialogOpen}>
-        <DialogTrigger asChild>
-          <Button
-            variant="default"
-            className="h-14 w-14 rounded-full bg-primary p-0 shadow-lg text-primary-foreground"
-            title={t('tasks.button.create')}
-          >
-            <ListChecks className="h-7 w-7" />
-          </Button>
-        </DialogTrigger>
-        <DialogContent className="sm:max-w-xl md:max-w-2xl max-h-[90vh] flex flex-col">
-          <DialogHeader>
-            <DialogTitle>{t('task.form.page.title.create')}</DialogTitle>
-          </DialogHeader>
-          <TaskForm
-            mode="create"
-            onSubmit={async (data: TaskFormData) => {
-              setIsSubmittingTask(true);
-              try {
-                await addTask(data);
-                toast({ title: t('success'), description: t('toast.task.created') });
-                setIsTaskDialogOpen(false);
-              } catch {
-                toast({ title: t('error'), description: t('toast.task.error.save'), variant: 'destructive' });
-              } finally {
-                setIsSubmittingTask(false);
-              }
-            }}
-            isLoading={isSubmittingTask}
-            onCancel={() => setIsTaskDialogOpen(false)}
-          />
-        </DialogContent>
-      </Dialog>
+      {taskEnabled && (
+        <Dialog open={isTaskDialogOpen} onOpenChange={setIsTaskDialogOpen}>
+          <DialogTrigger asChild>
+            <Button
+              variant="default"
+              className="h-14 w-14 rounded-full bg-primary p-0 shadow-lg text-primary-foreground"
+              title={t('tasks.button.create')}
+            >
+              <ListChecks className="h-7 w-7" />
+            </Button>
+          </DialogTrigger>
+          <DialogContent className="sm:max-w-xl md:max-w-2xl max-h-[90vh] flex flex-col">
+            <DialogHeader>
+              <DialogTitle>{t('task.form.page.title.create')}</DialogTitle>
+            </DialogHeader>
+            <TaskForm
+              mode="create"
+              onSubmit={async (data: TaskFormData) => {
+                setIsSubmittingTask(true);
+                try {
+                  await addTask(data);
+                  toast({ title: t('success'), description: t('toast.task.created') });
+                  setIsTaskDialogOpen(false);
+                } catch {
+                  toast({ title: t('error'), description: t('toast.task.error.save'), variant: 'destructive' });
+                } finally {
+                  setIsSubmittingTask(false);
+                }
+              }}
+              isLoading={isSubmittingTask}
+              onCancel={() => setIsTaskDialogOpen(false)}
+            />
+          </DialogContent>
+        </Dialog>
+      )}
     </div>
   );
 }

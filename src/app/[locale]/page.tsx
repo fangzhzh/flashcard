@@ -18,7 +18,7 @@ export default function LandingRootPage() {
 
   useEffect(() => {
     if (!authLoading && user) {
-      router.replace(`/${currentLocale}/tasks`); // Use replace to avoid adding to history
+      router.replace(`/${currentLocale}/leetcode`); // Use replace to avoid adding to history
     }
   }, [user, authLoading, router, currentLocale]);
 

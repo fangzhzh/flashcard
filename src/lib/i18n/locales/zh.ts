@@ -10,6 +10,7 @@ export default {
   'nav.manage': '管理卡片',
   'nav.review': '复习',
   'nav.leetcode': 'LeetCode',
+  'nav.systemDesign': '系统设计',
   'nav.overviews': '总览',
   'nav.game': '挑战',
   'nav.concurrency': '并发竞技场',

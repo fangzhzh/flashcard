@@ -56,7 +56,7 @@ export default function AuthClient() {
 
   useEffect(() => {
     if (user && !authLoading && !isProcessingLink) {
-        router.replace(`/${currentLocale}/tasks`); // Redirect to tasks if already logged in
+        router.replace(`/${currentLocale}/leetcode`); // Redirect to leetcode if already logged in
     }
   }, [user, authLoading, isProcessingLink, router, currentLocale]);
 
@@ -71,7 +71,7 @@ export default function AuthClient() {
       if (result) success = true;
     }
     if (success) {
-      router.replace(`/${currentLocale}/tasks`); // Redirect to tasks on successful login/signup
+      router.replace(`/${currentLocale}/leetcode`); // Redirect to leetcode on successful login/signup
     }
     setIsSubmitting(false);
   };

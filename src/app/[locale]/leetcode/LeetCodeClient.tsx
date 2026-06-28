@@ -17,7 +17,7 @@ import {
   ExternalLink, ChevronRight, X, Loader2, CheckCircle2,
   AlertTriangle, TrendingUp, Code2, Zap, Filter, Search,
   Plus, Trash2, RotateCcw, Star, Trophy, Brain, BarChart3,
-  Calendar, Shuffle, Target
+  Calendar, Shuffle, Target, Tag
 } from 'lucide-react';
 import {
   Dialog,
@@ -248,6 +248,7 @@ function ProblemRow({ problem, familiarity, onFamiliarityChange, onOpenJudge, on
   onRemove?: () => void;
   canRemove?: boolean;
 }) {
+  const [showTags, setShowTags] = useState(false);
   const cfg = FAMILIARITY_CONFIG[familiarity];
   return (
     <div className={cn(
@@ -271,10 +272,33 @@ function ProblemRow({ problem, familiarity, onFamiliarityChange, onOpenJudge, on
             </span>
           ))}
         </div>
-        <div className="flex gap-1 mt-0.5 flex-wrap">
-          {problem.tags.slice(0, 4).map(t => (
-            <span key={t} className="text-[10px] text-muted-foreground">{t}</span>
-          ))}
+        <div className="flex gap-1.5 mt-1 flex-wrap items-center">
+          {showTags ? (
+            <>
+              {problem.tags.slice(0, 4).map(t => (
+                <span key={t} className="text-[10px] text-muted-foreground bg-muted px-1.5 py-0.5 rounded border border-muted-foreground/15 transition-all">
+                  {t}
+                </span>
+              ))}
+              <button 
+                onClick={() => setShowTags(false)} 
+                className="text-[10px] text-muted-foreground/60 hover:text-primary transition-colors flex items-center ml-1 focus:outline-none"
+                title="折叠标签"
+              >
+                <X className="h-3 w-3" />
+              </button>
+            </>
+          ) : (
+            <button 
+              onClick={() => setShowTags(true)} 
+              className="text-[10px] text-muted-foreground/70 hover:text-primary transition-colors flex items-center gap-1 bg-muted/40 hover:bg-muted px-1.5 py-0.5 rounded border border-transparent hover:border-muted-foreground/15 transition-all focus:outline-none"
+              title="展开标签"
+            >
+              <Tag className="h-2.5 w-2.5 text-muted-foreground/60" />
+              {problem.tags.length > 0 ? problem.tags[0] : '标签'}
+              {problem.tags.length > 1 && <span className="opacity-60">+{problem.tags.length - 1}</span>}
+            </button>
+          )}
         </div>
       </div>
 

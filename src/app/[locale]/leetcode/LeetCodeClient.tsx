@@ -339,6 +339,25 @@ export default function LeetCodeClient() {
   const [designatingDaily, setDesignatingDaily] = useState(false);
   const [dailySearchQuery, setDailySearchQuery] = useState('');
 
+  // LeetCode Progress Cookie Sync States
+  const [syncingLeetcode, setSyncingLeetcode] = useState(false);
+  const [leetcodeCookie, setLeetcodeCookie] = useState('');
+  const [leetcodeDomain, setLeetcodeDomain] = useState<'leetcode.com' | 'leetcode.cn'>('leetcode.com');
+  const [syncLoading, setSyncLoading] = useState(false);
+  const [syncError, setSyncError] = useState('');
+  const [syncSuccessMessage, setSyncSuccessMessage] = useState('');
+
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const savedCookie = localStorage.getItem('leetcode_sync_cookie') || '';
+      const savedDomain = localStorage.getItem('leetcode_sync_domain') as any;
+      if (savedCookie) setLeetcodeCookie(savedCookie);
+      if (savedDomain === 'leetcode.cn' || savedDomain === 'leetcode.com') {
+        setLeetcodeDomain(savedDomain);
+      }
+    }
+  }, []);
+
   useEffect(() => {
     if (user && !loaded) loadAll();
   }, [user, loaded, loadAll]);
@@ -421,6 +440,51 @@ export default function LeetCodeClient() {
     setNewProblemUrl('');
     setAddingProblem(false);
   }, [newProblemUrl, addFavorite]);
+
+  const handleSyncProgress = useCallback(async () => {
+    setSyncLoading(true);
+    setSyncError('');
+    setSyncSuccessMessage('');
+
+    try {
+      const res = await fetch('/api/leetcode/sync', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ cookie: leetcodeCookie, domain: leetcodeDomain })
+      });
+
+      const data = await res.json();
+      if (!res.ok) {
+        throw new Error(data.error || '同步失败');
+      }
+
+      const { solvedNums } = data;
+      if (!solvedNums || !Array.isArray(solvedNums)) {
+        throw new Error('返回的已解决题目数据格式错误');
+      }
+
+      // Map matched problems
+      const matched = allPoolProblems.filter(p => solvedNums.includes(p.num));
+
+      let updatedCount = 0;
+      for (const p of matched) {
+        const currentFam = getFamiliarity(p.id);
+        if (currentFam < 3) {
+          await updateFamiliarity(p.id, 3);
+          updatedCount++;
+        }
+      }
+
+      localStorage.setItem('leetcode_sync_cookie', leetcodeCookie);
+      localStorage.setItem('leetcode_sync_domain', leetcodeDomain);
+
+      setSyncSuccessMessage(`同步成功！LeetCode 账号 [${data.username}] 共已解决 ${data.numSolved} 题。我们在系统内匹配到 ${matched.length} 道题目，并自动将其状态更新为“熟悉”。`);
+    } catch (err: any) {
+      setSyncError(err.message || '网络或服务器错误');
+    } finally {
+      setSyncLoading(false);
+    }
+  }, [leetcodeCookie, leetcodeDomain, allPoolProblems, getFamiliarity, updateFamiliarity]);
 
   const categoryStats = useMemo(() => {
     return getCategoryStats(allProblems.map(p => p.id));
@@ -521,6 +585,20 @@ export default function LeetCodeClient() {
               <Plus className="h-3 w-3 mr-1" />添加题目
             </Button>
           )}
+
+          {/* LeetCode Sync Button */}
+          <Button 
+            size="sm" 
+            variant="outline" 
+            onClick={() => {
+              setSyncError('');
+              setSyncSuccessMessage('');
+              setSyncingLeetcode(true);
+            }} 
+            className="h-7 text-xs flex items-center gap-1 bg-amber-500/10 border-amber-500/20 text-amber-600 dark:text-amber-400 hover:bg-amber-500/20 ml-auto"
+          >
+            <RotateCcw className="h-3 w-3" />同步 LeetCode 进度
+          </Button>
         </div>
 
         {/* Category header */}
@@ -725,6 +803,107 @@ export default function LeetCodeClient() {
                 未找到匹配的题目
               </div>
             )}
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* ── LeetCode Sync Dialog ── */}
+      <Dialog open={syncingLeetcode} onOpenChange={setSyncingLeetcode}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <RotateCcw className="h-5 w-5 text-amber-500" />
+              同步 LeetCode 刷题进度
+            </DialogTitle>
+            <DialogDescription className="text-xs text-muted-foreground">
+              通过配置 LeetCode 的 Cookie，自动拉取你已 AC (通过) 的题目，并将系统内对应的题目自动更新为“熟悉”状态。
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-4 py-2">
+            {/* Domain selection */}
+            <div className="space-y-1.5">
+              <label className="text-xs font-semibold text-muted-foreground">LeetCode 区域</label>
+              <div className="flex gap-2">
+                {[
+                  { key: 'leetcode.com', label: 'US 站 (leetcode.com)' },
+                  { key: 'leetcode.cn', label: '中国站 (leetcode.cn)' }
+                ].map(opt => (
+                  <button
+                    key={opt.key}
+                    type="button"
+                    onClick={() => setLeetcodeDomain(opt.key as any)}
+                    className={cn(
+                      "flex-1 text-xs py-2 rounded-lg border transition-all font-medium",
+                      leetcodeDomain === opt.key 
+                        ? "bg-primary/5 text-primary border-primary" 
+                        : "border-border text-muted-foreground hover:bg-muted"
+                    )}
+                  >
+                    {opt.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Cookie input */}
+            <div className="space-y-1.5">
+              <label className="text-xs font-semibold text-muted-foreground flex justify-between">
+                <span>Cookie 字符串</span>
+                <a 
+                  href="#how-to-get-cookie" 
+                  className="text-primary hover:underline text-[10px]"
+                  onClick={(e) => {
+                    e.preventDefault();
+                    alert("获取 Cookie 步骤：\n1. 浏览器打开并登录 LeetCode\n2. 按 F12 打开开发者工具 -> 进入 'Application' (应用) -> 'Cookies'\n3. 找到 'LEETCODE_SESSION' 并复制其 Value 值填入下方；\n或者直接在 Network (网络) 选项卡任一请求中复制完整的 'cookie' 请求头。");
+                  }}
+                >
+                  如何获取？
+                </a>
+              </label>
+              <textarea
+                value={leetcodeCookie}
+                onChange={e => setLeetcodeCookie(e.target.value)}
+                placeholder="粘贴 LEETCODE_SESSION=xxxx 或完整的 cookie 字符串..."
+                rows={4}
+                className="w-full text-xs font-mono border rounded-lg p-2.5 bg-background focus:outline-none focus:ring-1 focus:ring-primary"
+              />
+            </div>
+
+            {/* Error Message */}
+            {syncError && (
+              <div className="p-3 text-xs bg-destructive/10 text-destructive rounded-lg border border-destructive/20 leading-relaxed">
+                ⚠️ {syncError}
+              </div>
+            )}
+
+            {/* Success Message */}
+            {syncSuccessMessage && (
+              <div className="p-3 text-xs bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 rounded-lg border border-emerald-500/20 leading-relaxed">
+                🎉 {syncSuccessMessage}
+              </div>
+            )}
+          </div>
+
+          <div className="flex justify-end gap-2 border-t pt-3 mt-2">
+            <Button 
+              variant="ghost" 
+              size="sm" 
+              onClick={() => setSyncingLeetcode(false)} 
+              disabled={syncLoading}
+              className="text-xs"
+            >
+              取消
+            </Button>
+            <Button 
+              size="sm" 
+              onClick={handleSyncProgress} 
+              disabled={syncLoading || !leetcodeCookie.trim()}
+              className="text-xs flex items-center gap-1"
+            >
+              {syncLoading && <Loader2 className="h-3 w-3 animate-spin" />}
+              {syncLoading ? '正在同步...' : '开始同步'}
+            </Button>
           </div>
         </DialogContent>
       </Dialog>

@@ -441,16 +441,52 @@ export default function LeetCodeClient() {
     setAddingProblem(false);
   }, [newProblemUrl, addFavorite]);
 
+const parseCookieString = (rawInput: string): string => {
+  const trimmed = rawInput.trim();
+  if (!trimmed) return '';
+
+  // 1. Check if it is a curl command
+  if (trimmed.toLowerCase().startsWith('curl') || trimmed.toLowerCase().includes(' -h ') || trimmed.toLowerCase().includes(' --header ')) {
+    // Matches: -H "cookie: ..." or -H 'cookie: ...' or --header "cookie: ..." or --header 'cookie: ...'
+    const headerRegex = /(?:-H|--header)\s+["'](cookie|Cookie):\s*([^"']+)["']/gi;
+    let match;
+    const combinedCookies: string[] = [];
+    while ((match = headerRegex.exec(trimmed)) !== null) {
+      if (match[2]) {
+        combinedCookies.push(match[2].trim());
+      }
+    }
+    if (combinedCookies.length > 0) {
+      return combinedCookies.join('; ');
+    }
+  }
+
+  // 2. Check if it starts with "Cookie: " or "cookie: "
+  const headerMatch = trimmed.match(/^cookie:\s*(.+)$/i);
+  if (headerMatch && headerMatch[1]) {
+    return headerMatch[1].trim();
+  }
+
+  return trimmed;
+};
+
   const handleSyncProgress = useCallback(async () => {
     setSyncLoading(true);
     setSyncError('');
     setSyncSuccessMessage('');
 
+    const cleanCookie = parseCookieString(leetcodeCookie);
+    if (!cleanCookie) {
+      setSyncError('未检测到有效的 Cookie 字符串');
+      setSyncLoading(false);
+      return;
+    }
+
     try {
       const res = await fetch('/api/leetcode/sync', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ cookie: leetcodeCookie, domain: leetcodeDomain })
+        body: JSON.stringify({ cookie: cleanCookie, domain: leetcodeDomain })
       });
 
       const data = await res.json();
@@ -475,8 +511,9 @@ export default function LeetCodeClient() {
         }
       }
 
-      localStorage.setItem('leetcode_sync_cookie', leetcodeCookie);
+      localStorage.setItem('leetcode_sync_cookie', cleanCookie);
       localStorage.setItem('leetcode_sync_domain', leetcodeDomain);
+      setLeetcodeCookie(cleanCookie); // Display the clean cookie to the user
 
       setSyncSuccessMessage(`同步成功！LeetCode 账号 [${data.username}] 共已解决 ${data.numSolved} 题。我们在系统内匹配到 ${matched.length} 道题目，并自动将其状态更新为“熟悉”。`);
     } catch (err: any) {
@@ -863,8 +900,16 @@ export default function LeetCodeClient() {
               </label>
               <textarea
                 value={leetcodeCookie}
-                onChange={e => setLeetcodeCookie(e.target.value)}
-                placeholder="粘贴 LEETCODE_SESSION=xxxx 或完整的 cookie 字符串..."
+                onChange={e => {
+                  const val = e.target.value;
+                  // Auto-extract cookie if a curl command or standard HTTP header block is pasted
+                  if (val.toLowerCase().includes('curl') || val.toLowerCase().includes('cookie:') || val.toLowerCase().includes('cookie ')) {
+                    setLeetcodeCookie(parseCookieString(val));
+                  } else {
+                    setLeetcodeCookie(val);
+                  }
+                }}
+                placeholder="粘贴 LEETCODE_SESSION=xxxx、完整的 cookie 字符串，或直接粘贴控制台复制的 curl 命令行..."
                 rows={4}
                 className="w-full text-xs font-mono border rounded-lg p-2.5 bg-background focus:outline-none focus:ring-1 focus:ring-primary"
               />

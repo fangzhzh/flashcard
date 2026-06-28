@@ -86,6 +86,11 @@ export interface CheckinInfo {
   history: string[]; // Array of ISO date strings
 }
 
+export interface EnergyDemand {
+  cognitive: 'high' | 'low';
+  emotional: 'high' | 'low';
+}
+
 export interface Task {
   id: string;
   userId: string;
@@ -100,6 +105,7 @@ export interface Task {
   artifactLink: ArtifactLink;
   reminderInfo: ReminderInfo;
   checkinInfo?: CheckinInfo | null;
+  energyDemand?: EnergyDemand | null; // New: Energy demand profile
   createdAt: any;
   updatedAt: any;
 }

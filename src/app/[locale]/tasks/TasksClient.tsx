@@ -6,7 +6,7 @@ import { useFlashcards } from '@/contexts/FlashcardsContext';
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
-import { Loader2, Info, ShieldAlert, PlayCircle, Zap, AlertTriangle, CalendarIcon, Hourglass, ListChecks, Briefcase, User, Coffee, LayoutGrid, X, Save, Link2, RotateCcw, Clock, Bell, Trash2, FilePlus, Search, Edit3, Repeat, ArrowLeft, Stamp, ChevronDown } from 'lucide-react';
+import { Loader2, Info, ShieldAlert, PlayCircle, Zap, AlertTriangle, CalendarIcon, Hourglass, ListChecks, Briefcase, User, Coffee, LayoutGrid, X, Save, Link2, RotateCcw, Clock, Bell, Trash2, FilePlus, Search, Edit3, Repeat, ArrowLeft, Stamp, ChevronDown, Brain, Smile, Sparkles, BatteryCharging } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { useI18n, useCurrentLocale } from '@/lib/i18n/client';
 import type { Task, TimeInfo, TaskStatus, RepeatFrequency, ReminderType, TaskType, ArtifactLink, Flashcard as FlashcardType, CheckinInfo } from '@/types';
@@ -58,6 +58,7 @@ interface FormattedTimeInfo {
 }
 
 type TaskDateFilter = 'all' | 'today' | 'threeDays' | 'thisWeek' | 'twoWeeks';
+type EnergyStateFilter = 'all' | 'full' | 'focus' | 'social' | 'recharge';
 
 interface TaskTypeFilterOption {
   value: TaskType | 'all';
@@ -151,6 +152,7 @@ function TasksClientContent() {
   const [isCreatingNewTask, setIsCreatingNewTask] = useState(false);
   const [activeDateFilter, setActiveDateFilter] = useState<TaskDateFilter>('all');
   const [activeTaskTypeFilter, setActiveTaskTypeFilter] = useState<TaskType | 'all'>('all');
+  const [activeEnergyFilter, setActiveEnergyFilter] = useState<EnergyStateFilter>('all');
   const [draggedOverType, setDraggedOverType] = useState<TaskType | null>(null);
 
   const [taskCounts, setTaskCounts] = useState({ innie: 0, outie: 0, blackout: 0, all: 0 });
@@ -160,6 +162,14 @@ function TasksClientContent() {
   const [pendingAction, setPendingAction] = useState<{ type: 'filter' | 'newTask' | 'editTask', callback: () => void, descriptionKey: TranslationKeys, confirmButtonKey: TranslationKeys } | null>(null);
   const [isCheckingIn, setIsCheckingIn] = useState<Record<string, boolean>>({});
   const [isPastAndFutureAccordionOpen, setIsPastAndFutureAccordionOpen] = useState(false);
+
+  const [randomTask, setRandomTask] = useState<Task | null>(null);
+  const [showAllTasks, setShowAllTasks] = useState(false);
+
+  useEffect(() => {
+    setRandomTask(null);
+    setShowAllTasks(false);
+  }, [activeEnergyFilter]);
 
 
   useEffect(() => {
@@ -305,6 +315,18 @@ function TasksClientContent() {
       currentTasks = currentTasks.filter(task => task.type === activeTaskTypeFilter);
     }
 
+    if (activeEnergyFilter !== 'all') {
+      currentTasks = currentTasks.filter(task => {
+        if (!task.energyDemand) return true; // Default fallback
+        const { cognitive, emotional } = task.energyDemand;
+        if (activeEnergyFilter === 'full') return cognitive === 'high' && emotional === 'high';
+        if (activeEnergyFilter === 'focus') return cognitive === 'high' && emotional === 'low';
+        if (activeEnergyFilter === 'social') return cognitive === 'low' && emotional === 'high';
+        if (activeEnergyFilter === 'recharge') return cognitive === 'low' && emotional === 'low';
+        return true;
+      });
+    }
+
     const dateFilterFn = (task: Task): boolean => {
       if (activeDateFilter === 'all') return true;
 
@@ -362,7 +384,25 @@ function TasksClientContent() {
       }
       return (b.createdAt && a.createdAt) ? (new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()) : 0;
     });
-  }, [tasks, activeDateFilter, activeTaskTypeFilter, today, currentLocale]);
+  }, [tasks, activeDateFilter, activeTaskTypeFilter, activeEnergyFilter, today, currentLocale]);
+
+  const aiRecommendedTask = useMemo(() => {
+    if (filteredAndSortedTasks.length === 0) return null;
+    
+    // 1. Prioritize tasks that are overdue
+    const overdue = filteredAndSortedTasks.find(t => {
+      if (!t.timeInfo?.startDate || !isValid(parseISO(t.timeInfo.startDate))) return false;
+      return parseISO(t.timeInfo.startDate) < today;
+    });
+    if (overdue) return overdue;
+
+    // 2. Prioritize tasks with active checkin requirements
+    const withCheckins = filteredAndSortedTasks.find(t => t.checkinInfo && t.checkinInfo.currentCheckins < t.checkinInfo.totalCheckinsRequired);
+    if (withCheckins) return withCheckins;
+
+    // 3. Otherwise, return the oldest created task (first in list)
+    return filteredAndSortedTasks[0];
+  }, [filteredAndSortedTasks, today]);
   
   const pastAndFutureTasks = useMemo(() => {
     return tasks.filter(task => {
@@ -1017,44 +1057,270 @@ function TasksClientContent() {
               showEditPanel ? "hidden md:block md:w-1/2" : "w-full"
             )}
           >
-            <ScrollArea className="flex-grow min-h-0 pb-20">
-              {filteredAndSortedTasks.length === 0 && !showEditPanel && !isPastAndFutureAccordionOpen && (
-                <Alert className={cn("mt-4 border-primary/50 text-primary bg-primary/5 mx-1")}>
-                  <Info className="h-5 w-5 text-primary" />
-                  <AlertTitle className="font-semibold text-primary">{t('tasks.list.empty.title')}</AlertTitle>
-                  <AlertDescription>
-                    {t('tasks.list.empty.description')}
-                  </AlertDescription>
-                </Alert>
-              )}
-              <ul className="space-y-1 w-full">
-                {filteredAndSortedTasks.map((task) => renderTaskListItem(task))}
-              </ul>
-            
-              <Accordion type="single" collapsible className="w-full px-1 mt-4" onValueChange={value => setIsPastAndFutureAccordionOpen(value === 'past-future-tasks')}>
-                <AccordionItem value="past-future-tasks">
-                  <AccordionTrigger className="text-sm hover:no-underline">
-                    <div className="flex items-center">
-                       {t('tasks.accordion.pastAndFutureTitle')}
-                       {pastAndFutureTasks.length > 0 && (
-                         <span className="ml-1 text-muted-foreground">({pastAndFutureTasks.length})</span>
-                       )}
+            {/* Energy State Landing Page or Workspace Panel */}
+            {activeEnergyFilter === 'all' ? (
+              // "How do you feel?" Landing Grid
+              <div className="flex-grow flex flex-col items-center justify-center p-6 text-center space-y-8 max-w-4xl mx-auto my-auto min-h-[60vh]">
+                <div className="space-y-3">
+                  <h1 className="text-4xl font-extrabold tracking-tight bg-gradient-to-r from-primary via-purple-500 to-rose-500 bg-clip-text text-transparent">
+                    {t('tasks.energyPortal.title')}
+                  </h1>
+                  <p className="text-muted-foreground text-sm max-w-md mx-auto">
+                    {t('tasks.energyPortal.subtitle')}
+                  </p>
+                </div>
+                
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 w-full">
+                  {/* Full Battery */}
+                  <button
+                    onClick={() => setActiveEnergyFilter('full')}
+                    className="group relative flex flex-col items-start p-5 rounded-2xl border bg-card hover:bg-muted/50 hover:border-orange-500/50 hover:shadow-[0_0_20px_rgba(249,115,22,0.15)] transition-all text-left space-y-3 scale-100 active:scale-[0.98] duration-300 overflow-hidden"
+                  >
+                    <div className="absolute top-0 right-0 w-32 h-32 bg-orange-500/5 rounded-full blur-2xl group-hover:bg-orange-500/10 transition-all duration-300" />
+                    <div className="flex items-center justify-between w-full">
+                      <span className="p-2.5 rounded-xl bg-orange-500/10 text-orange-500 text-lg group-hover:scale-110 transition-transform duration-300">🔥</span>
+                      <span className="text-[10px] uppercase font-bold tracking-widest text-orange-500 bg-orange-500/10 px-2 py-0.5 rounded-full">{t('tasks.energyPortal.full.subtitle')}</span>
                     </div>
-                  </AccordionTrigger>
-                  <AccordionContent>
-                    {pastAndFutureTasks.length === 0 ? (
-                      <p className="text-sm text-muted-foreground py-4 text-center">
-                        {t('tasks.accordion.noPastAndFutureTasks')}
+                    <div className="space-y-1">
+                      <h3 className="font-bold text-lg group-hover:text-orange-500 transition-colors">🔥 {t('tasks.energyPortal.full.title')}</h3>
+                      <p className="text-xs text-muted-foreground leading-relaxed">
+                        {t('tasks.energyPortal.full.desc')}
                       </p>
-                    ) : (
-                      <ul className="space-y-1 w-full pt-2">
-                        {pastAndFutureTasks.map((task) => renderTaskListItem(task))}
-                      </ul>
-                    )}
-                  </AccordionContent>
-                </AccordionItem>
-              </Accordion>
-            </ScrollArea>
+                    </div>
+                  </button>
+
+                  {/* Solo Focus */}
+                  <button
+                    onClick={() => setActiveEnergyFilter('focus')}
+                    className="group relative flex flex-col items-start p-5 rounded-2xl border bg-card hover:bg-muted/50 hover:border-purple-500/50 hover:shadow-[0_0_20px_rgba(168,85,247,0.15)] transition-all text-left space-y-3 scale-100 active:scale-[0.98] duration-300 overflow-hidden"
+                  >
+                    <div className="absolute top-0 right-0 w-32 h-32 bg-purple-500/5 rounded-full blur-2xl group-hover:bg-purple-500/10 transition-all duration-300" />
+                    <div className="flex items-center justify-between w-full">
+                      <span className="p-2.5 rounded-xl bg-purple-500/10 text-purple-500 text-lg group-hover:scale-110 transition-transform duration-300">🧠</span>
+                      <span className="text-[10px] uppercase font-bold tracking-widest text-purple-500 bg-purple-500/10 px-2 py-0.5 rounded-full">{t('tasks.energyPortal.focus.subtitle')}</span>
+                    </div>
+                    <div className="space-y-1">
+                      <h3 className="font-bold text-lg group-hover:text-purple-500 transition-colors">🧠 {t('tasks.energyPortal.focus.title')}</h3>
+                      <p className="text-xs text-muted-foreground leading-relaxed">
+                        {t('tasks.energyPortal.focus.desc')}
+                      </p>
+                    </div>
+                  </button>
+
+                  {/* Social/Relax */}
+                  <button
+                    onClick={() => setActiveEnergyFilter('social')}
+                    className="group relative flex flex-col items-start p-5 rounded-2xl border bg-card hover:bg-muted/50 hover:border-blue-500/50 hover:shadow-[0_0_20px_rgba(59,130,246,0.15)] transition-all text-left space-y-3 scale-100 active:scale-[0.98] duration-300 overflow-hidden"
+                  >
+                    <div className="absolute top-0 right-0 w-32 h-32 bg-blue-500/5 rounded-full blur-2xl group-hover:bg-blue-500/10 transition-all duration-300" />
+                    <div className="flex items-center justify-between w-full">
+                      <span className="p-2.5 rounded-xl bg-blue-500/10 text-blue-500 text-lg group-hover:scale-110 transition-transform duration-300">💬</span>
+                      <span className="text-[10px] uppercase font-bold tracking-widest text-blue-500 bg-blue-500/10 px-2 py-0.5 rounded-full">{t('tasks.energyPortal.social.subtitle')}</span>
+                    </div>
+                    <div className="space-y-1">
+                      <h3 className="font-bold text-lg group-hover:text-blue-500 transition-colors">💬 {t('tasks.energyPortal.social.title')}</h3>
+                      <p className="text-xs text-muted-foreground leading-relaxed">
+                        {t('tasks.energyPortal.social.desc')}
+                      </p>
+                    </div>
+                  </button>
+
+                  {/* Recharge/Rest */}
+                  <button
+                    onClick={() => setActiveEnergyFilter('recharge')}
+                    className="group relative flex flex-col items-start p-5 rounded-2xl border bg-card hover:bg-muted/50 hover:border-teal-500/50 hover:shadow-[0_0_20px_rgba(20,184,166,0.15)] transition-all text-left space-y-3 scale-100 active:scale-[0.98] duration-300 overflow-hidden"
+                  >
+                    <div className="absolute top-0 right-0 w-32 h-32 bg-teal-500/5 rounded-full blur-2xl group-hover:bg-teal-500/10 transition-all duration-300" />
+                    <div className="flex items-center justify-between w-full">
+                      <span className="p-2.5 rounded-xl bg-teal-500/10 text-teal-500 text-lg group-hover:scale-110 transition-transform duration-300">🧘</span>
+                      <span className="text-[10px] uppercase font-bold tracking-widest text-teal-500 bg-teal-500/10 px-2 py-0.5 rounded-full">{t('tasks.energyPortal.recharge.subtitle')}</span>
+                    </div>
+                    <div className="space-y-1">
+                      <h3 className="font-bold text-lg group-hover:text-teal-500 transition-colors">🧘 {t('tasks.energyPortal.recharge.title')}</h3>
+                      <p className="text-xs text-muted-foreground leading-relaxed">
+                        {t('tasks.energyPortal.recharge.desc')}
+                      </p>
+                    </div>
+                  </button>
+                </div>
+              </div>
+            ) : (
+              // Energy State Selected: Workspace Panel
+              <div className="flex flex-col flex-1 p-6 space-y-6 overflow-y-auto">
+                {/* Header */}
+                <div className="flex items-center justify-between border-b pb-4">
+                  <div className="flex items-center gap-2">
+                    <span className="text-xl">
+                      {activeEnergyFilter === 'full' && '🔥'}
+                      {activeEnergyFilter === 'focus' && '🧠'}
+                      {activeEnergyFilter === 'social' && '💬'}
+                      {activeEnergyFilter === 'recharge' && '🧘'}
+                    </span>
+                    <div>
+                      <h2 className="text-lg font-bold capitalize">
+                        {activeEnergyFilter === 'full' && t('tasks.energyWorkspace.full.title')}
+                        {activeEnergyFilter === 'focus' && t('tasks.energyWorkspace.focus.title')}
+                        {activeEnergyFilter === 'social' && t('tasks.energyWorkspace.social.title')}
+                        {activeEnergyFilter === 'recharge' && t('tasks.energyWorkspace.recharge.title')}
+                      </h2>
+                      <p className="text-xs text-muted-foreground">
+                        {t('tasks.energyWorkspace.matchingCount', { count: filteredAndSortedTasks.length, plural: filteredAndSortedTasks.length !== 1 ? 's' : '' })}
+                      </p>
+                    </div>
+                  </div>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setActiveEnergyFilter('all')}
+                    className="text-xs flex items-center gap-1.5"
+                  >
+                    ⚡ {t('tasks.energyWorkspace.changeState')}
+                  </Button>
+                </div>
+
+                {filteredAndSortedTasks.length === 0 ? (
+                  <div className="text-center py-12 space-y-3 bg-muted/10 rounded-2xl border border-dashed">
+                    <div className="text-3xl">🎉</div>
+                    <h3 className="font-bold text-sm">{t('tasks.energyWorkspace.allCaughtUp')}</h3>
+                    <p className="text-xs text-muted-foreground max-w-xs mx-auto">
+                      {t('tasks.energyWorkspace.noTasksDesc')}
+                    </p>
+                  </div>
+                ) : (
+                  <div className="space-y-6">
+                    {/* Interactive Hub Grid */}
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      {/* AI Optimal Selector Card */}
+                      <div className="border rounded-2xl p-5 bg-card relative overflow-hidden flex flex-col justify-between min-h-[180px] shadow-sm">
+                        <div className="absolute top-0 right-0 w-24 h-24 bg-primary/5 rounded-full blur-xl" />
+                        <div className="space-y-3">
+                          <div className="flex items-center gap-1.5 text-xs font-bold text-primary uppercase tracking-wider">
+                            <Sparkles className="h-4 w-4" /> {t('tasks.energyWorkspace.aiOptimal')}
+                          </div>
+                          {aiRecommendedTask ? (
+                            <div className="space-y-1">
+                              <h3 className="font-bold text-base leading-snug">{aiRecommendedTask.title}</h3>
+                              {aiRecommendedTask.description && (
+                                <p className="text-xs text-muted-foreground line-clamp-2 leading-relaxed">
+                                  {aiRecommendedTask.description}
+                                </p>
+                              )}
+                            </div>
+                          ) : (
+                            <p className="text-xs text-muted-foreground">{t('tasks.energyWorkspace.noAiTask')}</p>
+                          )}
+                        </div>
+                        <div className="pt-4 flex items-center gap-2">
+                          {aiRecommendedTask && (
+                            <Button
+                              size="sm"
+                              onClick={() => setSelectedTaskId(aiRecommendedTask.id)}
+                              className="text-xs flex items-center gap-1"
+                            >
+                              {t('tasks.energyWorkspace.startTask')}
+                            </Button>
+                          )}
+                        </div>
+                      </div>
+
+                      {/* Randomizer Card */}
+                      <div className="border rounded-2xl p-5 bg-card relative overflow-hidden flex flex-col justify-between min-h-[180px] shadow-sm">
+                        <div className="absolute top-0 right-0 w-24 h-24 bg-purple-500/5 rounded-full blur-xl" />
+                        <div className="space-y-3">
+                          <div className="flex items-center gap-1.5 text-xs font-bold text-purple-500 uppercase tracking-wider">
+                            <BatteryCharging className="h-4 w-4 animate-pulse" /> {t('tasks.energyWorkspace.randomPick')}
+                          </div>
+                          {randomTask ? (
+                            <div className="space-y-1">
+                              <h3 className="font-bold text-base leading-snug">{randomTask.title}</h3>
+                              {randomTask.description && (
+                                <p className="text-xs text-muted-foreground line-clamp-2">
+                                  {randomTask.description}
+                                </p>
+                              )}
+                            </div>
+                          ) : (
+                            <div className="py-2">
+                              <p className="text-xs text-muted-foreground">
+                                {t('tasks.energyWorkspace.randomPickDesc')}
+                              </p>
+                            </div>
+                          )}
+                        </div>
+                        <div className="pt-4 flex items-center gap-2">
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => {
+                              const randomIndex = Math.floor(Math.random() * filteredAndSortedTasks.length);
+                              setRandomTask(filteredAndSortedTasks[randomIndex]);
+                            }}
+                            className="text-xs"
+                          >
+                            {randomTask ? `🎲 ${t('tasks.energyWorkspace.reroll')}` : `🎲 ${t('tasks.energyWorkspace.spinWheel')}`}
+                          </Button>
+                          {randomTask && (
+                            <Button
+                              size="sm"
+                              onClick={() => setSelectedTaskId(randomTask.id)}
+                              className="text-xs"
+                            >
+                              {t('tasks.energyWorkspace.startTask')}
+                            </Button>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* View All Toggle Panel */}
+                    <div className="border rounded-2xl overflow-hidden bg-card">
+                      <button
+                        onClick={() => setShowAllTasks(!showAllTasks)}
+                        className="w-full flex items-center justify-between p-4 font-bold text-sm bg-muted/10 hover:bg-muted/20 transition-all border-b"
+                      >
+                        <div className="flex items-center gap-2">
+                          <span>📋</span>
+                          <span>{t('tasks.energyWorkspace.listAllTitle', { count: filteredAndSortedTasks.length })}</span>
+                        </div>
+                        <ChevronDown className={cn("h-4 w-4 text-muted-foreground transition-transform duration-300", showAllTasks && "rotate-180")} />
+                      </button>
+                      
+                      {showAllTasks && (
+                        <div className="p-3 bg-card max-h-[400px] overflow-y-auto">
+                          <ul className="space-y-1 w-full">
+                            {filteredAndSortedTasks.map((task) => renderTaskListItem(task))}
+                          </ul>
+                          
+                          <Accordion type="single" collapsible className="w-full px-1 mt-4" onValueChange={value => setIsPastAndFutureAccordionOpen(value === 'past-future-tasks')}>
+                            <AccordionItem value="past-future-tasks">
+                              <AccordionTrigger className="text-sm hover:no-underline">
+                                <div className="flex items-center">
+                                   {t('tasks.accordion.pastAndFutureTitle')}
+                                   {pastAndFutureTasks.length > 0 && (
+                                     <span className="ml-1 text-muted-foreground">({pastAndFutureTasks.length})</span>
+                                   )}
+                                </div>
+                              </AccordionTrigger>
+                              <AccordionContent>
+                                {pastAndFutureTasks.length === 0 ? (
+                                  <p className="text-sm text-muted-foreground py-4 text-center">
+                                    {t('tasks.accordion.noPastAndFutureTasks')}
+                                  </p>
+                                ) : (
+                                  <ul className="space-y-1 w-full pt-2">
+                                    {pastAndFutureTasks.map((task) => renderTaskListItem(task))}
+                                  </ul>
+                                )}
+                              </AccordionContent>
+                            </AccordionItem>
+                          </Accordion>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
           </div>
           <div
             className={cn(

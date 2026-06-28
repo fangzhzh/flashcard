@@ -9,7 +9,7 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import type { Task, RepeatFrequency, TimeInfo, ArtifactLink, ReminderInfo, Flashcard as FlashcardType, Deck, TaskType, CheckinInfo, TaskStatus, Overview, ReminderType } from '@/types';
-import { Save, CalendarIcon, Link2, RotateCcw, Clock, Bell, Trash2, X, Loader2, FilePlus, ListChecks, Search, Edit3, Repeat, Briefcase, User, Coffee, Eye, FileEdit, ArrowLeft, FilePenLine, CheckSquare, Square, GitFork, EyeOff } from 'lucide-react';
+import { Save, CalendarIcon, Link2, RotateCcw, Clock, Bell, Trash2, X, Loader2, FilePlus, ListChecks, Search, Edit3, Repeat, Briefcase, User, Coffee, Eye, FileEdit, ArrowLeft, FilePenLine, CheckSquare, Square, GitFork, EyeOff, Sparkles, Brain, Smile } from 'lucide-react';
 import { useI18n, useCurrentLocale } from '@/lib/i18n/client';
 import { cn } from '@/lib/utils';
 import { format, parseISO, isValid, isToday, isTomorrow, startOfDay } from 'date-fns';
@@ -94,6 +94,8 @@ const taskSchema = z.object({
   artifactLink: artifactLinkSchema.default({ flashcardIds: null }),
   reminderInfo: reminderInfoSchema.default({ type: 'none' }),
   checkinInfo: checkinInfoSchema,
+  energyCognitive: z.enum(['high', 'low', 'auto']).default('auto'),
+  energyEmotional: z.enum(['high', 'low', 'auto']).default('auto'),
 });
 
 export type TaskFormData = z.infer<typeof taskSchema>;
@@ -175,6 +177,8 @@ export default function TaskForm({
       artifactLink: initialData?.artifactLink || { flashcardIds: null },
       reminderInfo: initialData?.reminderInfo || { type: 'none' },
       checkinInfo: initialData?.checkinInfo || null,
+      energyCognitive: (initialData?.energyDemand?.cognitive || 'auto') as 'high' | 'low' | 'auto',
+      energyEmotional: (initialData?.energyDemand?.emotional || 'auto') as 'high' | 'low' | 'auto',
   };
 
   const form = useForm<TaskFormData>({
@@ -198,6 +202,56 @@ export default function TaskForm({
   const watchedCheckinInfo = watch("checkinInfo");
   const watchedStatus = watch("status");
   const isCheckinModeEnabled = !!watchedCheckinInfo;
+
+  const watchedTitle = watch("title");
+  const watchedDescription = watch("description");
+  const watchedEnergyCognitive = watch("energyCognitive");
+  const watchedEnergyEmotional = watch("energyEmotional");
+
+  const [aiSuggestion, setAiSuggestion] = React.useState<{ cognitive: 'high' | 'low'; emotional: 'high' | 'low' } | null>(null);
+  const [isAiClassifying, setIsAiClassifying] = React.useState(false);
+
+  React.useEffect(() => {
+    if (!watchedTitle || watchedTitle.trim() === '') {
+      setAiSuggestion(null);
+      return;
+    }
+
+    const delayDebounceFn = setTimeout(async () => {
+      setIsAiClassifying(true);
+      try {
+        const textToAnalyze = `${watchedTitle} ${watchedDescription || ''}`.toLowerCase();
+        
+        const emotionalKeywords = ['meeting', 'call', 'sync', 'discuss', 'align', 'interview', 'presentation', 'talk', '讨论', '开会', '对齐', '沟通', '陪伴', '倾听', 'social', 'family', '儿子', '太太'];
+        const cognitiveKeywords = ['code', 'debug', 'write', 'implement', 'design', 'solve', 'study', 'math', 'test', '刷题', '设计', '开发', '调试', '架构', '分析', 'algorithm', 'system design'];
+
+        const hasEmotional = emotionalKeywords.some(keyword => textToAnalyze.includes(keyword));
+        const hasCognitive = cognitiveKeywords.some(keyword => textToAnalyze.includes(keyword));
+
+        let cognitive: 'high' | 'low' = 'low';
+        let emotional: 'high' | 'low' = 'low';
+
+        if (hasCognitive) {
+          cognitive = 'high';
+        }
+        if (hasEmotional) {
+          emotional = 'high';
+        }
+        
+        if (!hasCognitive && !hasEmotional) {
+          cognitive = 'high'; // Default default focus
+        }
+
+        setAiSuggestion({ cognitive, emotional });
+      } catch (err) {
+        console.error("AI Auto-classification failed:", err);
+      } finally {
+        setIsAiClassifying(false);
+      }
+    }, 800);
+
+    return () => clearTimeout(delayDebounceFn);
+  }, [watchedTitle, watchedDescription]);
   
   const isReadOnly = mode === 'edit' && watchedStatus === 'completed';
 
@@ -257,6 +311,8 @@ export default function TaskForm({
       artifactLink: initialData?.artifactLink || { flashcardIds: null },
       reminderInfo: initialData?.reminderInfo || { type: 'none' },
       checkinInfo: initialData?.checkinInfo || null,
+      energyCognitive: initialData?.energyDemand?.cognitive || 'auto',
+      energyEmotional: initialData?.energyDemand?.emotional || 'auto',
     };
     form.reset(dataForReset);
   }, [initialData, form]);
@@ -467,11 +523,34 @@ export default function TaskForm({
   const reminderDisplay = formatReminderDisplay();
   const isTimeSet = watchedTimeInfo.type !== 'no_time' && watchedTimeInfo.startDate && isValid(parseISO(watchedTimeInfo.startDate));
 
+  const handleSubmitWrapper = async (data: TaskFormData) => {
+    let cognitive = data.energyCognitive;
+    let emotional = data.energyEmotional;
+    
+    if (cognitive === 'auto') {
+      cognitive = aiSuggestion?.cognitive || 'low';
+    }
+    if (emotional === 'auto') {
+      emotional = aiSuggestion?.emotional || 'low';
+    }
+    
+    const { energyCognitive, energyEmotional, ...rest } = data;
+    
+    const finalData = {
+      ...rest,
+      energyDemand: {
+        cognitive,
+        emotional,
+      },
+    };
+    
+    await onSubmit(finalData as any);
+  };
 
   return (
     <>
     <Form {...form}>
-      <form onSubmit={form.handleSubmit(onSubmit)} className="h-full flex flex-col w-full p-4 md:p-6">
+      <form onSubmit={form.handleSubmit(handleSubmitWrapper)} className="h-full flex flex-col w-full p-4 md:p-6">
         {onCancel && (
           <div className={cn("md:hidden mb-2", mode === 'create' ? "" : "")}>
             <Button variant="ghost" onClick={onCancel} size="sm">
@@ -569,6 +648,95 @@ export default function TaskForm({
               )}
             />
             
+            {/* Energy Management Section */}
+            <div className="border border-dashed border-muted rounded-lg p-3 space-y-3 bg-muted/20 my-2">
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground flex items-center gap-1">
+                  <Sparkles className="h-3.5 w-3.5 text-primary" /> Energy Demand
+                </span>
+                {/* AI Suggestion Badge */}
+                {aiSuggestion && (watchedEnergyCognitive === 'auto' || watchedEnergyEmotional === 'auto') && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setValue('energyCognitive', aiSuggestion.cognitive, { shouldDirty: true });
+                      setValue('energyEmotional', aiSuggestion.emotional, { shouldDirty: true });
+                    }}
+                    className={cn(
+                      "text-xs px-2 py-0.5 rounded-full flex items-center gap-1 bg-primary/10 text-primary hover:bg-primary/20 border border-primary/20 transition-all font-medium",
+                      isAiClassifying && "animate-pulse"
+                    )}
+                  >
+                    {isAiClassifying ? (
+                      <Loader2 className="h-3 w-3 animate-spin" />
+                    ) : (
+                      <>🤖 AI Suggestion: {aiSuggestion.cognitive === 'high' ? '🧠High' : '🧠Low'} Cognitive / {aiSuggestion.emotional === 'high' ? '💬High' : '💬Low'} Emotional (Apply)</>
+                    )}
+                  </button>
+                )}
+              </div>
+              
+              <div className="grid grid-cols-2 gap-4">
+                <FormField
+                  control={form.control}
+                  name="energyCognitive"
+                  render={({ field }) => (
+                    <FormItem className="space-y-1">
+                      <FormLabel className="text-xs text-muted-foreground flex items-center gap-1">
+                        <Brain className="h-3.5 w-3.5" /> Cognitive Energy
+                      </FormLabel>
+                      <Select
+                        onValueChange={field.onChange}
+                        value={field.value}
+                        defaultValue={field.value}
+                        disabled={isLoading || isReadOnly}
+                      >
+                        <FormControl>
+                          <SelectTrigger className="h-9 text-xs">
+                            <SelectValue />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          <SelectItem value="auto">🤖 Auto-classify</SelectItem>
+                          <SelectItem value="high">🧠 High Demand</SelectItem>
+                          <SelectItem value="low">💤 Low Demand</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </FormItem>
+                  )}
+                />
+                
+                <FormField
+                  control={form.control}
+                  name="energyEmotional"
+                  render={({ field }) => (
+                    <FormItem className="space-y-1">
+                      <FormLabel className="text-xs text-muted-foreground flex items-center gap-1">
+                        <Smile className="h-3.5 w-3.5" /> Emotional Energy
+                      </FormLabel>
+                      <Select
+                        onValueChange={field.onChange}
+                        value={field.value}
+                        defaultValue={field.value}
+                        disabled={isLoading || isReadOnly}
+                      >
+                        <FormControl>
+                          <SelectTrigger className="h-9 text-xs">
+                            <SelectValue />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          <SelectItem value="auto">🤖 Auto-classify</SelectItem>
+                          <SelectItem value="high">💬 High Demand</SelectItem>
+                          <SelectItem value="low">🤫 Low Demand</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </FormItem>
+                  )}
+                />
+              </div>
+            </div>
+
             <FormField
               control={form.control}
               name="overviewId"

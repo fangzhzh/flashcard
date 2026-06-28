@@ -86,6 +86,18 @@ export const FlashcardsProvider = ({ children }: { children: ReactNode }) => {
   const mapFirestoreDocToTask = (docSnapshot: any): Task => {
     const data = docSnapshot.data();
     const { id: _dataId, ...dataWithoutId } = data;
+    
+    let energyDemand = data.energyDemand || null;
+    if (!energyDemand && data.type) {
+      if (data.type === 'innie') {
+        energyDemand = { cognitive: 'high', emotional: 'low' };
+      } else if (data.type === 'outie') {
+        energyDemand = { cognitive: 'low', emotional: 'high' };
+      } else if (data.type === 'blackout') {
+        energyDemand = { cognitive: 'low', emotional: 'low' };
+      }
+    }
+
     return {
       id: docSnapshot.id,
       ...dataWithoutId,
@@ -102,6 +114,7 @@ export const FlashcardsProvider = ({ children }: { children: ReactNode }) => {
       reminderInfo: data.reminderInfo || { type: 'none' },
       checkinInfo: data.checkinInfo || null,
       overviewId: data.overviewId || null,
+      energyDemand, // Add energyDemand parsing
     } as Task;
   };
 

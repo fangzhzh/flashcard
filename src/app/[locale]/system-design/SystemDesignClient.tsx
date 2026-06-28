@@ -134,10 +134,11 @@ export default function SystemDesignClient() {
   // --- Fetch Selected Note Content ---
   useEffect(() => {
     if (!selectedNote) return;
+    const currentNote = selectedNote;
     async function fetchContent() {
       setLoadingContent(true);
       try {
-        const res = await fetch(`/api/system-design/notes/${selectedNote.filename}`);
+        const res = await fetch(`/api/system-design/notes/${currentNote.filename}`);
         if (res.ok) {
           const data = await res.json();
           setNoteContent(data.content);
@@ -255,9 +256,9 @@ export default function SystemDesignClient() {
   const concludeInterview = async () => {
     setLoadingChat(true);
     try {
-      const updatedMessages = [
+      const updatedMessages: ChatMessage[] = [
         ...messages,
-        { role: 'user', content: 'Let\'s conclude the interview and evaluate my design now. Please generate the final scorecard and overall feedback.' }
+        { role: 'user' as const, content: 'Let\'s conclude the interview and evaluate my design now. Please generate the final scorecard and overall feedback.' }
       ];
       setMessages(updatedMessages);
 

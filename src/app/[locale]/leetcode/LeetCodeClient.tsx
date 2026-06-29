@@ -452,18 +452,30 @@ const parseCookieString = (rawInput: string): string => {
   };
 
   // 1. Check if it is a curl command
-  if (trimmed.toLowerCase().startsWith('curl') || trimmed.toLowerCase().includes(' -h ') || trimmed.toLowerCase().includes(' --header ')) {
+  if (trimmed.toLowerCase().startsWith('curl') || trimmed.toLowerCase().includes(' -h ') || trimmed.toLowerCase().includes(' --header ') || trimmed.toLowerCase().includes(' -b ') || trimmed.toLowerCase().includes(' --cookie ')) {
+    const cookies: string[] = [];
+    let match;
+
     // Matches: -H "cookie: ..." or -H 'cookie: ...' or --header "cookie: ..." or --header 'cookie: ...'
     // Group 1: opening quote, Group 2: header name, Group 3: header value, backreference \1 to close quote.
     const headerRegex = /(?:-H|--header)\s+(['"])(cookie|Cookie):\s*([\s\S]*?)\1/gi;
-    let match;
-    const cookies: string[] = [];
     headerRegex.lastIndex = 0;
     while ((match = headerRegex.exec(trimmed)) !== null) {
       if (match[3]) {
         cookies.push(match[3].trim());
       }
     }
+
+    // Matches: -b "cookie_value" or -b 'cookie_value' or --cookie "cookie_value" or --cookie 'cookie_value'
+    // Group 1: opening quote, Group 2: cookie value, backreference \1 to close quote.
+    const cookieFlagRegex = /(?:-b|--cookie)\s+(['"])([\s\S]*?)\1/gi;
+    cookieFlagRegex.lastIndex = 0;
+    while ((match = cookieFlagRegex.exec(trimmed)) !== null) {
+      if (match[2]) {
+        cookies.push(match[2].trim());
+      }
+    }
+
     if (cookies.length > 0) {
       const combined = cookies.join('; ');
       if (isValidCookie(combined)) return combined;

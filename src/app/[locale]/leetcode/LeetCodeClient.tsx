@@ -291,12 +291,11 @@ function ProblemRow({ problem, familiarity, onFamiliarityChange, onOpenJudge, on
           ) : (
             <button 
               onClick={() => setShowTags(true)} 
-              className="text-[10px] text-muted-foreground/70 hover:text-primary transition-colors flex items-center gap-1 bg-muted/40 hover:bg-muted px-1.5 py-0.5 rounded border border-transparent hover:border-muted-foreground/15 transition-all focus:outline-none"
-              title="展开标签"
+              className="text-[10px] text-muted-foreground/60 hover:text-primary transition-colors flex items-center gap-1 bg-muted/30 hover:bg-muted/60 px-1.5 py-0.5 rounded border border-transparent hover:border-muted-foreground/15 transition-all focus:outline-none"
+              title="显示算法分类"
             >
-              <Tag className="h-2.5 w-2.5 text-muted-foreground/60" />
-              {problem.tags.length > 0 ? problem.tags[0] : '标签'}
-              {problem.tags.length > 1 && <span className="opacity-60">+{problem.tags.length - 1}</span>}
+              <Tag className="h-2.5 w-2.5 text-muted-foreground/50" />
+              <span>显示分类</span>
             </button>
           )}
         </div>

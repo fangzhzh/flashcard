@@ -445,29 +445,56 @@ const parseCookieString = (rawInput: string): string => {
   const trimmed = rawInput.trim();
   if (!trimmed) return '';
 
+  // Helper to validate that a string is a clean cookie (no shell commands, no headers)
+  const isValidCookie = (str: string) => {
+    const s = str.trim().toLowerCase();
+    return s && !s.startsWith('curl') && !s.startsWith('-h') && !s.startsWith('--header') && !s.includes('\n');
+  };
+
   // 1. Check if it is a curl command
   if (trimmed.toLowerCase().startsWith('curl') || trimmed.toLowerCase().includes(' -h ') || trimmed.toLowerCase().includes(' --header ')) {
     // Matches: -H "cookie: ..." or -H 'cookie: ...' or --header "cookie: ..." or --header 'cookie: ...'
-    const headerRegex = /(?:-H|--header)\s+["'](cookie|Cookie):\s*([^"']+)["']/gi;
+    // Group 1: opening quote, Group 2: header name, Group 3: header value, backreference \1 to close quote.
+    const headerRegex = /(?:-H|--header)\s+(['"])(cookie|Cookie):\s*([\s\S]*?)\1/gi;
     let match;
-    const combinedCookies: string[] = [];
+    const cookies: string[] = [];
+    headerRegex.lastIndex = 0;
     while ((match = headerRegex.exec(trimmed)) !== null) {
-      if (match[2]) {
-        combinedCookies.push(match[2].trim());
+      if (match[3]) {
+        cookies.push(match[3].trim());
       }
     }
-    if (combinedCookies.length > 0) {
-      return combinedCookies.join('; ');
+    if (cookies.length > 0) {
+      const combined = cookies.join('; ');
+      if (isValidCookie(combined)) return combined;
     }
   }
 
-  // 2. Check if it starts with "Cookie: " or "cookie: "
-  const headerMatch = trimmed.match(/^cookie:\s*(.+)$/i);
-  if (headerMatch && headerMatch[1]) {
-    return headerMatch[1].trim();
+  // 2. Check if it's a multiline header list (e.g. copied request headers)
+  if (trimmed.includes('\n')) {
+    const lines = trimmed.split(/\r?\n/);
+    for (const line of lines) {
+      const cleanLine = line.trim();
+      if (cleanLine.toLowerCase().startsWith('cookie:')) {
+        const val = cleanLine.substring(7).trim();
+        if (isValidCookie(val)) return val;
+      }
+    }
   }
 
-  return trimmed;
+  // 3. Check if it starts with "Cookie: " or "cookie: " on a single line
+  const headerMatch = trimmed.match(/^cookie:\s*(.+)$/i);
+  if (headerMatch && headerMatch[1]) {
+    const val = headerMatch[1].trim();
+    if (isValidCookie(val)) return val;
+  }
+
+  // 4. Default fallback: if it looks like a valid cookie, return it
+  if (isValidCookie(trimmed)) {
+    return trimmed;
+  }
+
+  return ''; // Return empty string if parsing failed
 };
 
   const handleSyncProgress = useCallback(async () => {
@@ -477,7 +504,7 @@ const parseCookieString = (rawInput: string): string => {
 
     const cleanCookie = parseCookieString(leetcodeCookie);
     if (!cleanCookie) {
-      setSyncError('未检测到有效的 Cookie 字符串');
+      setSyncError('解析 Cookie 失败。请确保你粘贴了完整的 curl 命令，或者直接粘贴 LEETCODE_SESSION 的 Value 值。');
       setSyncLoading(false);
       return;
     }

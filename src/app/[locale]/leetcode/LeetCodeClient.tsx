@@ -970,23 +970,25 @@ const parseCookieString = (rawInput: string): string => {
           </div>
 
           <div className="flex justify-end gap-2 border-t pt-3 mt-2">
+            {!syncSuccessMessage && (
+              <Button 
+                variant="ghost" 
+                size="sm" 
+                onClick={() => setSyncingLeetcode(false)} 
+                disabled={syncLoading}
+                className="text-xs"
+              >
+                取消
+              </Button>
+            )}
             <Button 
-              variant="ghost" 
               size="sm" 
-              onClick={() => setSyncingLeetcode(false)} 
-              disabled={syncLoading}
-              className="text-xs"
-            >
-              取消
-            </Button>
-            <Button 
-              size="sm" 
-              onClick={handleSyncProgress} 
-              disabled={syncLoading || !leetcodeCookie.trim()}
-              className="text-xs flex items-center gap-1"
+              onClick={syncSuccessMessage ? () => setSyncingLeetcode(false) : handleSyncProgress} 
+              disabled={syncLoading || (!syncSuccessMessage && !leetcodeCookie.trim())}
+              className={cn("text-xs flex items-center gap-1", syncSuccessMessage ? "bg-emerald-600 hover:bg-emerald-700 text-white border-emerald-600" : "")}
             >
               {syncLoading && <Loader2 className="h-3 w-3 animate-spin" />}
-              {syncLoading ? '正在同步...' : '开始同步'}
+              {syncSuccessMessage ? '完成' : (syncLoading ? '正在同步...' : '开始同步')}
             </Button>
           </div>
         </DialogContent>

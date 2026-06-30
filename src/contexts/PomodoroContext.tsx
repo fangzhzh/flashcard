@@ -48,6 +48,49 @@ const playSound = (soundUrl: string) => {
   }
 };
 
+const startBackgroundInterval = (callback: () => void, delayMs: number): (() => void) => {
+  if (typeof window === 'undefined' || typeof Worker === 'undefined') {
+    const id = setInterval(callback, delayMs);
+    return () => clearInterval(id);
+  }
+
+  const workerCode = `
+    let timerId = null;
+    self.onmessage = function(e) {
+      if (e.data === 'start') {
+        if (timerId) clearInterval(timerId);
+        timerId = setInterval(() => {
+          self.postMessage('tick');
+        }, ${delayMs});
+      } else if (e.data === 'stop') {
+        if (timerId) {
+          clearInterval(timerId);
+          timerId = null;
+        }
+      }
+    };
+  `;
+
+  const blob = new Blob([workerCode], { type: 'application/javascript' });
+  const workerUrl = URL.createObjectURL(blob);
+  let worker: Worker | null = new Worker(workerUrl);
+
+  worker.onmessage = () => {
+    callback();
+  };
+
+  worker.postMessage('start');
+
+  return () => {
+    if (worker) {
+      worker.postMessage('stop');
+      worker.terminate();
+      worker = null;
+      URL.revokeObjectURL(workerUrl);
+    }
+  };
+};
+
 export const PomodoroProvider = ({ children }: { children: ReactNode }) => {
   const { user, loading: authLoading } = useAuth();
   const { toast } = useToast();
@@ -59,8 +102,8 @@ export const PomodoroProvider = ({ children }: { children: ReactNode }) => {
   const [isResting, setIsResting] = useState(false);
   const [restTimeLeftSeconds, setRestTimeLeftSeconds] = useState(DEFAULT_REST_MINUTES * 60);
 
-  const pomodoroIntervalRef = useRef<NodeJS.Timeout | null>(null);
-  const restIntervalRef = useRef<NodeJS.Timeout | null>(null);
+  const pomodoroIntervalRef = useRef<(() => void) | null>(null);
+  const restIntervalRef = useRef<(() => void) | null>(null);
 
 
   const [originalTitle, setOriginalTitle] = useState('');
@@ -92,8 +135,14 @@ export const PomodoroProvider = ({ children }: { children: ReactNode }) => {
       setFirestoreSessionState(null);
       setTimeLeftSeconds(DEFAULT_POMODORO_MINUTES * 60);
       setIsLoading(false);
-      if (pomodoroIntervalRef.current) clearInterval(pomodoroIntervalRef.current);
-      if (restIntervalRef.current) clearInterval(restIntervalRef.current);
+      if (pomodoroIntervalRef.current) {
+        pomodoroIntervalRef.current();
+        pomodoroIntervalRef.current = null;
+      }
+      if (restIntervalRef.current) {
+        restIntervalRef.current();
+        restIntervalRef.current = null;
+      }
       setIsResting(false);
       setIsBreakDialogOpen(false);
       return;
@@ -223,7 +272,7 @@ export const PomodoroProvider = ({ children }: { children: ReactNode }) => {
     if (!user?.uid || !docRef || isResting || isBreakDialogOpen) return;
 
     if (pomodoroIntervalRef.current) {
-      clearInterval(pomodoroIntervalRef.current);
+      pomodoroIntervalRef.current();
       pomodoroIntervalRef.current = null;
     }
 
@@ -252,7 +301,10 @@ export const PomodoroProvider = ({ children }: { children: ReactNode }) => {
 
   useEffect(() => {
     if (!user?.uid || !firestoreSessionState || isResting || isBreakDialogOpen || firestoreSessionState.status !== 'running' || !firestoreSessionState.targetEndTime) {
-      if (pomodoroIntervalRef.current) clearInterval(pomodoroIntervalRef.current);
+      if (pomodoroIntervalRef.current) {
+        pomodoroIntervalRef.current();
+        pomodoroIntervalRef.current = null;
+      }
       if (firestoreSessionState?.status === 'paused' && firestoreSessionState.pausedTimeLeftSeconds !== null) {
         setTimeLeftSeconds(firestoreSessionState.pausedTimeLeftSeconds);
       } else if (firestoreSessionState?.status === 'idle') {
@@ -264,7 +316,10 @@ export const PomodoroProvider = ({ children }: { children: ReactNode }) => {
     const updateTimer = () => {
       const currentTargetEndTime = firestoreSessionState.targetEndTime;
       if (!currentTargetEndTime) {
-        if (pomodoroIntervalRef.current) clearInterval(pomodoroIntervalRef.current);
+        if (pomodoroIntervalRef.current) {
+          pomodoroIntervalRef.current();
+          pomodoroIntervalRef.current = null;
+        }
         return;
       }
       const now = Date.now();
@@ -275,11 +330,19 @@ export const PomodoroProvider = ({ children }: { children: ReactNode }) => {
       }
     };
 
-    if (pomodoroIntervalRef.current) clearInterval(pomodoroIntervalRef.current);
+    if (pomodoroIntervalRef.current) {
+      pomodoroIntervalRef.current();
+      pomodoroIntervalRef.current = null;
+    }
     updateTimer();
-    pomodoroIntervalRef.current = setInterval(updateTimer, 1000);
+    pomodoroIntervalRef.current = startBackgroundInterval(updateTimer, 1000);
 
-    return () => { if (pomodoroIntervalRef.current) clearInterval(pomodoroIntervalRef.current); };
+    return () => {
+      if (pomodoroIntervalRef.current) {
+        pomodoroIntervalRef.current();
+        pomodoroIntervalRef.current = null;
+      }
+    };
   }, [user?.uid, firestoreSessionState?.status, firestoreSessionState?.targetEndTime, firestoreSessionState?.userPreferredDurationMinutes, isResting, isBreakDialogOpen, currentTimerEnds]);
 
   const restTimerEnds = useCallback(async () => {
@@ -287,7 +350,7 @@ export const PomodoroProvider = ({ children }: { children: ReactNode }) => {
     if (!docRef || !user?.uid) return;
 
     if (restIntervalRef.current) {
-        clearInterval(restIntervalRef.current);
+        restIntervalRef.current();
         restIntervalRef.current = null;
     }
 
@@ -306,7 +369,10 @@ export const PomodoroProvider = ({ children }: { children: ReactNode }) => {
 
   useEffect(() => {
     if (!isResting || !firestoreSessionState?.restTargetEndTime) {
-        if (restIntervalRef.current) clearInterval(restIntervalRef.current);
+        if (restIntervalRef.current) {
+          restIntervalRef.current();
+          restIntervalRef.current = null;
+        }
         return;
     }
 
@@ -318,11 +384,19 @@ export const PomodoroProvider = ({ children }: { children: ReactNode }) => {
         }
     };
 
-    if (restIntervalRef.current) clearInterval(restIntervalRef.current);
+    if (restIntervalRef.current) {
+      restIntervalRef.current();
+      restIntervalRef.current = null;
+    }
     updateRestTimer();
-    restIntervalRef.current = setInterval(updateRestTimer, 1000);
+    restIntervalRef.current = startBackgroundInterval(updateRestTimer, 1000);
 
-    return () => { if (restIntervalRef.current) clearInterval(restIntervalRef.current); };
+    return () => {
+      if (restIntervalRef.current) {
+        restIntervalRef.current();
+        restIntervalRef.current = null;
+      }
+    };
   }, [isResting, firestoreSessionState?.restTargetEndTime, restTimerEnds]);
 
 
@@ -402,7 +476,8 @@ export const PomodoroProvider = ({ children }: { children: ReactNode }) => {
     if (!docRef || !firestoreSessionState || firestoreSessionState.status !== 'running' || !firestoreSessionState.targetEndTime || !user?.uid) return;
 
     if (pomodoroIntervalRef.current) {
-      clearInterval(pomodoroIntervalRef.current);
+      pomodoroIntervalRef.current();
+      pomodoroIntervalRef.current = null;
     }
 
     const now = Date.now();
@@ -434,7 +509,10 @@ export const PomodoroProvider = ({ children }: { children: ReactNode }) => {
     const docRef = pomodoroDocRef();
     if (!docRef || !user?.uid) return;
 
-    if (pomodoroIntervalRef.current) clearInterval(pomodoroIntervalRef.current);
+    if (pomodoroIntervalRef.current) {
+      pomodoroIntervalRef.current();
+      pomodoroIntervalRef.current = null;
+    }
     
     const updateData = {
       status: 'idle',
@@ -487,7 +565,10 @@ export const PomodoroProvider = ({ children }: { children: ReactNode }) => {
     const docRef = pomodoroDocRef();
     if (!docRef) return;
     setIsBreakDialogOpen(false);
-    if (pomodoroIntervalRef.current) clearInterval(pomodoroIntervalRef.current);
+    if (pomodoroIntervalRef.current) {
+      pomodoroIntervalRef.current();
+      pomodoroIntervalRef.current = null;
+    }
 
     const restDurationMinutes = firestoreSessionState?.userPreferredRestDurationMinutes || DEFAULT_REST_MINUTES;
     const restTargetEndTime = Date.now() + restDurationMinutes * 60 * 1000;
@@ -499,7 +580,10 @@ export const PomodoroProvider = ({ children }: { children: ReactNode }) => {
   const skipRest = async () => {
     const docRef = pomodoroDocRef();
     if (!docRef) return;
-    if (restIntervalRef.current) clearInterval(restIntervalRef.current);
+    if (restIntervalRef.current) {
+      restIntervalRef.current();
+      restIntervalRef.current = null;
+    }
     
     await setDoc(docRef, { restTargetEndTime: null }, { merge: true });
     // isResting state will be updated via the onSnapshot listener

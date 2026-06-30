@@ -48,6 +48,49 @@ const playSound = (soundUrl: string) => {
   }
 };
 
+const startBackgroundInterval = (callback: () => void, delayMs: number): (() => void) => {
+  if (typeof window === 'undefined' || typeof Worker === 'undefined') {
+    const id = setInterval(callback, delayMs);
+    return () => clearInterval(id);
+  }
+
+  const workerCode = `
+    let timerId = null;
+    self.onmessage = function(e) {
+      if (e.data === 'start') {
+        if (timerId) clearInterval(timerId);
+        timerId = setInterval(() => {
+          self.postMessage('tick');
+        }, ${delayMs});
+      } else if (e.data === 'stop') {
+        if (timerId) {
+          clearInterval(timerId);
+          timerId = null;
+        }
+      }
+    };
+  `;
+
+  const blob = new Blob([workerCode], { type: 'application/javascript' });
+  const workerUrl = URL.createObjectURL(blob);
+  let worker: Worker | null = new Worker(workerUrl);
+
+  worker.onmessage = () => {
+    callback();
+  };
+
+  worker.postMessage('start');
+
+  return () => {
+    if (worker) {
+      worker.postMessage('stop');
+      worker.terminate();
+      worker = null;
+      URL.revokeObjectURL(workerUrl);
+    }
+  };
+};
+
 export const PomodoroLocalProvider = ({ children }: { children: ReactNode }) => {
   const { toast } = useToast();
   const t = useI18n();
@@ -66,7 +109,7 @@ export const PomodoroLocalProvider = ({ children }: { children: ReactNode }) => 
 
   const [sessionState, setSessionState] = useState<LocalPomodoroSessionState>(initialSessionState);
   const [timeLeftSeconds, setTimeLeftSeconds] = useState(DEFAULT_POMODORO_MINUTES * 60);
-  const pomodoroIntervalRef = useRef<NodeJS.Timeout | null>(null);
+  const pomodoroIntervalRef = useRef<(() => void) | null>(null);
 
   const [originalTitle, setOriginalTitle] = useState('');
   const [originalFaviconHref, setOriginalFaviconHref] = useState<string | null>(null);
@@ -139,14 +182,14 @@ export const PomodoroLocalProvider = ({ children }: { children: ReactNode }) => 
   const currentTimerEnds = useCallback(() => {
     if (isResting || isBreakDialogOpen) {
       if (pomodoroIntervalRef.current) {
-        clearInterval(pomodoroIntervalRef.current);
+        pomodoroIntervalRef.current();
         pomodoroIntervalRef.current = null;
       }
       return;
     }
 
     if (pomodoroIntervalRef.current) {
-      clearInterval(pomodoroIntervalRef.current);
+      pomodoroIntervalRef.current();
       pomodoroIntervalRef.current = null;
     }
     
@@ -179,7 +222,7 @@ export const PomodoroLocalProvider = ({ children }: { children: ReactNode }) => 
   useEffect(() => {
     if (isResting || isBreakDialogOpen || sessionState.status !== 'running' || !sessionState.targetEndTime) {
       if (pomodoroIntervalRef.current) {
-        clearInterval(pomodoroIntervalRef.current);
+        pomodoroIntervalRef.current();
         pomodoroIntervalRef.current = null;
       }
       if (sessionState.status === 'paused' && sessionState.pausedTimeLeftSeconds !== null) {
@@ -193,8 +236,10 @@ export const PomodoroLocalProvider = ({ children }: { children: ReactNode }) => 
     const updateTimer = () => {
       const currentTargetEndTime = sessionState.targetEndTime;
       if (!currentTargetEndTime) {
-        if (pomodoroIntervalRef.current) clearInterval(pomodoroIntervalRef.current);
-        pomodoroIntervalRef.current = null;
+        if (pomodoroIntervalRef.current) {
+          pomodoroIntervalRef.current();
+          pomodoroIntervalRef.current = null;
+        }
         return;
       }
       const now = Date.now();
@@ -205,13 +250,16 @@ export const PomodoroLocalProvider = ({ children }: { children: ReactNode }) => 
       }
     };
 
-    if (pomodoroIntervalRef.current) clearInterval(pomodoroIntervalRef.current);
+    if (pomodoroIntervalRef.current) {
+      pomodoroIntervalRef.current();
+      pomodoroIntervalRef.current = null;
+    }
     updateTimer();
-    pomodoroIntervalRef.current = setInterval(updateTimer, 1000);
+    pomodoroIntervalRef.current = startBackgroundInterval(updateTimer, 1000);
 
     return () => {
       if (pomodoroIntervalRef.current) {
-        clearInterval(pomodoroIntervalRef.current);
+        pomodoroIntervalRef.current();
         pomodoroIntervalRef.current = null;
       }
     };
@@ -256,10 +304,15 @@ export const PomodoroLocalProvider = ({ children }: { children: ReactNode }) => 
   useEffect(() => {
     if (!isResting) return;
 
-    const intervalId = setInterval(() => {
+    let cleanup: (() => void) | null = null;
+
+    const tick = () => {
       setRestTimeLeftSeconds(prevSeconds => {
         if (prevSeconds <= 1) {
-          clearInterval(intervalId);
+          if (cleanup) {
+            cleanup();
+            cleanup = null;
+          }
           setIsResting(false);
           playSound(BREAK_COMPLETE_SOUND); 
           if (typeof window !== 'undefined' && Notification.permission === "granted") {
@@ -272,9 +325,16 @@ export const PomodoroLocalProvider = ({ children }: { children: ReactNode }) => 
         }
         return prevSeconds - 1;
       });
-    }, 1000);
+    };
 
-    return () => clearInterval(intervalId);
+    cleanup = startBackgroundInterval(tick, 1000);
+
+    return () => {
+      if (cleanup) {
+        cleanup();
+        cleanup = null;
+      }
+    };
   }, [isResting, t]);
 
   const startPomodoro = async (durationMinutes: number, taskTitle?: string) => {
@@ -312,7 +372,7 @@ export const PomodoroLocalProvider = ({ children }: { children: ReactNode }) => 
   const pausePomodoro = async () => {
     if (sessionState.status !== 'running' || !sessionState.targetEndTime) return;
     if (pomodoroIntervalRef.current) {
-      clearInterval(pomodoroIntervalRef.current);
+      pomodoroIntervalRef.current();
       pomodoroIntervalRef.current = null;
     }
     const now = Date.now();
@@ -340,7 +400,7 @@ export const PomodoroLocalProvider = ({ children }: { children: ReactNode }) => 
 
   const giveUpPomodoro = async () => {
     if (pomodoroIntervalRef.current) {
-      clearInterval(pomodoroIntervalRef.current);
+      pomodoroIntervalRef.current();
       pomodoroIntervalRef.current = null;
     }
     setSessionState(prev => ({
@@ -385,7 +445,7 @@ export const PomodoroLocalProvider = ({ children }: { children: ReactNode }) => 
   const handleStartRestPeriod = (selectedOptionId: string) => {
     setIsBreakDialogOpen(false);
     if (pomodoroIntervalRef.current) {
-      clearInterval(pomodoroIntervalRef.current);
+      pomodoroIntervalRef.current();
       pomodoroIntervalRef.current = null;
     }
     setRestTimeLeftSeconds((sessionState.userPreferredRestDurationMinutes || DEFAULT_REST_MINUTES) * 60);
